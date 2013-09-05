@@ -12,7 +12,7 @@
 
 class Header {
  public:
-  uint64_t point; 
+  uint64_t point;  //! Key/ index
   double EMA, low_b, upp_b;
   bool trace;
 

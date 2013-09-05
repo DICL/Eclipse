@@ -28,22 +28,26 @@ POLICY = -DDATA_MIGRATION
 export POLICY CXX CXXFLAGS MAKE AR OPTIONS INCLUDE BINLIB
 .PHONY: lib dist node docs
 
-all: src
-	$(MAKE) -C src/
+all: lib simring mapreduce
+	@echo -e "\e[31m*************DONE**************\e[0m"
 
 lib:
 	@echo building a static library!!
 	-$(MAKE) -C lib/ -j16
 
-src:
-	-$(MAKE) -C src/
+simring:
+	-$(MAKE) -C src_sr/
+
+mapreduce:
+	-$(MAKE) -C src_mr/
 
 clean:
 	-$(MAKE) -C lib/ clean
-	-$(MAKE) -C src/ clean
+	-$(MAKE) -C src_sr/ clean
+	-$(MAKE) -C src_mr/ clean
 
 dist: clean
-	tar -cvzf simulator_simple_`date +"%d-%m-%y"`.tar.gz ./*
+	tar -cvzf MRR_`date +"%d-%m-%y"`.tar.gz ./*
 
 docs:
 	cd docs; doxygen
