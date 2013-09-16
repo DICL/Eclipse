@@ -6,7 +6,7 @@ then
 fi
 
 echo "launching master"
-sh $MRR_HOME/bin/runmaster.sh $1 &
+$MRR_HOME/bin/master $1 &
 
 sleep 1
 
@@ -15,10 +15,10 @@ do
 	if ((i<10))
 	then
 		echo "launching slave $i"
-		ssh raven0$i sh $MRR_HOME/bin/runslave.sh ravenleader &
+		ssh raven0$i $MRR_HOME/bin/slave ravenleader &
 	else
 		echo "launching slave $i"
-		ssh raven$i sh $MRR_HOME/bin/runslave.sh ravenleader &
+		ssh raven$i $MRR_HOME/bin/slave ravenleader &
 	fi
 done
 
