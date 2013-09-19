@@ -14,8 +14,9 @@ MAKE = make
 AR = ar
 
 CXXFLAGS = -Wall -g -std=gnu++98 -rdynamic
-INCLUDE = -I./lib/ -I./src/common/ -L./lib/ 
-BINLIB  = -lstdc++ -lsimring
+INCLUDE  = -I./lib/ -I./src/common/ -L./lib/ 
+BINLIB   = -lstdc++ -lsimring
+LIBDIR   := $(realpath ./lib/)
 
 #Experiments parameters
 OPTIONS = -D__STDC_FORMAT_MACROS
@@ -25,7 +26,7 @@ OPTIONS += 	-DDATA_MIGRATION
 
 POLICY = -DDATA_MIGRATION
 
-export POLICY CXX CXXFLAGS MAKE AR OPTIONS INCLUDE BINLIB
+export POLICY CXX CXXFLAGS MAKE AR OPTIONS INCLUDE BINLIB LIBDIR
 .PHONY: lib dist node docs
 
 all: lib simring mapreduce
