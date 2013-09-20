@@ -1,33 +1,34 @@
 #include <simring.hh>
-#include <assert.h>
+#include <SETcache.hh>
+#include <UnitTest++.h>
 
-int main () {
-	uint64_t success = 0;
-	uint64_t failed = 0;
+struct fix_setcache {
+ uint64_t success, failed;
+ SETcache* cache;
 
-	SETcache cache (3, "input1.trash");
+ fix_setcache () {
+  success = 0;
+  failed = 0;
+  cache = new SETcache (3, "input1.trash");
+ }
 
-	//--------------------------------------//
+ ~fix_setcache () {
+  delete cache;
+ }
+};
 
-	for (int i = 3; i < 7; i++) {
+SUITE (SETCACHE) {
+ //--------------------------------------//
+ TEST_FIXTURE (fix_setcache, match) {
 
-		if (cache.match (i, 1, 10)) 
-			success++;
-		else
-			failed++;
+  for (int i = 3; i < 7; i++) {
 
-		cout << cache << endl;
-	}
-	assert (failed == 4);
+   if (cache->match (i, 1, 10)) 
+    success++;
+   else
+    failed++;
 
-	//--------------------------------------//
-
-	if (cache.match (8, 5, 10)) 
-		success++;
-	else
-		failed++;
-
-	cout << cache << endl;
-
- return 0;
+  }
+  CHECK(failed == 4);
+ }
 }

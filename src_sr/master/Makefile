@@ -1,7 +1,6 @@
-INCLUDE := -I./../../lib/ -I./
+INCLUDE := -I./
 INCLUDE += -I./../common/
-#LIBDIR  := -L./../../lib/
-LIBDIR  += -L./../common/
+LIBDIR  := -L./../common/
 LIB     := -l simring
 
 all: clean compile

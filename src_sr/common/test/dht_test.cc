@@ -17,12 +17,12 @@ SUITE (DHT) {
   Header h1;
 
   my_dht.set_network (24444, 4, "ra0", ips); 
-  h1.set_point (320000) .set_trazable ();
+  h1.set_point (320000);// .set_trazable ();
 
-  cout << "CHECK: " << my_dht.check (h1) << endl;
+  CHECK_EQUAL(my_dht.check (h1), 0) ;
 
   if (my_dht.check (h1) == false) {
-   cout << "REQUEST: " << my_dht.request (h1) << endl;
+   CHECK_EQUAL (my_dht.request (h1), 1);
   }
  }
 }

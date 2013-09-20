@@ -47,6 +47,9 @@ clean:
 	-$(MAKE) -C src_sr/ clean
 	-$(MAKE) -C src_mr/ clean
 
+test: 
+	-$(MAKE) -C src_sr/ test
+
 dist: clean
 	tar -cvzf MRR_`date +"%d-%m-%y"`.tar.gz ./*
 

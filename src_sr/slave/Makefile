@@ -1,6 +1,6 @@
 INCLUDE += -I./../../lib/ -I./
 INCLUDE += -I./../common/
-LIBDIR  += -L./../common/
+LIBDIR  := -L./../common/
 BINLIB  += -lpthread
 
 all: clean compile

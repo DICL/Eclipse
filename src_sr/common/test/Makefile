@@ -1,21 +1,22 @@
+vpath %.cc ../
+
 LIBDIR  ?= ../../../lib
 INCLUDE := -I ./../
 INCLUDE += -I $(LIBDIR)/unittest++/
 
-CXX := g++
-CXXFLAGS := -g -Wall $(INCLUDE) -std=gnu++98 #-Wno-non-virtual-dtor
+CXXFLAGS := -g -Wall $(INCLUDE) -std=gnu++98 
 LDFLAGS := -L ../ -lsimring -L $(LIBDIR) -lUnitTest++ -lm
 
-SOURCES := main.cc order_test.cc ../order.cc dht_test.cc ../dht.cc
+SOURCES := main.cc order_test.cc dht_test.cc order.cc dht.cc
 OBJECTS := $(patsubst %.cc, %.o, $(SOURCES))
 
 %.o : %.cc 
 	$(CXX) -c $(CXXFLAGS) $^
 
 all: $(OBJECTS) depend
-	$(CXX) $(CXXFLAGS) -o ./all_test main.o order.o order_test.o dht.o dht_test.o $(LDFLAGS) 
+	$(CXX) $(CXXFLAGS) -o ./all_test $(OBJECTS) $(LDFLAGS) 
 
-test:
+test: all
 	./all_test
 
 depend:
@@ -24,4 +25,4 @@ depend:
 	fi;
 
 clean:						
-	-rm *.o order_test
+	-rm *.o all_test

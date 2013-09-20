@@ -15,5 +15,8 @@ all: $(objects)
 
 $(objects) : $(sources)
 
+test:
+	make -C test/ test 
+
 clean:
 	-rm *.o *.a
