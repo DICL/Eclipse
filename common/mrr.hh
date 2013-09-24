@@ -6,9 +6,10 @@
 #define __MRR_H_
 
 #ifndef _DEBUG
-#include <src_sr/utils.hh>
-#include <src_sr/order.hh>
-#include <src_sr/master.hh>
+
+#include <src_sr/common/utils.hh>
+#include <src_sr/common/order.hh>
+#include <src_sr/master/master.hh>
 
 #else
 

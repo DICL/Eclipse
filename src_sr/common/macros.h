@@ -19,7 +19,7 @@
 #define FAIL -1
 
 #ifndef DPSIZE
-#define DPSIZE (2 << 13)
+#define DPSIZE (2 << 13) //! 4096 Bytes
 #endif
 
 #ifndef DATAFILE

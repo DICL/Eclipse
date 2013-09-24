@@ -79,6 +79,8 @@ class diskPage : public Header {
 class Packet: public Header {
  public:
   uint64_t time; 
+  size_t size;
+  uint8_t* data;
 
   using Header::set_point;
 
@@ -90,7 +92,7 @@ class Packet: public Header {
    time = that.time;
    return *this;
   }
-
+  size_t get_size () { return size; }
   Packet& set_time (uint64_t t) { time = t; return *this; }
 } __attribute__((aligned));
 
