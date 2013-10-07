@@ -1,12 +1,11 @@
-/*
- * @file This file contains the source code of the application 
- *       which will run in each server 
- */
-#pragma once
-#ifndef __NODE_HH_
-#define __NODE_HH_
+#ifndef __NODE_SKETCH_HH_
+#define __NODE_SKETCH_HH_
+
+#include <dht.hh>
+#include <simring.hh>
 
 #include <iostream>
+#include <inttypes.h>
 #include <stdint.h>
 #include <pthread.h>
 #include <sys/types.h>
@@ -18,60 +17,67 @@
 #include <arpa/inet.h>
 #include <stdint.h>
 #include <error.h>
-#include <simring.hh>
 
 using namespace std;
 
-extern bool panic;
-extern SETcache cache; 
+class Node {
+ protected:
+  SETcache cache; 
+  DHT dht;
+  int sock_scheduler, sock_left, sock_right, sock_server;  
+  int sch_port, peer_port, dht_port;
+  char *local_ip, peer_left [32], peer_right[32], host_str [128], data_file [128];
+  bool panic;
 
-extern uint32_t queryRecieves;
-extern uint32_t queryProcessed;
-extern uint64_t hitCount;
-extern uint64_t missCount;
-extern uint64_t TotalExecTime;
-extern uint64_t TotalWaitTime;
+  uint32_t queryRecieves;
+  uint32_t queryProcessed;
+  uint64_t hitCount;
+  uint64_t missCount;
+  uint64_t TotalExecTime;
+  uint64_t TotalWaitTime;
 
-extern int sock_scheduler, sock_left, sock_right, sock_server;  
+  const char * network_ip [10] = 
+  {
+   "192.168.1.1",
+   "192.168.1.2",
+   "192.168.1.3",
+   "192.168.1.4",
+   "192.168.1.5",
+   "192.168.1.6",
+   "192.168.1.7",
+   "192.168.1.8",
+   "192.168.1.9",
+   "192.168.1.10"
+  };
 
-extern pthread_cond_t cond_scheduler_empty;
-extern pthread_cond_t cond_scheduler_full;
-extern pthread_cond_t cond_neighbor_empty;
-extern pthread_mutex_t mutex_scheduler;
-extern pthread_mutex_t mutex_neighbor;
+  pthread_t thread_neighbor;
+  pthread_t thread_scheduler;
+  pthread_t thread_forward;
+  pthread_t thread_dht;
 
-extern ssize_t (*_recv)     (int, void*, size_t, int);
-extern ssize_t (*_send)     (int, const void*, size_t, int);
-extern int (*_connect)      (int, const struct sockaddr*, socklen_t);
+  struct sockaddr_in addr_left, addr_right, addr_server;
 
-#ifdef _DEBUG
-ssize_t recv_mock           (int, void*, size_t, int);
-ssize_t sendto_mock         (int, const void*, size_t, int);
-ssize_t recvfrom_mock       (int, const void*, size_t, int);
-ssize_t send_mock           (int, const void*, size_t, int);
-int connect_mock            (int, const struct sockaddr*, socklen_t);
-void parse_args             (int, const char**);
-#endif
+  static void* thread_func_dht       (void*) WEAK;
+  static void* thread_func_scheduler (void*) WEAK;
+  static void* thread_func_neighbor  (void*) WEAK;
+  static void* thread_func_forward   (void*) WEAK;
 
-struct Arguments {
-  char host_str [32];
-  char data_file [256];
-  char peer_right [32];
-  char peer_left [32];
-  int port;
-}; 
+  void setup_server_peer      (int, int*, struct sockaddr_in*) WEAK;
+  void setup_client_peer      (const int, const char*, int*, struct sockaddr_in*) WEAK;
+  void setup_client_scheduler (int, const char*, int*) WEAK;
+  void parse_args             (int, const char**, Arguments*) WEAK;
+  void close_all              (void) WEAK;
+  void catch_signal           (int);
 
-void* thread_func_dht       (void*) WEAK;
-void* thread_func_scheduler (void*) WEAK;
-void* thread_func_neighbor  (void*) WEAK;
-void* thread_func_forward   (void*) WEAK;
+ public:
+  Node (int, const char**, const char*, const char**);
+  ~Node ();
 
-void setup_server_peer      (int, int*, struct sockaddr_in*) WEAK;
-void setup_client_peer      (const int, const char*, int*, struct sockaddr_in*) WEAK;
-void setup_client_scheduler (int, const char*, int*) WEAK;
-void parse_args             (int, const char**, Arguments*) WEAK;
-void close_all              (void) WEAK;
-void catch_signal           (int);
-void recv_msg2              (int fd, char* in);
+  bool run ();
+  bool join ();
+  static void signal_handler ();
+
+  static Node& instance;
+};
 
 #endif

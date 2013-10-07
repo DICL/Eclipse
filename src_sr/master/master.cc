@@ -1,5 +1,7 @@
 #include <master.hh>
 
+// Hash function {{{ 
+// ----------------------------------------------------
 int h (const char* k, size_t length = 0) {
  uint8_t* seed = (uint8_t*) &k;
  uint32_t _key = 0;
@@ -12,6 +14,9 @@ int h (const char* k, size_t length = 0) {
  return _key % length;
 }
 
+// }}}
+// Setup the socket (listen) {{{ 
+// ----------------------------------------------------
 bool Master::listen () {
  int one = 1;
  struct sockaddr_in addr;
@@ -19,7 +24,7 @@ bool Master::listen () {
  addr.sin_family = AF_INET;
  addr.sin_port = htons (port);
  addr.sin_addr.s_addr = INADDR_ANY;
- bzero (&(addr.sin_zero),8);
+ bzero (&(addr.sin_zero), 8);
 
  if ((sock = socket (AF_INET, SOCK_STREAM, 0)) == -1)
   log (M_ERR, "SCHEDULER", "Socket");
@@ -36,22 +41,28 @@ bool Master::listen () {
  log (M_INFO, "SCHEDULER", "Network setted up using port = %i", port);
  
  return true;
-}
+} 
 
-//! Sample RR algorithm
+//}}}
+// Sample RR algorithm {{{
+// ----------------------------------------------------
 int Master::select_slave (uint64_t key) {
  static int i = 0;
  return (i++ % nslaves);
 }
 
+//}}}
+// upload {{{
+// ----------------------------------------------------
 int Master::upload (Order& o) {
- char* file_name  = const_cast<char*>(o.get_file_name ());
+ const char* file_name  = o.get_file_name ();
  int slave_victim = select_slave (h (file_name, strlen (file_name)));
  assert (slaves[slave_victim].get_status() == Address_book::CONNECTED);
- Packet& packet = PacketFactory.fromOrder (o);
+ Packet* packet = PacketFactory::fromOrder (o);
 
  //! Forward the data to one of the slaves
  slaves [slave_victim] .send (packet);
 
  return slave_victim;
-}
+} 
+//}}}

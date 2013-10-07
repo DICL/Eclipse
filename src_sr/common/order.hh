@@ -11,7 +11,7 @@
 using std::list;
 using std::string;
 
-const  size_t DISK_PAGE_SIZE = 4092;
+const size_t DISK_PAGE_SIZE = 4092;
 
 class Order {
 
@@ -28,7 +28,6 @@ class Order {
 
  public:
   Order () { }
-  //Order (char*);
   Order (char*, uint8_t*, size_t);
 
   Order& set_file_name (const char* in) { 

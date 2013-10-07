@@ -1,29 +1,32 @@
+// AUTHOR: vicente.bolea@gmail.com
+//
+//
+//
+//
+//
+
 #ifndef __LOGGER_HH_
 #define __LOGGER_HH_
 
-const char *error_str [20] = {
- "[\e[31mERROR\e[0m]",   //! RED COLOR
- "[\e[35mWARN\e[0m]",    //! MAGENTA COLOR 
- "[\e[32mDEBUG\e[0m]",   //! GREEN COLOR 
- "[\e[34mINFO\e[0m]"     //! BLUE COLOR
+const char *error_str [32] = {
+ "\e[31mERROR\e[0m",   //! RED COLOR
+ "\e[35mWARN\e[0m",    //! MAGENTA COLOR 
+ "\e[32mDEBUG\e[0m",   //! GREEN COLOR 
+ "\e[34mINFO\e[0m"     //! BLUE COLOR
 };
 
 const char *error_str_nocolor [20] = {"[ERROR]", "[WARN]", "[DEBUG]", "[INFO]"};
 
+
 class logger {
- public:
-  logger ();
-  virtual ~logger ();
-
-  virtual static void set_host (char* host) {
-   strncpy (host, "UNDETERMINED", 32);
-  }
-
-  void log (int type, const char* in, ...) {
+ protected:
+  static void log (int type, const char* in, ...) {
     va_list args;
+    char host [32];
 
+    get_host (host);
     if (isatty (fileno (stdout)) || true)
-     fprintf (stderr, "%s\e[33m::\e[0m[\e[36m%s\e[0m]\e[1m \e[33m", error_str [type],  _ip);
+     fprintf (stderr, "%s\e[33m::\e[0m[\e[36m%s\e[0m]\e[1m \e[33m", error_str [type], host);
     else 
      fprintf (stderr, "%s::[%s] ", error_str_nocolor [type], host);
 
@@ -38,6 +41,18 @@ class logger {
 
     if (type == M_ERR) exit (EXIT_SUCCESS);
    }
+
+ public:
+  //logger ();
+  virtual ~logger ();
+
+  // @override
+  virtual static void get_host (char* host) {
+   strncpy (host, "UNDETERMINED", 32);
+  }
+
+  // @override
+  virtual static void set_color () { return true; }
 
   static void info (const char* in, ...) {
     va_list args;

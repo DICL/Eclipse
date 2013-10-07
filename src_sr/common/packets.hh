@@ -10,7 +10,10 @@
 #include <iostream>
 #include <string>
 
+class PacketFactory;
+
 class Header {
+ friend class PacketFactory;
  public:
   uint64_t point;  //! Key/ index
   double EMA, low_b, upp_b;
@@ -44,6 +47,7 @@ class Header {
 
 
 class diskPage : public Header {
+ friend class PacketFactory;
  public:
   uint64_t time;
   char chunk [DPSIZE];
@@ -77,6 +81,7 @@ class diskPage : public Header {
  * will be send by sockets
  */
 class Packet: public Header {
+ friend class PacketFactory;
  public:
   uint64_t time; 
   size_t size;
@@ -97,6 +102,7 @@ class Packet: public Header {
 } __attribute__((aligned));
 
 class Query: public Packet {
+ friend class PacketFactory;
  protected:
   struct timeval scheduledDate;
   struct timeval startDate;

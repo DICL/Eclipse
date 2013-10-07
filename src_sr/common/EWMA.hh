@@ -1,10 +1,10 @@
 #ifndef __EWMA_HH_
 #define __EWMA_HH_
+
 /*
  * EWMA ema (initial_val, alpha);
  * double new_ema = ema (next_value);
  */
-
 class EWMA {
  public:
   EWMA (double initial_val, double alpha) {

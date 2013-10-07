@@ -1,3 +1,4 @@
+// Preprocessor {{{
 #ifndef __ADDRESS_BOOK_HH
 #define __ADDRESS_BOOK_HH
 
@@ -24,6 +25,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <iostream>
+//}}}
 
 class IAddress_book {
  public:
@@ -57,7 +59,7 @@ class Address_book: public IAddress_book {
 
   virtual ~Address_book () { this->close();}
 
-  Address_book& set_fd (int f)        { fd = f;    return *this;}
+  Address_book& set_fd (int f) { fd = f; return *this;}
   const int get_fd () const { return fd; }
   const Status get_status () const { return status; } 
 
