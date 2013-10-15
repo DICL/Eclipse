@@ -1,2 +1,3 @@
-all: client.cc client.hh
-	g++ client.cc -o $(MRR_HOME)/bin/client -lpthread
+all: $(MR_HOME)/bin/client
+$(MR_HOME)/bin/client: client.cc client.hh $(MR_HOME)/mapreduce/mapreduce.hh
+	g++ client.cc -o $(MR_HOME)/bin/client -lpthread -I $(MR_HOME)

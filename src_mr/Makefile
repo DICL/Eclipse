@@ -1,17 +1,15 @@
-MASTER_PATH=bin/
-MASTER_SRC=master/
-SLAVE_PATH=bin/
-SLAVE_SRC=slave/
-CLIENT_PATH=bin/
-CLIENT_SRC=client/
+all: $(MR_HOME)/bin/master $(MR_HOME)/bin/slave $(MR_HOME)/bin/client
 
-all: $(MASTER_PATH)/master $(SLAVE_PATH)/slave $(CLIENT_PATH)/client
-
-$(MASTER_PATH)/master: $(MASTER_SRC)/master.cc $(MASTER_SRC)/master.hh
+$(MR_HOME)/bin/master: $(MR_HOME)/master/master.cc $(MR_HOME)/master/master.hh $(MR_HOME)/mapreduce/mapreduce.hh
 	make -C master/
 
-$(SLAVE_PATH)/slave: $(SLAVE_SRC)/slave.cc $(SLAVE_SRC)/slave.hh
+$(MR_HOME)/bin/slave: $(MR_HOME)/slave/slave.cc $(MR_HOME)/slave/slave.hh $(MR_HOME)/mapreduce/mapreduce.hh
 	make -C slave/
 
-$(CLIENT_PATH)/client: $(CLIENT_SRC)/client.cc $(CLIENT_SRC)/client.hh
+$(MR_HOME)/bin/client: $(MR_HOME)/client/client.cc $(MR_HOME)/client/client.hh $(MR_HOME)/mapreduce/mapreduce.hh
 	make -C client/
+
+clean:
+	rm -f $(MR_HOME)/bin/master
+	rm -f $(MR_HOME)/bin/slave
+	rm -f $(MR_HOME)/bin/client
