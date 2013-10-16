@@ -10,7 +10,6 @@
 #include <pthread.h>
 #include <netdb.h>
 #include "client.hh"
-#include <mapreduce/mapreduce.hh>
 
 #define PORT 7006
 #define BUF_SIZE 256
@@ -87,8 +86,6 @@ int main(int argc, char** argv)
 			cout<<"Compilation failed due to failure of forking child process."<<endl;
 			return 1;
 		}
-		cout<<"Compiling done..."<<endl;
-		cout<<"Submitting job..."<<endl;
 
 		char *arg = (char*)malloc(sizeof(argv[3]));
 		strcpy(arg, argv[3]);
@@ -107,6 +104,9 @@ int main(int argc, char** argv)
 		strcpy(write_buf, writestring.c_str());
 
 		waitpid(pid, &status, 0);
+		// TODO: ensure the compilation and check if the file exist
+		cout<<"Compiling done..."<<endl;
+		cout<<"Submitting job..."<<endl;
 	}
 	else
 	{

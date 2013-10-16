@@ -10,7 +10,6 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "slave.hh"
-#include <mapreduce/mapreduce.hh>
 
 #define PORT 7006
 #define BUF_SIZE 256
