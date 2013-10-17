@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <boost/lexical_cast.hpp>
 #include <sys/unistd.h>
@@ -12,22 +13,25 @@
 #include "master.hh"
 #include <mapreduce/mapreduce.hh>
 
-#define BACKLOG 10
-#define PORT 7006
 #define BUF_SIZE 256
-#define MAX_CLIENT 1024
 #define MR_PATH "/home/youngmoon01/MRR_storage/"
+#define LIB_PATH "/home/youngmoon01/MRR/MRR/src_mr/"
 
 using namespace std;
 
-int num_slave = 0;
 int conn_slave = 0;
 int conn_client = 0;
 int client_clock = 0;
 int *slavefds;
-int clientfds[MAX_CLIENT];
-int jobfds[MAX_CLIENT][2]; // jobfds[jobid][0]: read, jobfds[jobid][1]: write
-int jobpids[MAX_CLIENT]; // keep track of jobids
+int *clientfds;
+int **jobfds; // jobfds[jobid][0]: read, jobfds[jobid][1]: write
+int *jobpids; // keep track of jobids
+
+int num_slave = -1;
+int backlog = -1;
+int port = -1;
+int max_client = -1;
+
 char read_buf_signal[BUF_SIZE]; // read buffer for signal_listener thread
 char read_buf_client[BUF_SIZE]; // read buffer for accept_client thread
 char write_buf_signal[BUF_SIZE]; // write buffer for signal_listener thread
@@ -43,22 +47,83 @@ char write_buf_client[BUF_SIZE]; // write buffer for accept_client thread
 
 int main(int argc, char** argv)
 {
-	// usage
-	if(argc>1)
-		num_slave = atoi(argv[1]);
-	else
+	// initialize data structures from setup.conf
+	ifstream conf;
+	string token;
+	string confpath = LIB_PATH;
+	confpath.append("setup.conf");
+	conf.open(confpath.c_str());
+
+	while(1)
 	{
-		cout<<"Number of slave nodes is not specified"<<endl;
-		cout<<"usage: master [numer of slave nodes]"<<endl;
-		cout<<"exiting..."<<endl;
+		conf>>token;
+		if(token == "backlog")
+		{
+			conf>>token;
+			backlog = atoi(token.c_str());
+		}
+		else if(token == "port")
+		{
+			conf>>token;
+			port = atoi(token.c_str());
+		}
+		else if(token == "max_client")
+		{
+			conf>>token;
+			max_client = atoi(token.c_str());
+		}
+		else if(token == "num_slave")
+		{
+			conf>>token;
+			num_slave = atoi(token.c_str());
+		}
+		else if(token == "master_address")
+		{
+			// ignore and just pass through this case
+			conf>>token;
+		}
+		else if(token == "end")
+		{
+			break;
+		}
+		else
+		{
+			cout<<"[master]Unknown configure record: "<<token<<endl;
+		}
+	}
+	conf.close();
+	// verify initialization
+	if(backlog == -1)
+	{
+		cout<<"[master]backlog should be specified in the setup.conf"<<endl;
+		return 1;
+	}
+	if(port == -1)
+	{
+		cout<<"[master]port should be specified in the setup.conf"<<endl;
+		return 1;
+	}
+	if(max_client == -1)
+	{
+		cout<<"[master]max_client should be specified in the setup.conf"<<endl;
+		return 1;
+	}
+	if(num_slave == -1)
+	{
+		cout<<"[master]num_slave should be specified in the setup.conf"<<endl;
 		return 1;
 	}
 
-	// initialize arrays
 	slavefds = new int[num_slave];
+	clientfds = new int[max_client];
+	jobfds = new int*[max_client];
+	for(int i=0;i<max_client;i++)
+		jobfds[i] = new int[2];
+
+	jobpids = new int[max_client];
 	for(int i=0;i<num_slave;i++)
 		slavefds[i] = -1;
-	for(int i=0;i<MAX_CLIENT;i++)
+	for(int i=0;i<max_client;i++)
 	{
 		clientfds[i] = -1;
 		jobfds[i][0] = -1;
@@ -66,7 +131,8 @@ int main(int argc, char** argv)
 		jobpids[i] = -1;
 	}
 
-	int serverfd = open_server(PORT);
+
+	int serverfd = open_server(port);
 	if(serverfd < 0)
 	{
 		cout<<"[master]Openning server failed"<<endl;
@@ -178,7 +244,7 @@ int open_server(int port)
 	}
 
 	// listen
-	if(listen(serverfd, BACKLOG) < 0)
+	if(listen(serverfd, backlog) < 0)
 	{
 		cout<<"[master]Listening failed"<<endl;
 		return -1;
@@ -246,14 +312,14 @@ void *accept_client(void *args)
 				client_clock = -1;
 				while(client_clock == -1)
 				{
-					for(int i=0; i<MAX_CLIENT; i++)
+					for(int i=0; i<max_client; i++)
 					{
 						if(clientfds[i] == -1) // the slot is available
 						{
 							client_clock = i;
 							break;
 						}
-						else if(i == MAX_CLIENT-1) // all slots are occupied
+						else if(i == max_client-1) // all slots are occupied
 						{
 							// sleep 1 second to wait until a client finish its job
 							// and run the for loop again
@@ -324,7 +390,7 @@ void *signal_listener(void *args)
 				}
 			}
 		}
-		for(int i=0; i<MAX_CLIENT; i++) // clientfds
+		for(int i=0; i<max_client; i++) // clientfds
 		{
 			while(clientfds[i] != -1) // TODO: check if changing to if~continue is okay
 			{
@@ -396,7 +462,7 @@ void *signal_listener(void *args)
 						cout<<"[master]All slaves closed"<<endl;
 
 						// stop all client except the one requested stop
-						for(int j=0;j<MAX_CLIENT;j++)
+						for(int j=0;j<max_client;j++)
 						{
 							if(i!=j && clientfds[j] != -1) // except the client, TODO: check if changing to if~continue is okay
 							{
@@ -453,7 +519,7 @@ void *signal_listener(void *args)
 					}
 					else if(strncmp(read_buf_signal, "submit", 6) == 0) // "submit" signal arrived assuming the program exist
 					{
-						char *buf_content = (char*)malloc(sizeof(read_buf_signal));
+						char *buf_content = new char[(sizeof(read_buf_signal))];
 						strcpy(buf_content, read_buf_signal);
 
 						run_job(buf_content, i);
@@ -466,7 +532,7 @@ void *signal_listener(void *args)
 				}
 			}
 		}
-		for(int i=0; i<MAX_CLIENT; i++) // jobfds
+		for(int i=0; i<max_client; i++) // jobfds
 		{
 			while(jobfds[i][0] != -1) // TODO: check if changing if~continue is okay
 			{
@@ -510,7 +576,7 @@ void *signal_listener(void *args)
 			}
 		}
 		// check unexpected termination of jobs
-		for(int i=0; i<MAX_CLIENT; i++)
+		for(int i=0; i<max_client; i++)
 		{
 			// continue if job is not executed
 			if(jobpids[i]==-1)
@@ -578,7 +644,7 @@ void run_job(char* buf_content, int clientnum)
 		string program = token;
 		string path = MR_PATH;
 		path.append(program); // path constructed
-		argvalues[0] = (char*)malloc(strlen(path.c_str())+1);
+		argvalues[0] = new char[strlen(path.c_str())+1];
 		strcpy(argvalues[0], path.c_str());
 
 		while(1) // parse all arguments
@@ -588,7 +654,7 @@ void run_job(char* buf_content, int clientnum)
 				break;
 			else
 			{
-				argvalues[argcount] = (char*)malloc(sizeof(token));
+				argvalues[argcount] = new char[sizeof(token)];
 				strcpy(argvalues[argcount], token);
 				argcount++;
 			}
@@ -598,11 +664,11 @@ void run_job(char* buf_content, int clientnum)
 		// pass the pipefds
 		stringstream ss1, ss2;
 		ss1<<fd2[0];
-		argvalues[argcount] = (char*)malloc(strlen(ss1.str().c_str())+1);
+		argvalues[argcount] = new char[strlen(ss1.str().c_str())+1];
 		strcpy(argvalues[argcount], ss1.str().c_str());
 		argcount++;
 		ss2<<fd1[1];
-		argvalues[argcount] = (char*)malloc(strlen(ss2.str().c_str())+1);
+		argvalues[argcount] = new char[strlen(ss2.str().c_str())+1];
 		strcpy(argvalues[argcount], ss2.str().c_str());
 		argcount++;
 
@@ -621,5 +687,6 @@ void run_job(char* buf_content, int clientnum)
 		string program = token;
 		jobpids[clientnum] = pid;
 		cout<<"[master]Job "<<jobpids[clientnum]<<" starting: "<<program<<endl;
+		free(buf_content);
 	}
 }

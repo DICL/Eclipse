@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <sys/unistd.h>
 #include <sys/types.h>
@@ -11,7 +12,6 @@
 #include <netdb.h>
 #include "client.hh"
 
-#define PORT 7006
 #define BUF_SIZE 256
 #define MR_PATH "/home/youngmoon01/MRR_storage/"
 #define LIB_PATH "/home/youngmoon01/MRR/MRR/src_mr/"
@@ -21,40 +21,105 @@ using namespace std;
 
 char read_buf[BUF_SIZE];
 char write_buf[BUF_SIZE];
+char master_address[BUF_SIZE];
+int port = -1;
+bool master_is_set = false;
 
 int main(int argc, char** argv)
 {
 	// usage
-	if(argc<3)
+	if(argc<2)
 	{
-		cout<<"Insufficient arguments: at least 2 arguments needed"<<endl;
-		cout<<"usage: client [master address] [request]"<<endl;
+		cout<<"Insufficient arguments: at least 1 argument needed"<<endl;
+		cout<<"usage: client [request]"<<endl;
 		cout<<"Exiting..."<<endl;
 		return 1;
 	}
+
+	// initialize data structures from setup.conf
+	ifstream conf;
+	string token;
+	string confpath = LIB_PATH;
+	confpath.append("setup.conf");
+	conf.open(confpath.c_str());
+
+	while(1)
+	{
+		conf>>token;
+		if(token == "backlog")
+		{
+			// ignore and just pass through this case
+			conf>>token;
+		}
+		else if(token == "port")
+		{
+			conf>>token;
+			port = atoi(token.c_str());
+		}
+		else if(token == "max_client")
+		{
+			// ignore and just pass through this case
+			conf>>token;
+		}
+		else if(token == "num_slave")
+		{
+			// ignore and just pass through this case
+			conf>>token;
+		}
+		else if(token == "master_address")
+		{
+			conf>>token;
+			strcpy(master_address, token.c_str());
+			master_is_set = true;
+		}
+		else if(token == "end")
+		{
+			break;
+		}
+		else
+		{
+			cout<<"[client]Unknown configure record: "<<token<<endl;
+		}
+	}
+	conf.close();
+	// verify initialization
+	if(port == -1)
+	{
+		cout<<"[client]port should be specified in the setup.conf"<<endl;
+		return 1;
+	}
+	if(master_is_set == false)
+	{
+		cout<<"[client]master_address should be specified in the setup.conf"<<endl;
+		return 1;
+	}
 	// copy request command to write buffer
-	if(strncmp(argv[2], "stop", 4) == 0)
+	if(strncmp(argv[1], "stop", 4) == 0)
 	{
 		memset(write_buf, 0, BUF_SIZE);
 		strcpy(write_buf,"stop");
 	}
-	else if(strncmp(argv[2], "numslave", 8) == 0)
+	else if(strncmp(argv[1], "numslave", 8) == 0)
 	{
 		memset(write_buf, 0, BUF_SIZE);
 		strcpy(write_buf, "numslave");
 	}
-	else if(strncmp(argv[2], "numclient", 9) == 0)
+	else if(strncmp(argv[1], "numclient", 9) == 0)
 	{
 		memset(write_buf, 0, BUF_SIZE);
 		strcpy(write_buf, "numclient");
 	}
-	else if(strncmp(argv[2], "submit", 6) == 0) // submit a job
+	else if(strncmp(argv[1], "help", 4) == 0)
+	{
+		// TODO: lists request and their usage
+	}
+	else if(strncmp(argv[1], "submit", 6) == 0) // submit a job
 	{
 		// compile the submitted job
-		if(argc<4)
+		if(argc<3)
 		{
 			cout<<"The file name to submit is missing"<<endl;
-			cout<<"usage: client [master address] submit [source code]"<<endl;
+			cout<<"usage: client submit [source code]"<<endl;
 			cout<<"Exiting..."<<endl;
 			return 1;
 		}
@@ -66,13 +131,13 @@ int main(int argc, char** argv)
 			cout<<"Compiling the code..."<<endl;
 			//TODO: check if the source file exist and deal with the compile error case
 
-			char *arg = (char*)malloc(sizeof(argv[3]));
-			strcpy(arg, argv[3]);
+			char *arg = new char[sizeof(argv[2])];
+			strcpy(arg, argv[2]);
 			char *name;
 			name = strtok(arg, ".");
 
 			string inputpath = MR_PATH;
-			inputpath.append(argv[3]);
+			inputpath.append(argv[2]);
 			string outputpath = MR_PATH;
 			outputpath.append(name);
 			outputpath.append(".out");
@@ -87,8 +152,8 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
-		char *arg = (char*)malloc(sizeof(argv[3]));
-		strcpy(arg, argv[3]);
+		char *arg = new char[sizeof(argv[2])];
+		strcpy(arg, argv[2]);
 		char *name;
 		name = strtok(arg, ".");
 		string program = name;
@@ -111,10 +176,11 @@ int main(int argc, char** argv)
 	else
 	{
 		memset(write_buf, 0, BUF_SIZE);
-		strcpy(write_buf, argv[2]);
+		strcpy(write_buf, argv[1]);
 	}
 	
-	int masterfd = connect_to_server(argv[1], PORT);
+
+	int masterfd = connect_to_server(master_address, port);
 	if(masterfd<0)
 	{
 		cout<<"Connecting to master failed"<<endl;

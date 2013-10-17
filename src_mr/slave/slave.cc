@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <sys/unistd.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -11,27 +12,82 @@
 #include <unistd.h>
 #include "slave.hh"
 
-#define PORT 7006
 #define BUF_SIZE 256
+#define MR_PATH "/home/youngmoon01/MRR_storage/"
+#define LIB_PATH "/home/youngmoon01/MRR/MRR/src_mr/"
 
 using namespace std;
 
 char read_buf[BUF_SIZE];
 char write_buf[BUF_SIZE];
 
+int port = -1;
+bool master_is_set = false;
+char master_address[256];
+
 int main(int argc, char** argv)
 {
-	// usage
-	if(argc<=1)
+	// initialize data structures from setup.conf
+	ifstream conf;
+	string token;
+	string confpath = LIB_PATH;
+	confpath.append("setup.conf");
+	conf.open(confpath.c_str());
+
+	while(1)
 	{
-		cout<<"Master address is not specified"<<endl;
-		cout<<"usage: slave [master address]"<<endl;
-		cout<<"exiting..."<<endl;
+		conf>>token;
+		if(token == "backlog")
+		{
+			// ignore and just pass through this case
+			conf>>token;
+		}
+		else if(token == "port")
+		{
+			conf>>token;
+			port = atoi(token.c_str());
+		}
+		else if(token == "max_client")
+		{
+			// ignore and just pass through this case
+			conf>>token;
+		}
+		else if(token == "num_slave")
+		{
+			// ignore and just pass through this case
+			conf>>token;
+		}
+		else if(token == "master_address")
+		{
+			conf>>token;
+			strcpy(master_address, token.c_str());
+			master_is_set = true;
+		}
+		else if(token == "end")
+		{
+			break;
+		}
+		else
+		{
+			cout<<"[slave]Unknown configure record: "<<token<<endl;
+		}
+	}
+	conf.close();
+
+	// verify initialization
+	if(port == -1)
+	{
+		cout<<"[slave]port should be specified in the setup.conf"<<endl;
+		return 1;
+	}
+	if(master_is_set == false)
+	{
+		cout<<"[slave]master_address should be specified in the setup.conf"<<endl;
 		return 1;
 	}
 
 	// connect to master
-	int masterfd = connect_to_server(argv[1], PORT);
+	int masterfd = connect_to_server(master_address, port);
 	if(masterfd<0)
 	{
 		cout<<"[slave]Connecting to master failed"<<endl;
