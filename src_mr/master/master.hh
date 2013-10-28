@@ -1,5 +1,6 @@
 #ifndef _MASTER_
 #define _MASTER_
+
 #include <iostream>
 #include <string>
 

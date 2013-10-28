@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <list>
 #include <boost/lexical_cast.hpp>
 #include <sys/unistd.h>
 #include <sys/types.h>
@@ -11,17 +12,21 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include "master.hh"
+#include "connslave.hh"
+#include "connclient.hh"
 #include <mapreduce/mapreduce.hh>
+#include <mapreduce/job.hh>
+#include <mapreduce/task.hh>
 
 using namespace std;
 
 int conn_slave = 0;
 int conn_client = 0;
 int client_clock = 0;
-int *slavefds;
-int *clientfds;
-int **jobfds; // jobfds[jobid][0]: read, jobfds[jobid][1]: write
-int *jobpids; // keep track of jobids
+int* slavefds;
+int* clientfds;
+int** jobfds; // jobfds[jobid][0]: read, jobfds[jobid][1]: write
+int* jobpids; // keep track of jobids
 
 int num_slave = -1;
 int backlog = -1;
@@ -137,7 +142,7 @@ int main(int argc, char** argv)
 
 	struct sockaddr_in connaddr;
 	int addrlen = sizeof(connaddr);
-	char *haddrp;
+	char* haddrp;
 
 	while(1)
 	{
@@ -244,14 +249,14 @@ int open_server(int port)
 	return serverfd;
 }
 
-void *accept_client(void *args)
+void* accept_client(void* args)
 {
 	int serverfd = *((int*)args);
 	int tmpfd = -1; // file descriptor to store fd of new connected node temporarily
 	struct sockaddr_in connaddr;
 	int addrlen = sizeof(connaddr);
 	int readbytes;
-	char *haddrp;
+	char* haddrp;
 
 	while(1)
 	{
@@ -348,7 +353,7 @@ void *accept_client(void *args)
 	}
 }
 
-void *signal_listener(void *args)
+void* signal_listener(void* args)
 {
 	int serverfd = *((int*)args);
 	int readbytes = 0;
@@ -628,8 +633,8 @@ void run_job(char* buf_content, int clientnum)
 
 	if(pid == 0)
 	{
-		char *token;
-		char *argvalues[BUF_SIZE]; // maximum number of arguments limited to BUF_SIZE
+		char* token;
+		char* argvalues[BUF_SIZE]; // maximum number of arguments limited to BUF_SIZE
 		int argcount = 1;
 		token = strtok(buf_content, " "); // token -> submit
 		token = strtok(NULL, " "); // token -> program name
@@ -673,7 +678,7 @@ void run_job(char* buf_content, int clientnum)
 	}
 	else
 	{
-		char *token;
+		char* token;
 		token = strtok(buf_content, " "); // token -> submit
 		token = strtok(NULL, " "); // token -> program name
 		string program = token;

@@ -107,11 +107,11 @@ int main(int argc, char** argv)
 
 
 
-int connect_to_server(char *host, unsigned short port)
+int connect_to_server(char* host, unsigned short port)
 {
 	int clientfd;
 	struct sockaddr_in serveraddr;
-	struct hostent *hp;
+	struct hostent* hp;
 
 	//SOCK_STREAM -> tcp
 	clientfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -132,7 +132,7 @@ int connect_to_server(char *host, unsigned short port)
 	return clientfd;
 }
 
-void *signal_listener(void *args)
+void* signal_listener(void* args)
 {
 	int masterfd = *((int*)args);
 	// get signal from master through select()

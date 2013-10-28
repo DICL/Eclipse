@@ -128,7 +128,7 @@ int main(int argc, char** argv)
 		memset(write_buf, 0, BUF_SIZE);
 		strcpy(write_buf, writestring.c_str());
 
-		// TODO: Check if the file exist
+		// TODO: Check if the file exist and if it's executable
 		cout<<"Submitting job..."<<endl;
 	}
 	else
@@ -137,7 +137,6 @@ int main(int argc, char** argv)
 		strcpy(write_buf, argv[1]);
 	}
 	
-
 	int masterfd = connect_to_server(master_address, port);
 	if(masterfd<0)
 	{
@@ -188,7 +187,7 @@ int connect_to_server(char *host, unsigned short port)
 	return clientfd;
 }
 
-void *signal_listener(void *args)
+void* signal_listener(void* args)
 {
 	int masterfd = *((int*)args);
 	int readbytes = 0;
@@ -244,6 +243,7 @@ void *signal_listener(void *args)
 	}
 	if(close(masterfd)<0)
 		cout<<"Close failed"<<endl;
+
 	cout<<"Exiting client..."<<endl;
 	exit(0);
 }

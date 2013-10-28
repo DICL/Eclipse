@@ -28,6 +28,8 @@ void byte_splitter(void);
 void sentence_splitter(void);
 void set_nummap(int num);
 void set_numreduce(int numreduce);
+void set_inputpath(char* inputpath);
+void set_outputpath(char* outputpath);
 
 static role status;
 int pipefd[2]; // pipe fd to the program caller(master or slave) pipefd[0]: read, pipefd[1]: write
@@ -37,6 +39,8 @@ char mr_read_buf[BUF_SIZE]; // read buffer for pipe
 char mr_write_buf[BUF_SIZE]; // write buffer for pipe
 
 // variables for master status
+int** maplocation;
+int** reducelocation;
 int nummap = -1;
 int numreduce = -1;
 int completed_map = 0;
@@ -46,6 +50,9 @@ bool isset_reducer = false;
 bool isset_splitter = false;
 // variables for master status
 
+// variables for task status
+int jobindex;
+// variables for task status
 
 void init_mapreduce(int argc, char** argv)
 {
@@ -56,6 +63,7 @@ void init_mapreduce(int argc, char** argv)
 
 	argcount = argc-2; // user argc
 	argvalues = (char**)malloc(sizeof(char*)*argc-2);
+
 	for(int i=0; i<argc-2; i++) // copy argv into argvalues to get user argv
 	{
 		argvalues[i] = (char*)malloc(sizeof(argv[i]));
@@ -110,12 +118,11 @@ void init_mapreduce(int argc, char** argv)
 void summ_mapreduce()
 {
 	int readbytes;
-	//TODO: make sure that all configuration are done
+	// TODO: make sure that all configuration are done
 	
 	if(status == MASTER) // running job
 	{
-		//TODO: manage all things if the status is master
-
+		// TODO: manage all things if the status is master
 
 		// clear up all things and complete successfully
 		write(pipefd[1], "successfulcompletion", BUF_SIZE);
@@ -142,7 +149,6 @@ void summ_mapreduce()
 					continue;
 			}
 		}
-
 		close(pipefd[0]);
 		close(pipefd[1]);
 		exit(0);
@@ -196,16 +202,34 @@ void sentence_splitter(void)
 	
 }
 
-void set_nummap(int num)
+void set_nummap(int num) // when num is zero, flexible number of mapper is activated
 {
-	if(num >= 0)
+	if(num > 0)
 		nummap = num;
+	else if(num == 0) // flexible number of mapper
+		nummap = 0;
+	else // no mapper task
+		nummap = -1;
 }
 
-void set_numreduce(int num)
+void set_numreduce(int num) // when num is zero, flexible number of reducer is activated
 {
-	if(num >= 0)
+	if(num > 0)
 		numreduce = num;
+	else if(num == 0) // flexible number of reducer
+		numreduce = 0;
+	else // no reducer task
+		numreduce = -1;
+}
+
+void set_inputpath(char* inputpath)
+{
+
+}
+
+void set_outputpath(char* outputpath)
+{
+
 }
 
 #endif
