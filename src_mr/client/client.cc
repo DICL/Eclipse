@@ -11,11 +11,7 @@
 #include <pthread.h>
 #include <netdb.h>
 #include "client.hh"
-
-#define BUF_SIZE 256
-#define MR_PATH "/home/youngmoon01/MRR_storage/"
-#define LIB_PATH "/home/youngmoon01/MRR/MRR/src_mr/"
-
+#include <mapreduce/mapreduce.hh>
 
 using namespace std;
 
@@ -119,48 +115,12 @@ int main(int argc, char** argv)
 		if(argc<3)
 		{
 			cout<<"The file name to submit is missing"<<endl;
-			cout<<"usage: client submit [source code]"<<endl;
+			cout<<"usage: client submit [program path]"<<endl;
 			cout<<"Exiting..."<<endl;
 			return 1;
 		}
-		int pid;
-		int status;
-		pid = fork();
-		if(pid == 0)
-		{
-			cout<<"Compiling the code..."<<endl;
-			//TODO: check if the source file exist and deal with the compile error case
 
-			char *arg = new char[sizeof(argv[2])];
-			strcpy(arg, argv[2]);
-			char *name;
-			name = strtok(arg, ".");
-
-			string inputpath = MR_PATH;
-			inputpath.append(argv[2]);
-			string outputpath = MR_PATH;
-			outputpath.append(name);
-			outputpath.append(".out");
-
-			execl("/usr/bin/g++", "/usr/bin/g++", inputpath.c_str(),
-				"-o", outputpath.c_str(), "-I", LIB_PATH, NULL);
-			return 0;
-		}
-		else if(pid < 0)
-		{
-			cout<<"Compilation failed due to failure of forking child process."<<endl;
-			return 1;
-		}
-
-		char *arg = new char[sizeof(argv[2])];
-		strcpy(arg, argv[2]);
-		char *name;
-		name = strtok(arg, ".");
-		string program = name;
-		program.append(".out");
-
-		free(arg);
-
+		string program = argv[2]; // program file name
 
 		string writestring = "submit ";
 		writestring.append(program);
@@ -168,9 +128,7 @@ int main(int argc, char** argv)
 		memset(write_buf, 0, BUF_SIZE);
 		strcpy(write_buf, writestring.c_str());
 
-		waitpid(pid, &status, 0);
-		// TODO: ensure the compilation and check if the file exist
-		cout<<"Compiling done..."<<endl;
+		// TODO: Check if the file exist
 		cout<<"Submitting job..."<<endl;
 	}
 	else

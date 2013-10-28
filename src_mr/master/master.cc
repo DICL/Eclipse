@@ -13,10 +13,6 @@
 #include "master.hh"
 #include <mapreduce/mapreduce.hh>
 
-#define BUF_SIZE 256
-#define MR_PATH "/home/youngmoon01/MRR_storage/"
-#define LIB_PATH "/home/youngmoon01/MRR/MRR/src_mr/"
-
 using namespace std;
 
 int conn_slave = 0;
@@ -205,10 +201,6 @@ int main(int argc, char** argv)
 	fcntl(serverfd, F_SETFL, O_NONBLOCK);
 	for(int i=0;i<num_slave;i++)
 		fcntl(slavefds[i], F_SETFL, O_NONBLOCK);
-
-	// send the message to slave for debugging
-	for(int i=0; i<num_slave; i++)
-		write(slavefds[i], "hello slaves", 32);
 
 	// create listener thread
 	pthread_t listener_thread;

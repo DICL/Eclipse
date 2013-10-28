@@ -1,4 +1,4 @@
-all: $(MR_HOME)/bin/master $(MR_HOME)/bin/slave $(MR_HOME)/bin/client
+all: $(MR_HOME)/bin/master $(MR_HOME)/bin/slave $(MR_HOME)/bin/client $(MR_HOME)/bin/mcc
 
 $(MR_HOME)/bin/master: $(MR_HOME)/master/master.cc $(MR_HOME)/master/master.hh $(MR_HOME)/mapreduce/mapreduce.hh
 	make -C master/
@@ -9,7 +9,11 @@ $(MR_HOME)/bin/slave: $(MR_HOME)/slave/slave.cc $(MR_HOME)/slave/slave.hh $(MR_H
 $(MR_HOME)/bin/client: $(MR_HOME)/client/client.cc $(MR_HOME)/client/client.hh $(MR_HOME)/mapreduce/mapreduce.hh
 	make -C client/
 
+$(MR_HOME)/bin/mcc: $(MR_HOME)/mcc/mcc.cc $(MR_HOME)/mcc/mcc.hh $(MR_HOME)/mapreduce/mapreduce.hh
+	make -C mcc/
+
 clean:
 	rm -f $(MR_HOME)/bin/master
 	rm -f $(MR_HOME)/bin/slave
 	rm -f $(MR_HOME)/bin/client
+	rm -f $(MR_HOME)/bin/mcc

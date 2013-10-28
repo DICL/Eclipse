@@ -11,10 +11,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "slave.hh"
-
-#define BUF_SIZE 256
-#define MR_PATH "/home/youngmoon01/MRR_storage/"
-#define LIB_PATH "/home/youngmoon01/MRR/MRR/src_mr/"
+#include <mapreduce/mapreduce.hh>
 
 using namespace std;
 

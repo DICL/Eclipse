@@ -5,6 +5,8 @@
 #include <sys/fcntl.h>
 #include <iostream>
 
+#define MR_PATH "/home/youngmoon01/MRR_storage/"
+#define LIB_PATH "/home/youngmoon01/MRR/MRR/src_mr/"
 #define BUF_SIZE 256
 
 enum role
@@ -31,8 +33,8 @@ static role status;
 int pipefd[2]; // pipe fd to the program caller(master or slave) pipefd[0]: read, pipefd[1]: write
 int argcount; // user argc
 char** argvalues; // user argv
-char read_buf[BUF_SIZE]; // read buffer for pipe
-char write_buf[BUF_SIZE]; // write buffer for pipe
+char mr_read_buf[BUF_SIZE]; // read buffer for pipe
+char mr_write_buf[BUF_SIZE]; // write buffer for pipe
 
 // variables for master status
 int nummap = -1;
@@ -65,7 +67,7 @@ void init_mapreduce(int argc, char** argv)
 	// blocking read from job caller
 	while(1)
 	{
-		readbytes = read(pipefd[0], read_buf, BUF_SIZE);
+		readbytes = read(pipefd[0], mr_read_buf, BUF_SIZE);
 		if(readbytes == 0) // master abnormally terminated
 		{
 			// TODO: Terminate the job properly
@@ -79,17 +81,17 @@ void init_mapreduce(int argc, char** argv)
 		}
 		else // response received
 		{
-			if(strncmp(read_buf, "master", 6) == 0)
+			if(strncmp(mr_read_buf, "master", 6) == 0)
 			{
 				status = MASTER;
 				break;
 			}
-			else if(strncmp(read_buf, "map", 3) == 0)
+			else if(strncmp(mr_read_buf, "map", 3) == 0)
 			{
 				status = MAP;
 				break;
 			}
-			else if(strncmp(read_buf, "reduce", 6) == 0)
+			else if(strncmp(mr_read_buf, "reduce", 6) == 0)
 			{
 				status = REDUCE;
 				break;
@@ -120,7 +122,7 @@ void summ_mapreduce()
 		// blocking read from master until "terminate" receiving message
 		while(1)
 		{
-			readbytes = read(pipefd[0], read_buf, BUF_SIZE);
+			readbytes = read(pipefd[0], mr_read_buf, BUF_SIZE);
 			if(readbytes == 0) // master abnormally terminated
 			{
 				// TODO: Terminate the job properly
@@ -134,7 +136,7 @@ void summ_mapreduce()
 			}
 			else
 			{
-				if(strncmp(read_buf, "terminate", 9) == 0) // "terminate" message received
+				if(strncmp(mr_read_buf, "terminate", 9) == 0) // "terminate" message received
 					break;
 				else // all other messages are ignored
 					continue;
