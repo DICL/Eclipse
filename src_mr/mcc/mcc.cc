@@ -1,5 +1,5 @@
 #include <iostream>
-#include <mapreduce/mapreduce.hh>
+#include <mapreduce/definitions.hh>
 #include "mcc.hh"
 
 using namespace std;

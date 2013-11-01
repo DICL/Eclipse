@@ -11,7 +11,7 @@
 #include <pthread.h>
 #include <netdb.h>
 #include "client.hh"
-#include <mapreduce/mapreduce.hh>
+#include <mapreduce/definitions.hh>
 
 using namespace std;
 
@@ -221,6 +221,15 @@ void* signal_listener(void* args)
 			else if(strncmp(read_buf, "close", 5) == 0)
 			{
 				cout<<"Close request from master"<<endl;
+				if(close(masterfd)<0)
+					cout<<"Close failed"<<endl;
+				cout<<"Exiting client..."<<endl;
+				exit(0);
+			}
+			else if(strncmp(read_buf, "nospace", 7) == 0)
+			{
+				cout<<"The master currently cannot accept any more client request because the number of connected client reached its limit."<<endl;
+				cout<<"Please try again later."<<endl;
 				if(close(masterfd)<0)
 					cout<<"Close failed"<<endl;
 				cout<<"Exiting client..."<<endl;

@@ -11,7 +11,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "slave.hh"
-#include <mapreduce/mapreduce.hh>
+#include <mapreduce/definitions.hh>
 
 using namespace std;
 

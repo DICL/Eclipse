@@ -4,17 +4,8 @@
 #include <stdlib.h>
 #include <sys/fcntl.h>
 #include <iostream>
+#include <mapreduce/definitions.hh>
 
-#define MR_PATH "/home/youngmoon01/MRR_storage/"
-#define LIB_PATH "/home/youngmoon01/MRR/MRR/src_mr/"
-#define BUF_SIZE 256
-
-enum role
-{
-	MASTER,
-	MAP,
-	REDUCE
-};
 
 void init_mapreduce(int argc, char** argv); // initialize mapreduce configure
 void summ_mapreduce(); // summarize mapreduce configure
@@ -31,14 +22,14 @@ void set_numreduce(int numreduce);
 void set_inputpath(char* inputpath);
 void set_outputpath(char* outputpath);
 
-static role status;
+static mr_role role;
 int pipefd[2]; // pipe fd to the program caller(master or slave) pipefd[0]: read, pipefd[1]: write
 int argcount; // user argc
 char** argvalues; // user argv
-char mr_read_buf[BUF_SIZE]; // read buffer for pipe
-char mr_write_buf[BUF_SIZE]; // write buffer for pipe
+char read_buf[BUF_SIZE]; // read buffer for pipe
+char write_buf[BUF_SIZE]; // write buffer for pipe
 
-// variables for master status
+// variables for master role
 int** maplocation;
 int** reducelocation;
 int nummap = -1;
@@ -48,11 +39,11 @@ int completed_reduce = 0;
 bool isset_mapper = false;
 bool isset_reducer = false;
 bool isset_splitter = false;
-// variables for master status
+// variables for master role
 
-// variables for task status
+// variables for task role
 int jobindex;
-// variables for task status
+// variables for task role
 
 void init_mapreduce(int argc, char** argv)
 {
@@ -75,7 +66,7 @@ void init_mapreduce(int argc, char** argv)
 	// blocking read from job caller
 	while(1)
 	{
-		readbytes = read(pipefd[0], mr_read_buf, BUF_SIZE);
+		readbytes = read(pipefd[0], read_buf, BUF_SIZE);
 		if(readbytes == 0) // master abnormally terminated
 		{
 			// TODO: Terminate the job properly
@@ -89,19 +80,19 @@ void init_mapreduce(int argc, char** argv)
 		}
 		else // response received
 		{
-			if(strncmp(mr_read_buf, "master", 6) == 0)
+			if(strncmp(read_buf, "job", 3) == 0)
 			{
-				status = MASTER;
+				role = JOB;
 				break;
 			}
-			else if(strncmp(mr_read_buf, "map", 3) == 0)
+			else if(strncmp(read_buf, "map", 3) == 0)
 			{
-				status = MAP;
+				role = MAP;
 				break;
 			}
-			else if(strncmp(mr_read_buf, "reduce", 6) == 0)
+			else if(strncmp(read_buf, "reduce", 6) == 0)
 			{
-				status = REDUCE;
+				role = REDUCE;
 				break;
 			}
 			else
@@ -120,16 +111,16 @@ void summ_mapreduce()
 	int readbytes;
 	// TODO: make sure that all configuration are done
 	
-	if(status == MASTER) // running job
+	if(role == JOB) // running job
 	{
-		// TODO: manage all things if the status is master
+		// TODO: manage all things if the role is master
 
 		// clear up all things and complete successfully
-		write(pipefd[1], "successfulcompletion", BUF_SIZE);
+		write(pipefd[1], "succompletion", BUF_SIZE); // successful completion
 		// blocking read from master until "terminate" receiving message
 		while(1)
 		{
-			readbytes = read(pipefd[0], mr_read_buf, BUF_SIZE);
+			readbytes = read(pipefd[0], read_buf, BUF_SIZE);
 			if(readbytes == 0) // master abnormally terminated
 			{
 				// TODO: Terminate the job properly
@@ -143,7 +134,7 @@ void summ_mapreduce()
 			}
 			else
 			{
-				if(strncmp(mr_read_buf, "terminate", 9) == 0) // "terminate" message received
+				if(strncmp(read_buf, "terminate", 9) == 0) // "terminate" message received
 					break;
 				else // all other messages are ignored
 					continue;
@@ -153,7 +144,7 @@ void summ_mapreduce()
 		close(pipefd[1]);
 		exit(0);
 	}
-	else if(status == MAP) // map task
+	else if(role == MAP) // map task
 	{
 
 	}
