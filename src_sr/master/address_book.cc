@@ -10,8 +10,8 @@ Address_book& Address_book::accept (int sock) {
 }
 
 Address_book& Address_book::send (Packet* packet, bool trace = false) {
- packet.set_time (time);
- packet.trace = trace;
+ packet->set_time (time);
+ packet->trace = trace;
 
  ::send_msg (fd, "QUERY");
  ::send (fd, packet, packet.get_size(), 0);

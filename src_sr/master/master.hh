@@ -28,7 +28,7 @@ class IMaster {
 };
 
 class Master: public IMaster {
- //! Attributes and getters/setters
+ // Attributes and getters/setters
  protected:
   int port, nslaves, sock;
   vector<Address_book> slaves;
