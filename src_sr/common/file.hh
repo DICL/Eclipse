@@ -1,5 +1,9 @@
-#ifndef __FILE_H__
-#define __FILE_H__
+#ifndef __FILE_HH__
+#define __FILE_HH__
+
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h>
 //
 //
 class File {
@@ -9,16 +13,13 @@ class File {
    strncpy (filename, _name, 32);
   } 
 
-  virtual ~File () {
-
-  }
+  ~File () { }
 
   void serialize (); 
   size_t get_size () { return size; }
   const char* get_filename () { return filename; }
 
-
- private:
+ protected:
   char filename [32];
   uint8_t* data;
   size_t size; 

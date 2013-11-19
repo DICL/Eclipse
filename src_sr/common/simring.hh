@@ -9,7 +9,9 @@
 
 #include <macros.h>
 #include <utils.hh>
-#include <packets.hh>
-#include <SETcache.hh>
+#include <metadata.hh>
+#include <EWMA.hh>
+#include <file.hh>
+#include <packet.hh>
 
 #endif

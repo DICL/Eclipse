@@ -1,13 +1,16 @@
 vpath %.cc ../
 
+#CXX := colorgcc -lstdc++
+CXX := g++
 LIBDIR  ?= ../../../lib
 INCLUDE := -I ./../
 INCLUDE += -I $(LIBDIR)/unittest++/
 
 CXXFLAGS := -g -Wall $(INCLUDE) -std=gnu++98 
-LDFLAGS := -L ../ -lsimring -L $(LIBDIR) -lUnitTest++ -lm
+#LDFLAGS := -L ../ -lsimring -L $(LIBDIR) -lUnitTest++ -lm
+LDFLAGS := -L $(LIBDIR) -lUnitTest++ -lm
 
-SOURCES := main.cc order_test.cc dht_test.cc ewma_test.cc order.cc dht.cc
+SOURCES := main.cc ewma_test.cc metadata_test.cc file_test.cc packet_test.cc
 OBJECTS := $(patsubst %.cc, %.o, $(SOURCES))
 
 %.o : %.cc 
