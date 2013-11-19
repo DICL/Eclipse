@@ -6,10 +6,12 @@ INCLUDE += -I ./../../common
 INCLUDE += -I $(LIBDIR)
 INCLUDE += -I $(LIBDIR)/unittest++/
 
+CXX := colorgcc -lstdc++
 CXXFLAGS := -g -Wall $(INCLUDE) -std=gnu++98 
 LDFLAGS := -L ../ -lsimring -L $(LIBDIR) -lUnitTest++ -lm
 
-SOURCES := main.cc master.cc master_test.cc address_book.cc address_book_test.cc
+SOURCES := main.cc address_book_page.cc address_book_page_test.cc
+#SOURCES := main.cc master.cc master_test.cc address_book_page.cc address_book_page_test.cc
 OBJECTS := $(patsubst %.cc, %.o, $(SOURCES))
 
 %.o : %.cc 

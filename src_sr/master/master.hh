@@ -24,22 +24,12 @@ class IMaster {
   virtual bool listen () = 0;
   virtual int upload (Order&) = 0;
   virtual Order& recv (char*) = 0;
-
 };
 
 class Master: public IMaster {
  // Attributes and getters/setters
  protected:
-  int port, nslaves, sock;
-  vector<Address_book> slaves;
-
- public:
-  Master& set_port (int);
-  Master& set_nslaves (int);
   Master& set_signals ();
-  int get_port ()    { return port;}
-  int get_nslaves () { return nslaves;}
-  int get_sock ()    { return sock;}
 
  protected:
   virtual int select_slave (uint64_t key); 
@@ -48,7 +38,6 @@ class Master: public IMaster {
   Master () { } 
   virtual ~Master () { }
 
-  virtual bool listen ();
   virtual int upload (Order&);
   virtual Order& recv (char* file_name);
 };

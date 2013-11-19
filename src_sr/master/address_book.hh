@@ -25,48 +25,41 @@
 #include <string.h>
 #include <stdlib.h>
 #include <iostream>
+#include <vector>
+
 //}}}
 
-class IAddress_book {
- public:
-  virtual IAddress_book& accept (int) = 0;
-  virtual IAddress_book& send (Header&, bool) = 0;
-  virtual IAddress_book& send_msg (const char *) = 0;
-  virtual IAddress_book& close (void) = 0;
-  virtual ~IAddress_book (void) = 0;
-};
+using std::vector;
 
-class Address_book: public IAddress_book { 
- public:
-  enum Status { DISCONNECTED, CONNECTED, CLOSED, ERROR };
-
+class Address_book { 
  protected:
-  int fd;
+  int fd, nslaves, sock;
   struct sockaddr_in addr;
-  char host [64];
-  Status status;
+  vector<Address_book_page> array;
 
  public:
-  Address_book (const char * host, int port) { 
-   strncpy (this->host, host, 64);
-
-   addr.sin_family = AF_INET; 
-   addr.sin_port = htons (port);
-   addr.sin_addr.s_addr = inet_addr (host);
-   bzero (&(addr.sin_zero), 8);
-   status = DISCONNECTED;
+  Address_book (int argc, const char ** argv) {
+   nslaves = argc;
+   for (int i = 0; i < argc; i++) {
+    array [i] = Address_book_page (argv [i], port);
+   }
   }
-
   virtual ~Address_book () { this->close();}
 
+ public:
+  Master& set_port (int);
   Address_book& set_fd (int f) { fd = f; return *this;}
-  const int get_fd () const { return fd; }
-  const Status get_status () const { return status; } 
+  Master& set_nslaves (int);
 
-  virtual Address_book& accept (int);
-  virtual Address_book& send (Packet&, bool);
-  virtual Address_book& send_msg (const char * in) { ::send_msg (fd, in); return *this; }
-  virtual Address_book& close () { ::close (fd); status = CLOSED; return *this; }
+  int get_port ()    { return port;}
+  int get_nslaves () { return nslaves;}
+  const int get_fd () const { return fd; }
+
+ public:
+  Address_book& listen ();
+  Address_book& send (Packet&, bool);
+  Address_book& send_msg (const char * in) { ::send_msg (fd, in); return *this; }
+  Address_book& close () { ::close (fd); status = CLOSED; return *this; }
 };
 
 #endif
