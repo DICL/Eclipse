@@ -1,9 +1,15 @@
 #ifndef _DEFINITIONS_
 #define _DEFINITIONS_
 
+<<<<<<< HEAD
 #define MR_PATH "/home/youngmoon01/mr_storage/"
 #define LIB_PATH "/home/youngmoon01/MRR/MRR/src_mr/"
 #define BUF_SIZE 512
+=======
+#define MR_PATH "/home/youngmoon01/MRR_storage/"
+#define LIB_PATH "/home/youngmoon01/MRR/MRR/src_mr/"
+#define BUF_SIZE 256
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 
 enum mr_role
 {

@@ -2,8 +2,13 @@
 #include <fstream>
 #include <string>
 #include <vector>
+<<<<<<< HEAD
 #include <sys/unistd.h>
 #include <boost/lexical_cast.hpp>
+=======
+#include <boost/lexical_cast.hpp>
+#include <sys/unistd.h>
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -32,8 +37,15 @@ int backlog = -1;
 int port = -1;
 int max_client = -1;
 
+<<<<<<< HEAD
 char read_buf[BUF_SIZE]; // read buffer for signal_listener thread
 char write_buf[BUF_SIZE]; // write buffer for signal_listener thread
+=======
+char read_buf_signal[BUF_SIZE]; // read buffer for signal_listener thread
+char read_buf_client[BUF_SIZE]; // read buffer for accept_client thread
+char write_buf_signal[BUF_SIZE]; // write buffer for signal_listener thread
+char write_buf_client[BUF_SIZE]; // write buffer for accept_client thread
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 
 // --------------------------master protocol---------------------------------
 // 1. whoareyou: send a message to identify the connected node
@@ -191,9 +203,17 @@ int main(int argc, char** argv)
 	for(int i=0;i<slaves.size();i++)
 		fcntl(slaves[i]->getfd(), F_SETFL, O_NONBLOCK);
 
+<<<<<<< HEAD
 	// create listener thread and run
 	pthread_t listener_thread;
 	pthread_create(&listener_thread, NULL, signal_listener, (void*)&serverfd);
+=======
+	// create listener thread
+	pthread_t listener_thread;
+	pthread_t client_acceptor;
+	pthread_create(&listener_thread, NULL, signal_listener, (void*)&serverfd);
+	pthread_create(&client_acceptor, NULL, accept_client, (void*)&serverfd);
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 
 	// sleeping loop which prevents process termination
 	while(1)
@@ -231,6 +251,7 @@ int open_server(int port)
 	return serverfd;
 }
 
+<<<<<<< HEAD
 void* signal_listener(void* args)
 {
 	int serverfd = *((int*)args);
@@ -242,6 +263,18 @@ void* signal_listener(void* args)
 	int addrlen = sizeof(connaddr);
 
 	// listen signals from nodes and listen to node connection
+=======
+void* accept_client(void* args)
+{
+	int serverfd = *((int*)args);
+	int tmpfd = -1; // store fd of new connected node temporarily
+	struct sockaddr_in connaddr;
+	int addrlen = sizeof(connaddr);
+	int readbytes;
+	char* haddrp;
+
+	// accepts connection from client repetitively
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 	while(1)
 	{
 		tmpfd = accept(serverfd, (struct sockaddr *) &connaddr, (socklen_t *) &addrlen);
@@ -312,8 +345,25 @@ void* signal_listener(void* args)
 				close(tmpfd);
 			}
 		}
+<<<<<<< HEAD
 		// listen to slaves
 		for(int i=0; i<slaves.size(); i++)
+=======
+		// sleep 0.01 second for each loop
+		// change this if necessary
+		usleep(10000);
+	}
+}
+
+void* signal_listener(void* args)
+{
+	int serverfd = *((int*)args);
+	int readbytes = 0;
+	int status; // for waitpid
+	while(1)
+	{
+		for(int i=0; i<slaves.size(); i++) // listen to slaves
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 		{
 			memset(read_buf_signal, 0, BUF_SIZE);
 			readbytes = read(slaves[i]->getfd(), read_buf_signal, BUF_SIZE);
@@ -341,7 +391,11 @@ void* signal_listener(void* args)
 			{
 				// remove file descriptor from the list
 				cout<<"[master]Client connection closed"<<endl;
+<<<<<<< HEAD
 
+=======
+				
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 				delete clients[i];
 				clients.erase(clients.begin()+i);
 				i--;
@@ -443,9 +497,15 @@ void* signal_listener(void* args)
 					char *buf_content = new char[sizeof(read_buf_signal)];
 					strcpy(buf_content, read_buf_signal);
 
+<<<<<<< HEAD
 					clients[i]->setrunningjob(new job(clients[i]));
 					jobs.push_back(clients[i]->getrunningjob());
 					run_job(buf_content, clients[i]->getrunningjob());
+=======
+					jobs.push_back(new job(clients[i]));
+					clients[i]->setrunningjob(jobs.back());
+					run_job(buf_content, jobs.back());
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 				}
 				else // undefined signal
 				{
@@ -460,6 +520,10 @@ void* signal_listener(void* args)
 			readbytes = read(jobs[i]->getreadfd(), read_buf_signal, BUF_SIZE);
 			if(readbytes == 0) // pipe fd closed maybe process terminated
 			{
+<<<<<<< HEAD
+=======
+				jobs[i]->getclient()->setrunningjob(NULL);
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 				delete jobs[i];
 				jobs.erase(jobs.begin()+i);
 				i--;
@@ -486,6 +550,10 @@ void* signal_listener(void* args)
 					// clear up the completed job
 					write(jobs[i]->getwritefd(), "terminate", BUF_SIZE);
 
+<<<<<<< HEAD
+=======
+					jobs[i]->getclient()->setrunningjob(NULL);
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 					delete jobs[i];
 					jobs.erase(jobs.begin()+i);
 					i--;
@@ -507,7 +575,12 @@ void* signal_listener(void* args)
 				memset(write_buf_signal, 0, BUF_SIZE);
 				strcpy(write_buf_signal, ss.str().c_str());
 				write(clients[i]->getfd(), write_buf_signal, BUF_SIZE);
+<<<<<<< HEAD
 
+=======
+				
+				jobs[i]->getclient()->setrunningjob(NULL);
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 				delete jobs[i];
 				jobs.erase(jobs.begin()+i);
 				i--;
@@ -602,7 +675,10 @@ void run_job(char* buf_content, job* thejob)
 		token = strtok(buf_content, " "); // token -> submit
 		token = strtok(NULL, " "); // token -> program name
 		string program = token;
+<<<<<<< HEAD
 		thejob->setprogramname(program); // register the program path to the job
+=======
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 		thejob->setjobpid(pid);
 		cout<<"[master]Job "<<thejob->getjobpid()<<" starting: "<<program<<endl;
 		free(buf_content);

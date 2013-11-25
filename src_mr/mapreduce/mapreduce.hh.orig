@@ -6,6 +6,10 @@
 #include <iostream>
 #include <mapreduce/definitions.hh>
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 void init_mapreduce(int argc, char** argv); // initialize mapreduce configure
 void summ_mapreduce(); // summarize mapreduce configure
 int get_argc(void); // get user argc excepting passed pipe fd
@@ -29,8 +33,15 @@ char read_buf[BUF_SIZE]; // read buffer for pipe
 char write_buf[BUF_SIZE]; // write buffer for pipe
 
 // variables for master role
+<<<<<<< HEAD
 int nummap = -1; // 0 for default number of mapper, -1 for no mapper
 int numreduce = -1; // 0 for default number of reducer, -1 for no reducer
+=======
+int** maplocation;
+int** reducelocation;
+int nummap = -1;
+int numreduce = -1;
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 int completed_map = 0;
 int completed_reduce = 0;
 bool isset_mapper = false;
@@ -110,7 +121,11 @@ void summ_mapreduce()
 	
 	if(role == JOB) // running job
 	{
+<<<<<<< HEAD
 		// TODO: manage all things if the role is the job
+=======
+		// TODO: manage all things if the role is master
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 
 		// clear up all things and complete successfully
 		write(pipefd[1], "succompletion", BUF_SIZE); // successful completion

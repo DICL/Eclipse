@@ -136,7 +136,11 @@ int main(int argc, char** argv)
 		memset(write_buf, 0, BUF_SIZE);
 		strcpy(write_buf, argv[1]);
 	}
+<<<<<<< HEAD
 
+=======
+	
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 	int masterfd = connect_to_server(master_address, port);
 	if(masterfd<0)
 	{
@@ -169,7 +173,11 @@ int connect_to_server(char *host, unsigned short port)
 	clientfd = socket(AF_INET, SOCK_STREAM, 0);
 	if(clientfd<0)
 		cout<<"Openning socket failed"<<endl;
+<<<<<<< HEAD
 
+=======
+	
+>>>>>>> be0f2c15a5970d85c1fce1dbdc0a6479e82fc060
 	hp = gethostbyname(host);
 
 	if (hp == NULL)
