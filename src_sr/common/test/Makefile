@@ -7,10 +7,9 @@ INCLUDE := -I ./../
 INCLUDE += -I $(LIBDIR)/unittest++/
 
 CXXFLAGS := -g -Wall $(INCLUDE) -std=gnu++98 
-#LDFLAGS := -L ../ -lsimring -L $(LIBDIR) -lUnitTest++ -lm
 LDFLAGS := -L $(LIBDIR) -lUnitTest++ -lm
 
-SOURCES := main.cc ewma_test.cc metadata_test.cc file_test.cc packet_test.cc
+SOURCES := main.cc ewma_test.cc metadata_test.cc file_test.cc packet_test.cc task_test.cc
 OBJECTS := $(patsubst %.cc, %.o, $(SOURCES))
 
 %.o : %.cc 
@@ -23,8 +22,8 @@ test: all
 	./all_test
 
 depend:
-	@if ! [ -a $(LIBDIR)/libUnitTest++.a ]; then \
-		make -C $(LIBDIR);                          \
+	@if ! [ $(LIBDIR)/libUnitTest++.a ]; then \
+		make -C $(LIBDIR);                       \
 	fi;
 
 clean:						

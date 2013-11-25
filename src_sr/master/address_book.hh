@@ -27,6 +27,8 @@
 #include <iostream>
 #include <vector>
 
+#include <Address_book_page.hh>
+
 //}}}
 
 using std::vector;

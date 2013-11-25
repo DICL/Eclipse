@@ -15,13 +15,14 @@ class File {
 
   ~File () { }
 
-  void serialize (); 
+//  void serialize (); 
   size_t get_size () { return size; }
   const char* get_filename () { return filename; }
 
+  uint8_t* data;
+
  protected:
   char filename [32];
-  uint8_t* data;
   size_t size; 
 };
 //

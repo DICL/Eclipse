@@ -20,15 +20,15 @@ enum m_error {
  M_INFO  = 3
 };
 
-void     log           (int, const char* _ip, const char* in, ...);
-inline bool fd_is_ready (int);
-uint64_t timediff      (struct timeval*, struct timeval*);
-void     send_msg      (int, const char*);
-void     recv_msg      (int, char*) __attribute__((weak));
-int      poisson       (double);
-int64_t  hilbert       (int64_t n, int64_t x, int64_t y);
-uint64_t prepare_input (char* in);
-char*    get_ip        (const char*);
-void     dump_trace    (void);
+void        log           (int, const char* _ip, const char* in, ...);
+inline bool fd_is_ready   (int);
+uint64_t    timediff      (struct timeval*, struct timeval*);
+void        send_msg      (int, const char*);
+void        recv_msg      (int, char*) __attribute__((weak));
+int         poisson       (double);
+int64_t     hilbert       (int64_t n, int64_t x, int64_t y);
+uint64_t    prepare_input (char* in);
+char*       get_ip        (const char*);
+void        dump_trace    (void);
 
 #endif

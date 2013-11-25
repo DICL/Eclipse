@@ -38,7 +38,8 @@ class IAddress_book_page {
   virtual IAddress_book_page& close (void) = 0;
   virtual ~IAddress_book_page (void) = 0;
 };
-
+//
+//
 class Address_book_page: public IAddress_book_page {
  public:
   int fd;
@@ -47,18 +48,8 @@ class Address_book_page: public IAddress_book_page {
   Status status;
 
  public:
-  Address_book_page (const char * host, int port) { 
-   strncpy (this->host, host, 64);
-
-   addr.sin_family = AF_INET; 
-   addr.sin_port = htons (port);
-   addr.sin_addr.s_addr = inet_addr (host);
-
-   bzero (&(addr.sin_zero), 8);
-   status = DISCONNECTED;
-  }
-
-  virtual ~Address_book_page () { this->close();}
+  Address_book_page (const char * host, int port);
+  ~Address_book_page () { this->close();}
 
   Address_book_page& set_fd (int f) { fd = f; return *this;}
   const int get_fd () const { return fd; }
@@ -66,8 +57,9 @@ class Address_book_page: public IAddress_book_page {
 
   virtual Address_book_page& accept (int);
   virtual Address_book_page& send (Packet*, bool);
-  virtual Address_book_page& send_msg (const char * in) { ::send_msg (fd, in); return *this; }
-  virtual Address_book_page& close () { ::close (fd); status = CLOSED; return *this; }
+  virtual Address_book_page& send_msg (const char * in);
+  virtual Address_book_page& close ();
 };
-
+//
+//
 #endif
