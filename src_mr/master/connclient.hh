@@ -2,7 +2,7 @@
 #define _CONNCLIENT_
 
 #include <iostream>
-#include <mapreduce/job.hh>
+#include "master_job.hh"
 #include <master/dec_connclient.hh>
 
 connclient::connclient(int fd)
@@ -27,12 +27,12 @@ void connclient::setfd(int num)
 	this->fd = num;
 }
 
-job* connclient::getrunningjob()
+master_job* connclient::getrunningjob()
 {
 	return this->runningjob;
 }
 
-void connclient::setrunningjob(job* ajob)
+void connclient::setrunningjob(master_job* ajob)
 {
 	this->runningjob = ajob;
 }

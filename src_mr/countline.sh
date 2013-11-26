@@ -2,20 +2,16 @@
 wc -l \
 \
 Makefile \
-run.sh \
 countline.sh \
+run.sh \
 setup.conf \
-\
-bin/Makefile \
 \
 client/Makefile \
 client/client.cc \
 client/client.hh \
 \
 mapreduce/definitions.hh \
-mapreduce/job.hh \
 mapreduce/mapreduce.hh \
-mapreduce/task.hh \
 \
 master/Makefile \
 master/connclient.hh \
@@ -23,6 +19,8 @@ master/connslave.hh \
 master/dec_connclient.hh \
 master/master.cc \
 master/master.hh \
+master/master_job.hh \
+master/master_task.hh \
 \
 mcc/Makefile \
 mcc/mcc.cc \
