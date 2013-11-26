@@ -52,9 +52,9 @@ int main(int argc, char** argv)
 	confpath.append("setup.conf");
 	conf.open(confpath.c_str());
 
-	while(1)
+	conf>>token;
+	while(!conf.eof())
 	{
-		conf>>token;
 		if(token == "backlog")
 		{
 			conf>>token;
@@ -88,6 +88,7 @@ int main(int argc, char** argv)
 		{
 			cout<<"[master]Unknown configure record: "<<token<<endl;
 		}
+		conf>>token;
 	}
 	conf.close();
 	// verify initialization
