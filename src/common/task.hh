@@ -12,8 +12,13 @@ class Task {
  public:
   Task (const char * path) {
    strncpy (this->path, path, PATH_LENGTH - 1);
-   this->path [PATH_LENGTH - 1] = '\0'; //Safe String
+   this->path [PATH_LENGTH - 1] = '\0';          //! Safe String
    this->length = PATH_LENGTH;
+  }
+
+  Task (const Task& that) {
+   this->length = that.length;
+   strncpy (this->path, that.path, PATH_LENGTH - 1);
   }
 
   ~Task () {}

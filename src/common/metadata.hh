@@ -35,6 +35,10 @@ class Metadata {
   bool operator== (const Metadata& that) {
    return index == that.index? true: false;
   }
+
+  size_t get_size () {
+   return sizeof (*this);
+  }
 }__attribute__((aligned));
 
 #endif 

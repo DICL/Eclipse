@@ -30,17 +30,17 @@ int main (int argc, const char** argv) {
  pthread_create (&thread_scheduler, NULL, thread_func_scheduler, NULL);
 
 #ifdef DATA_MIGRATION
-   pthread_create (&thread_neighbor,  NULL, thread_func_neighbor,  &addr_server);
-   pthread_create (&thread_forward,   NULL, thread_func_forward,   addr_vec);
-   pthread_create (&thread_dht,       NULL, thread_func_dht,       NULL);
+ pthread_create (&thread_neighbor,  NULL, thread_func_neighbor,  &addr_server);
+ pthread_create (&thread_forward,   NULL, thread_func_forward,   addr_vec);
+ pthread_create (&thread_dht,       NULL, thread_func_dht,       NULL);
 #endif
 
  pthread_join (thread_scheduler, NULL);
 
 #ifdef DATA_MIGRATION
-   pthread_join (thread_forward,   NULL);
-   pthread_join (thread_neighbor,  NULL);
-   pthread_join (thread_dht,       NULL);
+ pthread_join (thread_forward,   NULL);
+ pthread_join (thread_neighbor,  NULL);
+ pthread_join (thread_dht,       NULL);
 #endif
 
  close_all ();

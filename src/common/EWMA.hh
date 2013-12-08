@@ -2,6 +2,9 @@
 #define __EWMA_HH_
 
 /*
+ * Example of use
+ * ==============
+ *
  * EWMA ema (initial_val, alpha);
  * double new_ema = ema (next_value);
  */

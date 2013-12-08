@@ -11,7 +11,6 @@
 #include <utils.hh>
 #include <metadata.hh>
 #include <EWMA.hh>
-#include <file.hh>
 #include <packet.hh>
 
 #endif

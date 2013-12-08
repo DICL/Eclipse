@@ -50,7 +50,6 @@ log (int type, const char* _ip, const char* in, ...)
    fprintf (stderr, "\n");
 
  if (type == M_ERR) exit (EXIT_SUCCESS);
-
 }
 
 inline bool
@@ -168,7 +167,6 @@ char* get_ip (const char* interface) {
 
 void dump_trace (void) {
 	void * buffer[255];
-	const int calls = backtrace(buffer,
-		sizeof(buffer) / sizeof(void *));
-	backtrace_symbols_fd(buffer, calls, 1);
+	const int calls = backtrace (buffer, sizeof(buffer) / sizeof(void *));
+	backtrace_symbols_fd (buffer, calls, 2);
 }

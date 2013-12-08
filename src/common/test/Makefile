@@ -9,7 +9,7 @@ INCLUDE += -I $(LIBDIR)/unittest++/
 CXXFLAGS := -g -Wall $(INCLUDE) -std=gnu++98 
 LDFLAGS := -L $(LIBDIR) -lUnitTest++ -lm
 
-SOURCES := main.cc ewma_test.cc metadata_test.cc file_test.cc packet_test.cc task_test.cc
+SOURCES := main.cc ewma_test.cc metadata_test.cc file_test.cc packet_test.cc task_test.cc logger_test.cc
 OBJECTS := $(patsubst %.cc, %.o, $(SOURCES))
 
 %.o : %.cc 

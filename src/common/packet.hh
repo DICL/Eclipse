@@ -2,28 +2,32 @@
 #define __PACKET_HH__
 
 #include <metadata.hh>
-#include <file.hh>
+#include <task.hh>
 
 class Packet {
  public:
-  Packet (File* _file, Metadata* _meta) {
-   file = _file; 
+  Packet (Task* _task, Metadata* _meta) {
+   task = _task; 
    metadata = _meta;
   }
 
-  Packet (File* _file) {
-   file = _file;
+  Packet (Task* _task) {
+   task = _task;
    metadata = new Metadata ();
   }
 
   Packet (const Packet& that) {
-   this->file     = that.file;
+   this->task     = that.task;
    this->metadata = that.metadata;
   }
 
   ~Packet () {
-   if (file != NULL)     delete file;
+   if (task != NULL)     delete task;
    if (metadata != NULL) delete metadata;
+  }
+
+  size_t get_size () {
+   return metadata->get_size () + task->get_size ();
   }
 
   Packet& set_metadata (const Metadata& _m) {
@@ -31,15 +35,15 @@ class Packet {
    return *this;
   }
  
-  File* get_file () { return file; }
+  Task* get_task () { return task; }
   Metadata* get_metadata () { return metadata; }
  
-  operator File* () { return file; }
+  operator Task* () { return task; }
   operator Metadata* () { return metadata; }
 
  private:
   Metadata* metadata;
-  File* file;
+  Task* task;
 };
 
 #endif

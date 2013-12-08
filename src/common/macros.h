@@ -26,25 +26,17 @@
 #define DATAFILE "/scratch/youngmoon01/garbage2.bin"
 #endif
 
-#ifndef PORT 
-#define PORT 19999
-#endif
-
 #ifndef NSERVERS
 #define NSERVERS 39
-#endif
-
-#ifndef HOST
-#define HOST "10.20.12.170"
 #endif
 
 #ifndef ALPHA
 #define ALPHA 0.03f
 #endif
 
-#ifndef LOT
-#define LOT 2048
-#endif
+#ifndef PATH_LENGTH
+#define PATH_LENGTH 128 
+#endif 
 
 #define EXIT_IF(x,m) if ((x) == -1) {log (M_ERR, "SOMENODE", (m));}
 
