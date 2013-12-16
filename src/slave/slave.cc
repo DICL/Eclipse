@@ -44,7 +44,7 @@ int main(int argc, char** argv)
 			conf>>token;
 			port = atoi(token.c_str());
 		}
-		else if(token == "max_client")
+		else if(token == "max_job")
 		{
 			// ignore and just pass through this case
 			conf>>token;

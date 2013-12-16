@@ -3,22 +3,22 @@
 
 
 #include <iostream>
-#include <mapreduce/job.hh>
+#include "master_job.hh"
 
-class job;
+class master_job;
 
 class connclient // connection to the client
 {
 private:
 	int fd;
-	job* runningjob;
+	master_job* runningjob;
 public:
 	connclient(int fd);
 	~connclient();
 	int getfd();
 	void setfd(int num);
-	job* getrunningjob();
-	void setrunningjob(job* ajob);
+	master_job* getrunningjob();
+	void setrunningjob(master_job* ajob);
 	void clearjob(); // this function clears job
 };
 

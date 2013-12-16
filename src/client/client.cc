@@ -1,3 +1,4 @@
+#include "client.hh"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -10,7 +11,6 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <netdb.h>
-#include "client.hh"
 #include <mapreduce/definitions.hh>
 
 using namespace std;
@@ -52,7 +52,7 @@ int main(int argc, char** argv)
 			conf>>token;
 			port = atoi(token.c_str());
 		}
-		else if(token == "max_client")
+		else if(token == "max_job")
 		{
 			// ignore and just pass through this case
 			conf>>token;
@@ -109,6 +109,7 @@ int main(int argc, char** argv)
 	{
 		// TODO: lists request and their usage
 	}
+	/*
 	else if(strncmp(argv[1], "submit", 6) == 0) // submit a job
 	{
 		// compile the submitted job
@@ -120,17 +121,27 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
-		string program = argv[2]; // program file name
+		string args = argv[2];
 
 		string writestring = "submit ";
-		writestring.append(program);
+		writestring.append(args);
+
+		for(int i=3; i<argc; i++)
+		{
+			args = argv[i];
+			writestring.append(" ");
+			writestring.append(args);
+		}
+
+		// TODO: argument passing should be implemented when needed
 
 		memset(write_buf, 0, BUF_SIZE);
 		strcpy(write_buf, writestring.c_str());
 
 		// TODO: Check if the file exist and if it's executable
-		cout<<"Submitting job..."<<endl;
+		cout<<"Submitting the job..."<<endl;
 	}
+	*/
 	else
 	{
 		memset(write_buf, 0, BUF_SIZE);
@@ -193,6 +204,7 @@ void* signal_listener(void* args)
 	int readbytes = 0;
 	while(1)
 	{
+		// listen to the matser node
 		memset(read_buf, 0, BUF_SIZE);
 		readbytes = read(masterfd, read_buf, BUF_SIZE); // non-blocking read
 		if(readbytes == 0) // connection closed from master
@@ -226,15 +238,6 @@ void* signal_listener(void* args)
 				cout<<"Exiting client..."<<endl;
 				exit(0);
 			}
-			else if(strncmp(read_buf, "nospace", 7) == 0)
-			{
-				cout<<"The master currently cannot accept any more client request because the number of connected client reached its limit."<<endl;
-				cout<<"Please try again later."<<endl;
-				if(close(masterfd)<0)
-					cout<<"Close failed"<<endl;
-				cout<<"Exiting client..."<<endl;
-				exit(0);
-			}
 			else if(strncmp(read_buf, "result", 6) == 0)
 			{
 				cout<<read_buf<<endl;
@@ -247,6 +250,7 @@ void* signal_listener(void* args)
 				cout<<"Signal from master: "<<read_buf<<endl;
 			}
 		}
+
 		// sleeps for 0.01 seconds. change this if necessary
 		usleep(10000);
 	}
