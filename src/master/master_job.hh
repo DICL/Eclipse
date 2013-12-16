@@ -3,162 +3,252 @@
 
 #include <iostream>
 #include <string>
-#include <master/dec_connclient.hh>
+#include <vector>
+#include <set>
+#include "master_task.hh"
+#include "connslave.hh"
 
 using namespace std;
 
 class master_job
 {
 private:
-	int jobpid;
-	int readfd;
-	int writefd;
+	int jobid;
+	int jobfd;
+	int argcount;
 	int nummap;
 	int numreduce;
-	int pipefds[2]; // pipe file descriptors to close for destructor
-	string programname;
-	connclient* client;
+	char** argvalues; // contains program name
+	job_stage stage;
+	vector<string> inputpaths;
+	vector<master_task*> tasks;
+	vector<master_task*> waiting_tasks;
+	vector<master_task*> running_tasks;
+	vector<master_task*> completed_tasks;
+	set<string> keys; // set of keys for the reducers
+	
 public:
 	master_job();
-	master_job(connclient* aclient);
-	master_job(int pid);
-	master_job(int pid, int read, int write);
+	master_job(int id, int fd);
 	~master_job();
-	void clear();
-	int getreadfd();
-	void setreadfd(int num);
-	int getwritefd();
-	void setwritefd(int num);
+
+	void setjobid(int num);
+	int getjobid();
+	void setjobfd(int num);
+	int getjobfd();
 	void setnummap(int num);
 	int getnummap();
 	void setnumreduce(int num);
 	int getnumreduce();
-	int getjobpid();
-	void setjobpid(int num);
-	connclient* getclient();
-	void setclient(connclient* aclient);
-	void setpipefds(int num1, int num2);
-	string getprogramname();
-	void setprogramname(string path);
+	void setargcount(int num);
+	int getargcount();
+	void setargvalues(char** values);
+	char** getargvalues();
+	string getargvalue(int index);
+	void add_inputpath(string path);
+	string get_inputpath(int index);
+	int get_numinputpaths();
+	void add_task(master_task* atask);
+	master_task* get_task(int index);
+	int get_numtasks();
+	int get_numwaiting_tasks();
+	int get_numrunning_tasks();
+	int get_numcompleted_tasks();
+	master_task* get_lastwaitingtask();
+	void schedule_task(master_task* atask, connslave* aslave);
+	void finish_task(master_task* atask, connslave* aslave);
+	master_task* find_taskfromid(int id);
 };
 
 master_job::master_job()
 {
+	this->jobid = -1;
+	this->jobfd = -1;
 	this->nummap = -1;
 	this->numreduce = -1;
-	this->jobpid = -1;
-	this->readfd = -1;
-	this->writefd = -1;
-	this->pipefds[0] = -1;
-	this->pipefds[1] = -1;
-	this->client = NULL;
+	this->argcount = -1;
+	this->argvalues = NULL;
+	this->stage = INITIAL;
 }
 
-master_job::master_job(connclient* aclient)
+master_job::master_job(int id, int fd)
 {
+	this->jobid = id;
+	this->jobfd = fd;
 	this->nummap = -1;
 	this->numreduce = -1;
-	this->jobpid = -1;
-	this->readfd = -1;
-	this->writefd = -1;
-	this->pipefds[0] = -1;
-	this->pipefds[1] = -1;
-	this->client = aclient;
-}
-
-master_job::master_job(int pid)
-{
-	this->nummap = -1;
-	this->numreduce = -1;
-	this->jobpid = pid;
-	this->readfd = -1;
-	this->writefd = -1;
-	this->pipefds[0] = -1;
-	this->pipefds[1] = -1;
-	this->client = NULL;
-}
-
-master_job::master_job(int pid, int read, int write)
-{
-	this->nummap = -1;
-	this->numreduce = -1;
-	this->jobpid = pid;
-	this->readfd = read;
-	this->writefd = write;
-	this->pipefds[0] = -1;
-	this->pipefds[1] = -1;
-	this->client = NULL;
+	this->argcount = -1;
+	this->argvalues = NULL;
+	this->stage = INITIAL;
 }
 
 master_job::~master_job()
 {
-	this->client->setrunningjob(NULL);
-	close(readfd);
-	close(writefd);
-	close(pipefds[0]);
-	close(pipefds[1]);
+	if(argvalues != NULL)
+	{
+		for(int i=0;i<this->argcount;i++)
+		{
+			delete[] argvalues[i];
+		}
+	}
+	delete[] argvalues;
+
+	// delete all the tasks of the job
+	for(int i=0;(unsigned)i<tasks.size();i++)
+		delete tasks[i];
+
+	close(jobfd);
 }
 
-void master_job::clear()
+void master_job::setjobid(int num)
 {
-	close(readfd);
-	close(writefd);
+	this->jobid = num;
 }
 
-int master_job::getreadfd()
+int master_job::getjobid()
 {
-	return this->readfd;
+	return this->jobid;
 }
 
-int master_job::getwritefd()
+void master_job::setjobfd(int num)
 {
-	return this->writefd;
+	this->jobfd = num;
 }
 
-void master_job::setreadfd(int num)
+int master_job::getjobfd()
 {
-	this->readfd = num; 
+	return this->jobfd;
 }
 
-void master_job::setwritefd(int num)
+void master_job::setargcount(int num)
 {
-	this->writefd = num; 
+	this->argcount = num;
 }
 
-int master_job::getjobpid()
+int master_job::getargcount()
 {
-	return this->jobpid;
+	return this->argcount;
 }
 
-void master_job::setjobpid(int num)
+void master_job::setargvalues(char** values)
 {
-	this->jobpid = num;
+	this->argvalues = values;
 }
 
-connclient* master_job::getclient()
+char** master_job::getargvalues()
 {
-	return this->client;
-}
-	
-void master_job::setclient(connclient* aclient)
-{
-	this->client = aclient;
+	return this->argvalues;
 }
 
-void master_job::setpipefds(int num1, int num2)
+void master_job::add_inputpath(string path)
 {
-	this->pipefds[0] = num1;
-	this->pipefds[1] = num2;
+	this->inputpaths.push_back(path);
 }
 
-string master_job::getprogramname()
+string master_job::get_inputpath(int index)
 {
-	return this->programname;
+	if((unsigned)index<inputpaths.size())
+	{
+		return this->inputpaths[index];
+	}
+	else
+	{
+		cout<<"index out of bound in master_job::get_inputpath()"<<endl;
+		return "";
+	}
 }
 
-void master_job::setprogramname(string name)
+int master_job::get_numinputpaths()
 {
-	this->programname = name;
+	return this->inputpaths.size();
+}
+
+void master_job::add_task(master_task* atask)
+{
+	// set the task id of the input task
+	atask->settaskid(tasks.size());
+	this->tasks.push_back(atask);
+	this->waiting_tasks.push_back(atask);
+}
+
+master_task* master_job::get_task(int index)
+{
+	if((unsigned)index>=tasks.size())
+	{
+		cout<<"Debugging: index out of bound in the matser_job::get_task() function"<<endl;
+		return NULL;
+	}
+	else
+		return this->tasks[index];
+}
+
+int master_job::get_numtasks()
+{
+	return this->tasks.size();
+}
+
+master_task* master_job::get_lastwaitingtask()
+{
+	if(waiting_tasks.size() == 0)
+		return NULL;
+	else
+		return waiting_tasks.back();
+}
+
+void master_job::schedule_task(master_task* atask, connslave* aslave)
+{
+	for(int i=0;(unsigned)i<waiting_tasks.size();i++)
+	{
+		if(waiting_tasks[i] == atask)
+		{
+			running_tasks.push_back(atask);
+			aslave->add_runningtask(atask);
+			atask->set_status(RUNNING);
+			waiting_tasks.erase(waiting_tasks.begin()+i);
+			return;
+		}
+	}
+}
+
+void master_job::finish_task(master_task* atask, connslave* aslave)
+{
+	for(int i=0;(unsigned)i<running_tasks.size();i++)
+	{
+		if(running_tasks[i] == atask)
+		{
+			completed_tasks.push_back(atask);
+			aslave->remove_runningtask(atask);
+			atask->set_status(COMPLETED);
+			running_tasks.erase(running_tasks.begin()+i);
+			return;
+		}
+	}
+}
+
+int master_job::get_numwaiting_tasks()
+{
+	return this->waiting_tasks.size();
+}
+
+int master_job::get_numrunning_tasks()
+{
+	return this->running_tasks.size();
+}
+
+int master_job::get_numcompleted_tasks()
+{
+	return this->completed_tasks.size();
+}
+
+master_task* master_job::find_taskfromid(int id)
+{
+	for(int i=0;(unsigned)i<tasks.size();i++)
+	{
+		if(tasks[i]->gettaskid() == id)
+			return tasks[i];
+	}
+cout<<"There is no such a task with the id in master_job::find_taskfromid() function."<<endl;
+	return NULL;
 }
 
 void master_job::setnummap(int num)
@@ -179,6 +269,131 @@ void master_job::setnumreduce(int num)
 int master_job::getnumreduce()
 {
 	return this->numreduce;
+}
+
+string master_job::getargvalue(int index)
+{
+	if(index>=argcount)
+	{
+		cout<<"Debugging: index out of bound in the master_job::getargvalue() function.";
+		return "";
+	}
+	else
+	{
+		return this->argvalues[index];
+	}
+}
+
+job_stage master_job::get_stage()
+{
+	return this->stage;
+}
+
+void master_job::set_stage(job_stage astage)
+{
+	this->stage = astage;
+}
+
+
+// member functions of master_task class
+
+
+master_task::master_task()
+{
+	this->taskid = -1;
+	this->job = NULL;
+	this->role = JOB; // this should be changed to MAP or REDUCE
+	this->status = WAITING;
+}
+
+master_task::master_task(mr_role arole)
+{
+	this->taskid = -1;
+	this->job = NULL;
+	this->role = arole;
+	this->status = WAITING;
+}
+
+master_task::master_task(master_job* ajob)
+{
+	this->taskid = -1;
+	this->job = ajob;
+	this->role = JOB; // this should be changed to MAP ro REDUCE
+	this->status = WAITING;
+}
+
+master_task::master_task(master_job* ajob, mr_role arole)
+{
+	this->taskid = -1;
+	this->job = ajob;
+	this->role = arole;
+	this->status = WAITING;
+}
+
+int master_task::gettaskid()
+{
+	return this->taskid;
+}
+
+void master_task::settaskid(int num)
+{
+	this->taskid = num;
+}
+
+void master_task::add_inputpath(string path)
+{
+	this->inputpaths.push_back(path);
+}
+
+mr_role master_task::get_taskrole()
+{
+	return this->role;
+}
+
+int master_task::get_numinputpaths()
+{
+	return this->inputpaths.size();
+}
+
+string master_task::get_inputpath(int index)
+{
+	if((unsigned)index < this->inputpaths.size())
+		return this->inputpaths[index];
+	else if(index < 0)
+	{
+		cout<<"Negative index in the master_task::get_inputpath() function."<<endl;
+		return "";
+	}
+	else
+	{
+		cout<<"Index out of bound in the master_task::get_inputpath() function."<<endl;
+		return "";
+	}
+}
+
+void master_task::set_status(task_status astatus)
+{
+	this->status = astatus;
+}
+
+task_status master_task::get_status()
+{
+	return this->status;
+}
+
+void master_task::set_job(master_job* ajob)
+{
+	this->job = ajob;
+}
+
+master_job* master_task::get_job()
+{
+	return this->job;
+}
+
+void master_task::set_taskrole(mr_role arole)
+{
+	this->role = arole;
 }
 
 #endif

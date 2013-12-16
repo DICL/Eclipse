@@ -12,4 +12,20 @@ enum mr_role
 	REDUCE
 };
 
+
+enum task_status
+{
+	WAITING,
+	RUNNING,
+	COMPLETED
+};
+
+enum job_stage
+{
+	INITIAL,
+	MAP,
+	REDUCE,
+	COMPLETED
+};
+
 #endif

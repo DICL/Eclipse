@@ -3,35 +3,37 @@
 
 #include <iostream>
 #include <mapreduce/definitions.hh>
+#include "master_task.hh"
 
 class connslave // connection to the slave
 {
 private:
-	int numslot;
-	int numrunningslot;
 	int fd;
+	int maxtask;
+	vector<master_task*> running_tasks;
+
 public:
 	connslave(int fd);
-	connslave(int numslot, int fd);
+	connslave(int maxtask, int fd);
 	~connslave();
-	int getnumslot();
-	int getnumrunningslot();
-	void setnumslot(int num);
-	void setnumrunningslot(int num);
 	int getfd();
+	int getmaxtask();
+	void setmaxtask(int num);
+	int getnumrunningtasks();
+	master_task* getrunningtask(int index);
+	void add_runningtask(master_task* atask);
+	void remove_runningtask(master_task* atask);
 };
 
 connslave::connslave(int fd)
 {
-	this->numslot = 0;
-	this->numrunningslot = 0;
+	this->maxtask = 0;
 	this->fd = fd;
 }
 
-connslave::connslave(int numslot, int fd)
+connslave::connslave(int maxtask, int fd)
 {
-	this->numslot = numslot;
-	this->numrunningslot = 0;
+	this->maxtask = maxtask;
 	this->fd = fd;
 }
 connslave::~connslave()
@@ -44,24 +46,50 @@ int connslave::getfd()
 	return this->fd;
 }
 
-int connslave::getnumslot()
+int connslave::getmaxtask()
 {
-	return this->numslot;
+	return this->maxtask;
 }
 
-int connslave::getnumrunningslot()
+int connslave::getnumrunningtasks()
 {
-	return this->numrunningslot;
+	return this->running_tasks.size();
 }
 
-void connslave::setnumslot(int num)
+void connslave::setmaxtask(int num)
 {
-	this->numslot = num;
+	this->maxtask = num;
 }
 
-void connslave::setnumrunningslot(int num)
+master_task* connslave::getrunningtask(int index)
 {
-	this->numrunningslot = num;
+	if((unsigned)index>=this->running_tasks.size())
+	{
+		cout<<"Index out of bound in the connslave::getrunningtask() function."<<endl;
+		return NULL;
+	}
+	else
+		return this->running_tasks[index];
+}
+
+void connslave::add_runningtask(master_task* atask)
+{
+	if(atask != NULL)
+		running_tasks.push_back(atask);
+	else
+		cout<<"A NULL task is assigned to the running task vector in the connslave::add_runningtask() function."<<endl;
+}
+
+void connslave::remove_runningtask(master_task* atask)
+{
+	for(int i=0;(unsigned)i<running_tasks.size();i++)
+	{
+		if(running_tasks[i] == atask)
+		{
+			running_tasks.erase(running_tasks.begin()+i);
+			break;
+		}
+	}
 }
 
 #endif

@@ -1,4 +1,3 @@
-#awk 'BEGIN{LINE=0}{LINE++}END{print "Total number of lines: " LINE}' \
 wc -l \
 \
 Makefile \
@@ -16,7 +15,6 @@ mapreduce/mapreduce.hh \
 master/Makefile \
 master/connclient.hh \
 master/connslave.hh \
-master/dec_connclient.hh \
 master/master.cc \
 master/master.hh \
 master/master_job.hh \
@@ -28,4 +26,6 @@ mcc/mcc.hh \
 \
 slave/Makefile \
 slave/slave.cc \
-slave/slave.hh
+slave/slave.hh \
+slave/slave_job.hh \
+slave/slave_task.hh
