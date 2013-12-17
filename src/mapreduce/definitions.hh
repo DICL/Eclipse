@@ -12,7 +12,6 @@ enum mr_role
 	REDUCE
 };
 
-
 enum task_status
 {
 	WAITING,
@@ -22,10 +21,10 @@ enum task_status
 
 enum job_stage
 {
-	INITIAL,
-	MAP,
-	REDUCE,
-	COMPLETED
+	INITIAL_STAGE,
+	MAP_STAGE,
+	REDUCE_STAGE,
+	COMPLETED_STAGE // not used but reserved
 };
 
 #endif

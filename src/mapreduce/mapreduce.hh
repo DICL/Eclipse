@@ -13,6 +13,7 @@
 #include <netdb.h>
 #include <sys/fcntl.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/unistd.h>
 #include <arpa/inet.h>
 
@@ -30,15 +31,15 @@ string get_nextvalue(); // returns values in reduce function
 void add_inputpath(string path);
 void set_outputpath(string path);
 char** get_argv(void); // get user argv excepting passed pipe fd
+void write_keyvalue(string key, string value);
+void write_output(string record); // function used in reduce function
 
 bool get_record(string* record); // return true when successful, false when out of input record
 bool get_key(string* value); // return true when successful, false when out of key value pair
 int get_argc(void); // get user argc excepting passed pipe fd
-void write_keyvalue(string key, string value);
-void write_output(string record); // function used in reduce function
 void report_key(int index);
 int connect_to_server(char *host, unsigned short port);
-// TODO: determine the prototype of get_record() function
+int get_jobid();
 
 mr_role role = JOB;
 char read_buf[BUF_SIZE]; // read buffer for pipe
@@ -251,18 +252,17 @@ void init_mapreduce(int argc, char** argv)
 		{
 			// parse the arguments to make the job directory
 			char** argv;
-			argv = new char*[2];
+			argv = new char*[3];
 			argv[0] = new char[6];
 			strcpy(argv[0], "mkdir");
 			argv[1] = new char[apath.length()+1];
 			strcpy(argv[1], apath.c_str());
+			argv[2] = NULL;
 			
-cout<<"Debugging: arguments for mkdir:"<<endl; // delete these after debug
-cout<<"argv[0]: "<<argv[0]<<endl; // delete these after debug
-cout<<"argv[1]: "<<argv[1]<<endl; // delete these after debug
 
 			// launch the mkdir program
 			execvp(argv[0], argv);
+cout<<"Until here8"<<endl;
 		}
 		else // parent side
 		{
@@ -382,7 +382,7 @@ void summ_mapreduce()
 			for(int i=0;i<inputpaths.size();i++)
 			{
 				ss<<" ";
-				inputpaths[i];
+				ss<<inputpaths[i];
 			}
 
 			ss<<" argcount ";
@@ -406,11 +406,12 @@ void summ_mapreduce()
 				next_token = strtok(NULL, "/");
 			}
 
-			delete[] tmp;
-
 			ss<<" ";
+			apath.append("app/");
 			apath.append(token); // token <- the program name
 			ss<<apath;
+
+			delete[] tmp;
 
 			for(int i=1;i<argcount;i++)
 			{
@@ -423,10 +424,7 @@ void summ_mapreduce()
 			write(masterfd, write_buf, BUF_SIZE);
 		}
 
-		// clear up all things and complete successfully
-		write(masterfd, "complete", BUF_SIZE); // successful completion
-
-		// blocking read from master until "terminate" receiving message
+		// blocking read from master until "complete" receiving message
 		while(1)
 		{
 			readbytes = read(masterfd, read_buf, BUF_SIZE);
@@ -443,15 +441,54 @@ void summ_mapreduce()
 			}
 			else
 			{
-				if(strncmp(read_buf, "terminate", 9) == 0) // "terminate" message received
+				if(strncmp(read_buf, "complete", 9) == 0) // "complete" message received
 				{
 					cout<<"[mapreduce]Job is successfully completed"<<endl;
 					break;
+				}
+				else if(strncmp(read_buf, "mapcomplete", 11) == 0)
+				{
+					cout<<"[mapreduce]Map tasks are completed"<<endl;
+					cout<<"[mapreduce]Now reduce tasks are launched"<<endl;
 				}
 				else // all other messages are ignored
 					continue;
 			}
 		}
+
+		// remove the job directory
+		int pid;
+		pid = fork();
+		if(pid == 0) // child process
+		{
+			string apath;
+			char** argv = new char*[4];
+
+			argv[0] = new char[3];
+			strcpy(argv[0], "rm");
+
+			argv[1] = new char[4];
+			strcpy(argv[1], "-rf");
+
+			apath = MR_PATH;
+			apath.append(jobdirpath);
+			argv[2] = new char[apath.length()+1];
+			strcpy(argv[2], apath.c_str());
+
+			argv[3] = NULL;
+
+			execvp(argv[0], argv);
+		}
+		else if(pid < 0)
+		{
+			cout<<"Debugging: forking failed"<<endl;
+		}
+		else // parent process
+		{
+			int status;
+			waitpid(pid, &status, 0);
+		}
+
 		exit(0);
 	}
 	else if(role == MAP) // map task
@@ -465,11 +502,27 @@ void summ_mapreduce()
 		// run the mapfunction until input all inputs are processed
 		string record;
 		
-		while(get_record(&record))
+		if(isset_mapper)
 		{
-			inside_map = true;
-			(*mapfunction)(record);
-			inside_map = false;
+			while(get_record(&record))
+			{
+				inside_map = true;
+				(*mapfunction)(record);
+				inside_map = false;
+
+				// report generated keys to slave node
+				while(!unreported_keys.empty())
+				{
+					string key = *unreported_keys.begin();
+					string keystr = "key ";
+					keystr.append(key);
+					unreported_keys.erase(*unreported_keys.begin());
+					reported_keys.insert(key);
+
+					// send 'key' meesage to the slave node
+					write(pipefd[1], keystr.c_str(), BUF_SIZE);
+				}
+			}
 		}
 
 		// send complete message
@@ -482,15 +535,10 @@ void summ_mapreduce()
 			if(readbytes == 0) // pipe fd was closed abnormally
 			{
 				// TODO: Terminate the task properly
+cout<<"the map task is gone"<<endl;
 				exit(0);
 			}
-			else if(readbytes < 0)
-			{
-				// sleeps for 0.0001 seconds. change this if necessary
-				usleep(100);
-				continue;
-			}
-			else
+			else if(readbytes > 0)
 			{
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
@@ -500,6 +548,9 @@ void summ_mapreduce()
 				else // all other messages are ignored
 					continue;
 			}
+
+			// sleeps for 0.0001 seconds. change this if necessary
+			usleep(100);
 		}
 	}
 	else // reduce task
@@ -511,41 +562,43 @@ void summ_mapreduce()
 		}
 
 		// run the reduce functions until all key are processed
-		string key;
-		while(get_key(&key))
+		if(isset_reducer)
 		{
-			inside_reduce = true;
-			(*reducefunction)(key);
-			inside_reduce = false;
+			string key;
+			while(get_key(&key))
+			{
+				inside_reduce = true;
+				(*reducefunction)(key);
+				inside_reduce = false;
+			}
 		}
 
 		// send complete message
 		write(pipefd[1], "complete", BUF_SIZE);
 
+		// blocking read until 'terminate' message arrive
 		while(1)
 		{
 			readbytes = read(pipefd[0], read_buf, BUF_SIZE);
 			if(readbytes == 0) // pipe fd was closed abnormally
 			{
 				// TODO: Terminate the task properly
+cout<<"the reduce task is gone"<<endl;
 				exit(0);
 			}
-			else if(readbytes < 0)
-			{
-				// sleeps for 0.0001 seconds. change this if necessary
-				usleep(100);
-				continue;
-			}
-			else
+			else if(readbytes > 0)
 			{
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
-					// cout<<"[mapreduce]Task is successfully completed"<<endl; <- this message will be printed in the slave process side
+					cout<<"[mapreduce]Task is successfully completed"<<endl; // <- this message will be printed in the slave process side
 					break;
 				}
 				else // all other messages are ignored
 					continue;
 			}
+
+			// sleeps for 0.0001 seconds. change this if necessary
+			usleep(100);
 		}
 	}
 }
@@ -561,34 +614,14 @@ char** get_argv(void)
 }
 void set_mapper(void (*map_func) (string record))
 {
-	if(role == JOB)
-	{
-		isset_mapper = true;
-	}
-	else if(role == MAP)
-	{
-		mapfunction = map_func;
-	}
-	else if(role == REDUCE)
-	{
-		// do nothing
-	}
+	isset_mapper = true;
+	mapfunction = map_func;
 }
 
 void set_reducer(void (*red_func) (string key))
 {
-	if(role == JOB)
-	{
-		isset_reducer = true;
-	}
-	else if(role == MAP)
-	{
-		// do nothing
-	}
-	else if(role == REDUCE)
-	{
-		reducefunction = red_func;
-	}
+	isset_reducer = true;
+	reducefunction = red_func;
 }
 
 void add_inputpath(string path) // the path is relative path to MR_PATH
@@ -652,15 +685,13 @@ void write_keyvalue(string key, string value)
 		ofstream keyfile;
 		fstream keylockfile;
 
-		// check whether the key value already existed
-		if(reported_keys.find(key) == reported_keys.end())
-			return;
-		if(unreported_keys.find(key) == unreported_keys.end())
-			return;
+		if(reported_keys.find(key) == reported_keys.end()
+			&& unreported_keys.find(key) == unreported_keys.end())
+		{
+			unreported_keys.insert(key);
+		}
 
 		// write the key value pair
-		unreported_keys.insert(key);
-
 		string keypath = MR_PATH;
 		keypath.append(jobdirpath);
 		string keylockpath;
@@ -674,6 +705,7 @@ void write_keyvalue(string key, string value)
 		{
 			// sleep for 0.0001 second. change this if necessary
 			usleep(100);
+			keylockfile.close();
 			keylockfile.open(keylockpath.c_str());
 		}
 		
@@ -815,6 +847,7 @@ void write_output(string record) // this user function can be used anywhere but 
 	{
 		// sleep for 0.0001 second. change this if necessary
 		usleep(100);
+		outlockfile.close();
 		outlockfile.open(outlockpath.c_str());
 	}
 	
@@ -831,6 +864,11 @@ void write_output(string record) // this user function can be used anywhere but 
 	// release the lock
 	outlockfile.close();
 	remove(outlockpath.c_str());
+}
+
+int get_jobid()
+{
+	return jobid;
 }
 
 #endif

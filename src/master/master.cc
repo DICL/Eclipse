@@ -342,7 +342,43 @@ void* signal_listener(void* args)
 			}
 			else // signal from the slave
 			{
-				cout<<"[master]Undefined signal from slave "<<i<<": "<<read_buf<<endl;
+				if(strncmp(read_buf, "key", 3) == 0) // key signal arrived
+				{
+					char* token;
+					master_job* thejob;
+					token = strtok(read_buf, " "); // token <- "key"
+					token = strtok(NULL, " "); // token <- "jobid"
+					token = strtok(NULL, " "); // token <- job id
+					
+					thejob = find_jobfromid(atoi(token));
+
+					token = strtok(NULL, " "); // token <- key value
+					thejob->add_key(token); // token 
+				}
+				else if(strncmp(read_buf, "taskcomplete", 12) == 0) // "taskcomplete" signal arrived
+				{
+					char* token;
+					int ajobid, ataskid;
+					master_job* thejob;
+					master_task* thetask;
+
+					token = strtok(read_buf, " "); // token <- "taskcomplete"
+					token = strtok(NULL, " "); // token <- "jobid"
+					token = strtok(NULL, " "); // token <- job id
+					ajobid = atoi(token);
+
+					token = strtok(NULL, " "); // token <- "taskid"
+					token = strtok(NULL, " "); // token <- task id
+					ataskid = atoi(token);
+
+					thejob = find_jobfromid(ajobid);
+					thetask = thejob->find_taskfromid(ataskid);
+					thejob->finish_task(thetask, slaves[i]);
+				}
+				else
+				{
+					cout<<"[master]Undefined message from slave node: "<<read_buf<<endl;
+				}
 			}
 		}
 
@@ -501,11 +537,7 @@ void* signal_listener(void* args)
 				i--;
 				cout<<"[master]Job terminated abnormally"<<endl;
 			}
-			else if(readbytes < 0)
-			{
-				continue;
-			}
-			else // signal from the job
+			else if(readbytes > 0) // signal from the job
 			{
 				if(strncmp(read_buf, "complete", 8) == 0) // "succompletion" signal arrived
 				{
@@ -531,7 +563,7 @@ void* signal_listener(void* args)
 						if(strncmp(token, "argcount", 8) == 0)
 						{
 							// NOTE: there should be at leat 1 arguments(program path name)
-							token = strtok(NULL, " ");
+							token = strtok(NULL, " "); // token <- argument count
 							jobs[i]->setargcount(atoi(token));
 
 							// process next configure
@@ -589,12 +621,51 @@ void* signal_listener(void* args)
 							jobs[i]->get_task(j)->add_inputpath(jobs[i]->get_inputpath(path_iteration));
 							path_iteration++;
 						}
-cout<<"[master]Debugging: infinite loop detector:master:623"<<endl;
 					}
+
+					// set job status as MAP_STAGE
+					jobs[i]->set_stage(MAP_STAGE);
 				}
 				else // undefined signal
 				{
 					cout<<"[master]Undefined signal from job: "<<read_buf<<endl;
+				}
+			}
+
+			// check if all task finished
+			if(jobs[i]->get_numtasks() == jobs[i]->get_numcompleted_tasks())
+			{
+				if(jobs[i]->get_stage() == MAP_STAGE) // if map stage is finished
+				{
+					// send message to the job to inform that map phase is completed
+					write(jobs[i]->getjobfd(), "mapcomplete", BUF_SIZE);
+
+					// fork reduce tasks
+					for(set<string>::iterator it = jobs[i]->get_keybegin();it != jobs[i]->get_keyend(); it++)
+					{
+						master_task* newtask = new master_task(jobs[i], REDUCE);
+						jobs[i]->add_task(newtask);
+						newtask->add_inputpath(*it);
+					}
+					jobs[i]->set_stage(REDUCE_STAGE);
+				}
+				else if(jobs[i]->get_stage() == REDUCE_STAGE) // if reduce stage is finished
+				{
+					// send message to the job to complete the job
+					write(jobs[i]->getjobfd(), "complete", BUF_SIZE);
+					cout<<"[master]Job "<<jobs[i]->getjobid()<<" completed successfully"<<endl;
+
+					jobs[i]->set_stage(COMPLETED_STAGE);
+					// clear the job from the vector and finish
+					delete jobs[i];
+					jobs.erase(jobs.begin()+i);
+					i--;
+
+					continue;
+				}
+				else
+				{
+					// pass the case for INITIAL_STAGE and COMPLETED_STAGE
 				}
 			}
 		}

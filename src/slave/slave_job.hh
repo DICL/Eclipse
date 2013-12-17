@@ -32,21 +32,23 @@ public:
 	int get_numtasks(); // tasks of this job assigned to this slave
 	int get_numrunningtasks(); // running tasks of this job assigned to this slave
 	int get_numcompletedtasks(); // completed tasks of this job assigned to this slave
+	slave_task* get_completedtask(int index);
 	void add_task(slave_task* atask);
 	slave_task* get_task(int index);
 	void add_key(string key);
-	void report_key(string key); // report an unreported key
+	bool is_unreportedkey(); // return true if there are unreported keys
+	string pop_unreportedkey(); // pop first element in the unreported_keys
 };
 
 void slave_job::finish_task(slave_task* atask)
 {
-	for(int i=0;(unsigned)i<running_tasks.size();i++)
+	for(int i=0;(unsigned)i<this->running_tasks.size();i++)
 	{
-		if(running_tasks[i] == atask)
+		if(this->running_tasks[i] == atask)
 		{
+			this->running_tasks.erase(this->running_tasks.begin()+i);
 			completed_tasks.push_back(atask);
 			atask->set_status(COMPLETED);
-			running_tasks.erase(running_tasks.begin()+i);
 			return;
 		}
 	}
@@ -59,14 +61,14 @@ slave_job::slave_job()
 
 slave_job::slave_job(int id)
 {
-	this->jobid = jobid;
+	this->jobid = id;
 }
 
 slave_job::~slave_job()
 {
 	// delete all the tasks of the job
-	for(int i=0;(unsigned)i<tasks.size();i++)
-		delete tasks[i];
+	for(int i=0;(unsigned)i<this->tasks.size();i++)
+		delete this->tasks[i];
 }
 
 void slave_job::set_jobid(int id)
@@ -81,10 +83,10 @@ int slave_job::get_jobid()
 
 slave_task* slave_job::find_taskfromid(int id)
 {
-	for(int i=0;(unsigned)i<tasks.size();i++)
+	for(int i=0;(unsigned)i<this->tasks.size();i++)
 	{
-		if(tasks[i]->get_taskid() == id)
-			return tasks[i];
+		if(this->tasks[i]->get_taskid() == id)
+			return this->tasks[i];
 	}
 	cout<<"No such a task with that index in this job assigned to this slave"<<endl; 
 	return NULL;
@@ -109,13 +111,14 @@ void slave_job::add_task(slave_task* atask)
 {
 	if(atask->get_status() != RUNNING)
 		cout<<"Debugging: The added task is not at running state."<<endl;
+	atask->set_job(this);
 	this->tasks.push_back(atask);
 	this->running_tasks.push_back(atask); // tasks are in running state initially
 }
 
 slave_task* slave_job::get_task(int index)
 {
-	if((unsigned)index>=tasks.size())
+	if((unsigned)index>=this->tasks.size())
 	{
 		cout<<"Debugging: index of bound in the slave_job::get_task() function."<<endl;
 		return NULL;
@@ -129,21 +132,44 @@ void slave_job::add_key(string key)
 	// NOTE: if key is already in the key set, key will be ignored
 
 	// vector keys should have distinct string keys
-	if(reported_keys.find(key) == reported_keys.end())
+	if(reported_keys.find(key) != reported_keys.end())
 		return;
-	if(unreported_keys.find(key) == unreported_keys.end())
+	if(unreported_keys.find(key) != unreported_keys.end())
 		return;
 
 	unreported_keys.insert(key);
 }
 
-void slave_job::report_key(string key)
+bool slave_job::is_unreportedkey()
 {
-	// NOTE: this function does not automatically report the keys to the master
-	//       this function is only for marking keys as reported
+	if(unreported_keys.empty())
+		return false;
+	else
+		return true;
+}
 
-	unreported_keys.erase(key);
-	reported_keys.insert(key);
+string slave_job::pop_unreportedkey()
+{
+	string ret;
+	ret = *unreported_keys.begin();
+	this->unreported_keys.erase(this->unreported_keys.begin());
+	reported_keys.insert(ret);
+
+	return ret;
+}
+
+slave_task* slave_job::get_completedtask(int index)
+{
+	if((unsigned)index < completed_tasks.size())
+	{
+		return completed_tasks[index];
+	}
+	else
+	{
+		cout<<"Debugging: Index out of range in the slave_job::get_completedtask() function"<<endl;
+		return NULL;
+	}
+
 }
 
 
@@ -160,6 +186,7 @@ slave_task::slave_task()
 	this->argcount = -1;
 	this->argvalues = NULL;
 	this-> job = NULL;
+	this->pid = 0;
 }
 
 slave_task::slave_task(int id)
@@ -172,6 +199,7 @@ slave_task::slave_task(int id)
 	this->argcount = -1;
 	this->argvalues = NULL;
 	this-> job = NULL;
+	this->pid = 0;
 }
 
 slave_task::~slave_task()

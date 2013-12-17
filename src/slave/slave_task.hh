@@ -23,18 +23,12 @@ private:
 	slave_job* job;
 	vector<string> inputpaths; // a vector of inputpaths. inputpaths can be multiple
 
-	// variables for map task
-	int abc;
-	// variables for map task
-
-	// variables for reduce task
-	int def;
-	// variables for reduce task
-	
 public:
 	slave_task();
 	slave_task(int id);
 	~slave_task();
+
+	int pstat; // status value for waitpid()
 
 	void set_taskid(int id);
 	int get_taskid();
