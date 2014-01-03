@@ -19,8 +19,8 @@ BOUNDARY	slave/SETcache.hh	/^ BOUNDARY = 0x4,$/;"	e	enum:policy
 BUF_SIZE	mapreduce/definitions.hh	6;"	d
 CACHESIZE	deprecated/node.cc	28;"	d	file:
 CLOSED	deprecated/master/address_book_page.hh	/^enum Status { DISCONNECTED, CONNECTED, CLOSED, ERROR };$/;"	e	enum:Status
-COMPLETED	mapreduce/definitions.hh	/^	COMPLETED$/;"	e	enum:job_stage
 COMPLETED	mapreduce/definitions.hh	/^	COMPLETED$/;"	e	enum:task_status
+COMPLETED_STAGE	mapreduce/definitions.hh	/^	COMPLETED_STAGE \/\/ not used but reserved$/;"	e	enum:job_stage
 CONNECTED	deprecated/master/address_book_page.hh	/^enum Status { DISCONNECTED, CONNECTED, CLOSED, ERROR };$/;"	e	enum:Status
 CXX	common/test/Makefile	/^CXX := g++$/;"	m
 CXX	deprecated/master/test/Makefile	/^CXX := colorgcc -lstdc++$/;"	m
@@ -57,7 +57,7 @@ INCLUDE	common/test/Makefile	/^INCLUDE := -I .\/..\/$/;"	m
 INCLUDE	deprecated/master/Makefile	/^INCLUDE := -I.\/$/;"	m
 INCLUDE	deprecated/master/test/Makefile	/^INCLUDE := -I .\/..\/$/;"	m
 INCLUDE	slave/test/Makefile	/^INCLUDE := -I.\/..\/..\/..\/lib\/$/;"	m
-INITIAL	mapreduce/definitions.hh	/^	INITIAL,$/;"	e	enum:job_stage
+INITIAL_STAGE	mapreduce/definitions.hh	/^	INITIAL_STAGE,$/;"	e	enum:job_stage
 JOB	mapreduce/definitions.hh	/^	JOB,$/;"	e	enum:mr_role
 JOIN	deprecated/SETcache.hh	/^ JOIN     = 0x8$/;"	e	enum:policy
 JOIN	slave/SETcache.hh	/^ JOIN     = 0x8$/;"	e	enum:policy
@@ -73,8 +73,8 @@ LIB_PATH	mapreduce/definitions.hh	5;"	d
 LOT	common/macros.h	46;"	d
 LRU	deprecated/SETcache.hh	/^ LRU      = 0x2,$/;"	e	enum:policy
 LRU	slave/SETcache.hh	/^ LRU      = 0x2,$/;"	e	enum:policy
-MAP	mapreduce/definitions.hh	/^	MAP,$/;"	e	enum:job_stage
 MAP	mapreduce/definitions.hh	/^	MAP,$/;"	e	enum:mr_role
+MAP_STAGE	mapreduce/definitions.hh	/^	MAP_STAGE,$/;"	e	enum:job_stage
 MAX_HILBERT_VALUE	deprecated/em_kde.cc	/^const int MAX_HILBERT_VALUE = 10;$/;"	v
 MAX_HILBERT_VALUE	deprecated/master/em_kde.cc	/^const int MAX_HILBERT_VALUE = 10;$/;"	v
 MR_PATH	mapreduce/definitions.hh	4;"	d
@@ -125,7 +125,7 @@ Query	deprecated/packets.hh	/^class Query: public Packet {$/;"	c
 Query	deprecated/query.cc	/^Query::Query (const Packet& p): Packet(p) { }$/;"	f	class:Query
 Query	deprecated/query.cc	/^Query::Query (const Query& that): Packet(that) {$/;"	f	class:Query
 REDUCE	mapreduce/definitions.hh	/^	REDUCE$/;"	e	enum:mr_role
-REDUCE	mapreduce/definitions.hh	/^	REDUCE,$/;"	e	enum:job_stage
+REDUCE_STAGE	mapreduce/definitions.hh	/^	REDUCE_STAGE,$/;"	e	enum:job_stage
 RULER	deprecated/master/scheduler.cc	7;"	d	file:
 RULER	deprecated/scheduler.cc	7;"	d	file:
 RUNNING	mapreduce/definitions.hh	/^	RUNNING,$/;"	e	enum:task_status
@@ -253,13 +253,13 @@ _sendto	deprecated/node.cc	/^ssize_t (*_sendto) (int, const void*, size_t, int) 
 a	deprecated/master/test/address_book_page_test.cc	/^ Address_book_page *a;$/;"	m	struct:address_book_page_test_t	file:
 a	deprecated/master/test/address_book_test.cc	/^ Address_book* a; $/;"	m	struct:address_book_test_t	file:
 abc	master/master_task.hh	/^	int abc;$/;"	m	class:master_task
-abc	slave/slave_task.hh	/^	int abc;$/;"	m	class:slave_task
 accept	deprecated/master/address_book_page.cc	/^Address_book_page& Address_book_page::accept (int sock) {$/;"	f	class:Address_book_page
 accept	deprecated/master/node_client.hh	/^		Node& accept (int sock) {$/;"	f	class:Node
 add_inputpath	mapreduce/mapreduce.hh	/^void add_inputpath(string path) \/\/ the path is relative path to MR_PATH$/;"	f
 add_inputpath	master/master_job.hh	/^void master_job::add_inputpath(string path)$/;"	f	class:master_job
 add_inputpath	master/master_job.hh	/^void master_task::add_inputpath(string path)$/;"	f	class:master_task
 add_inputpath	slave/slave_job.hh	/^void slave_task::add_inputpath(string apath)$/;"	f	class:slave_task
+add_key	master/master_job.hh	/^void master_job::add_key(string akey)$/;"	f	class:master_job
 add_key	slave/slave_job.hh	/^void slave_job::add_key(string key)$/;"	f	class:slave_job
 add_runningtask	master/connslave.hh	/^void connslave::add_runningtask(master_task* atask)$/;"	f	class:connslave
 add_task	master/master_job.hh	/^void master_job::add_task(master_task* atask)$/;"	f	class:master_job
@@ -348,7 +348,6 @@ data_set	deprecated/dht.hh	/^const uint64_t data_set = 1000000;$/;"	v
 data_set	slave/dht.hh	/^const uint64_t data_set = 1000000;$/;"	v
 debug	common/logger.hh	/^  static void debug(const char* in, ...) {$/;"	f	class:logger
 def	master/master_task.hh	/^	int def;$/;"	m	class:master_task
-def	slave/slave_task.hh	/^	int def;$/;"	m	class:slave_task
 deserialize	deprecated/order.cc	/^void Order::deserialize (uint8_t* chunk) {$/;"	f	class:Order
 dht	deprecated/node.cc	/^DHT dht;$/;"	v
 dht	slave/node.hh	/^  DHT dht;$/;"	m	class:Node
@@ -419,6 +418,7 @@ get_argc	mapreduce/mapreduce.hh	/^int get_argc(void)$/;"	f
 get_argcount	slave/slave_job.hh	/^int slave_task::get_argcount()$/;"	f	class:slave_task
 get_argv	mapreduce/mapreduce.hh	/^char** get_argv(void)$/;"	f
 get_argvalues	slave/slave_job.hh	/^char** slave_task::get_argvalues()$/;"	f	class:slave_task
+get_completedtask	slave/slave_job.hh	/^slave_task* slave_job::get_completedtask(int index)$/;"	f	class:slave_job
 get_diskPage	deprecated/SETcache.cc	/^diskPage SETcache::get_diskPage (uint64_t idx) {$/;"	f	class:SETcache
 get_diskPage	slave/SETcache.cc	/^diskPage SETcache::get_diskPage (uint64_t idx) {$/;"	f	class:SETcache
 get_distance	deprecated/master/node_client.hh	/^		double get_distance (Packet& p) { return fabs (EMA - p.get_point ()); }$/;"	f	class:Node
@@ -437,8 +437,11 @@ get_inputpath	slave/slave_job.hh	/^string slave_task::get_inputpath(int index)$/
 get_ip	common/utils.cc	/^char* get_ip (const char* interface) {$/;"	f
 get_job	master/master_job.hh	/^master_job* master_task::get_job()$/;"	f	class:master_task
 get_job	slave/slave_job.hh	/^slave_job* slave_task::get_job()$/;"	f	class:slave_task
+get_jobid	mapreduce/mapreduce.hh	/^int get_jobid()$/;"	f
 get_jobid	slave/slave_job.hh	/^int slave_job::get_jobid()$/;"	f	class:slave_job
 get_key	mapreduce/mapreduce.hh	/^bool get_key(string* key) \/\/ internal function for the reduce$/;"	f
+get_keybegin	master/master_job.hh	/^set<string>::iterator master_job::get_keybegin()$/;"	f	class:master_job
+get_keyend	master/master_job.hh	/^set<string>::iterator master_job::get_keyend()$/;"	f	class:master_job
 get_lastwaitingtask	master/master_job.hh	/^master_task* master_job::get_lastwaitingtask()$/;"	f	class:master_job
 get_low	common/metadata.hh	/^  uint64_t get_low   () { return low_b; }$/;"	f	class:Metadata
 get_low	deprecated/SETcache.cc	/^diskPage SETcache::get_low () {$/;"	f	class:SETcache
@@ -453,6 +456,7 @@ get_numcompletedtasks	slave/slave_job.hh	/^int slave_job::get_numcompletedtasks(
 get_numinputpaths	master/master_job.hh	/^int master_job::get_numinputpaths()$/;"	f	class:master_job
 get_numinputpaths	master/master_job.hh	/^int master_task::get_numinputpaths()$/;"	f	class:master_task
 get_numinputpaths	slave/slave_job.hh	/^int slave_task::get_numinputpaths()$/;"	f	class:slave_task
+get_numkey	master/master_job.hh	/^int master_job::get_numkey()$/;"	f	class:master_job
 get_numrunning_tasks	master/master_job.hh	/^int master_job::get_numrunning_tasks()$/;"	f	class:master_job
 get_numrunningtasks	slave/slave_job.hh	/^int slave_job::get_numrunningtasks()$/;"	f	class:slave_job
 get_numtasks	master/master_job.hh	/^int master_job::get_numtasks()$/;"	f	class:master_job
@@ -518,8 +522,10 @@ instance	slave/node_sketch.hh	/^  static Node& instance;$/;"	m	class:Node
 ips	deprecated/dht_test.cc	/^const char * ips [32] = {$/;"	v
 ips	deprecated/master/test/dht_test.cc	/^const char * ips [32] = {$/;"	v
 ips	slave/test/dht_test.cc	/^const char * ips [32] = {$/;"	v
+is_key	master/master_job.hh	/^bool master_job::is_key()$/;"	f	class:master_job
 is_nextval	mapreduce/mapreduce.hh	/^bool is_nextval = false;$/;"	v
 is_nextvalue	mapreduce/mapreduce.hh	/^bool is_nextvalue() \/\/ returns true if there is next value$/;"	f
+is_unreportedkey	slave/slave_job.hh	/^bool slave_job::is_unreportedkey()$/;"	f	class:slave_job
 is_valid	deprecated/SETcache.cc	/^bool SETcache::is_valid (diskPage& dp) {$/;"	f	class:SETcache
 is_valid	slave/SETcache.cc	/^bool SETcache::is_valid (diskPage& dp) {$/;"	f	class:SETcache
 isset_mapper	mapreduce/mapreduce.hh	/^bool isset_mapper = false;$/;"	v
@@ -668,6 +674,8 @@ policy	slave/SETcache.hh	/^  int _max, policy;$/;"	m	class:SETcache
 policy	slave/SETcache.hh	/^enum policy {$/;"	g
 pop_farthest	deprecated/SETcache.cc	/^void SETcache::pop_farthest () {$/;"	f	class:SETcache
 pop_farthest	slave/SETcache.cc	/^void SETcache::pop_farthest () {$/;"	f	class:SETcache
+pop_key	master/master_job.hh	/^string master_job::pop_key()$/;"	f	class:master_job
+pop_unreportedkey	slave/slave_job.hh	/^string slave_job::pop_unreportedkey()$/;"	f	class:slave_job
 port	client/client.cc	/^int port = -1;$/;"	v
 port	deprecated/dht.hh	/^  int sock, port;$/;"	m	class:DHT
 port	deprecated/master/scheduler.cc	/^int sock, port = 0, nservers = 0;$/;"	v
@@ -682,6 +690,7 @@ print_header	deprecated/master/scheduler.cc	/^void print_header (void) {$/;"	f
 print_header	deprecated/scheduler.cc	/^void print_header (void) {$/;"	f
 print_out	deprecated/master/scheduler.cc	/^void print_out (void) {$/;"	f
 print_out	deprecated/scheduler.cc	/^void print_out (void) {$/;"	f
+pstat	slave/slave_task.hh	/^	int pstat; \/\/ status value for waitpid()$/;"	m	class:slave_task
 purpose	deprecated/order.hh	/^  enum type purpose; $/;"	m	class:Order	typeref:enum:Order::type
 queryProcessed	deprecated/node.cc	/^uint32_t queryProcessed = 0;$/;"	v
 queryProcessed	slave/node.hh	/^  uint32_t queryProcessed;$/;"	m	class:Node
@@ -705,7 +714,6 @@ recv_msg	slave/test/common.cc	/^void recv_msg (int fd, char* in) {$/;"	f
 recv_msg2	slave/test/common.cc	/^void recv_msg2 (int fd, char* in) {$/;"	f
 reducefunction	mapreduce/mapreduce.hh	/^void (*reducefunction) (string key); \/\/ reduce function pointer$/;"	v
 remove_runningtask	master/connslave.hh	/^void connslave::remove_runningtask(master_task* atask)$/;"	f	class:connslave
-report_key	slave/slave_job.hh	/^void slave_job::report_key(string key)$/;"	f	class:slave_job
 reported_keys	mapreduce/mapreduce.hh	/^set<string> reported_keys;$/;"	v
 reported_keys	slave/slave_job.hh	/^	set<string> reported_keys;$/;"	m	class:slave_job
 request	deprecated/dht.cc	/^bool DHT::request (Header& h) {$/;"	f	class:DHT
@@ -811,7 +819,7 @@ signal_handler	slave/node.cc	/^void Node::signal_handler () { Node.catch_signal(
 signal_handler	slave/node_sketch.cc	/^void Node::signal_handler () { Node.catch_signal(); }$/;"	f	class:Node
 signal_listener	client/client.cc	/^void* signal_listener(void* args)$/;"	f
 signal_listener	master/master.cc	/^void* signal_listener(void* args)$/;"	f
-signal_listener	slave/slave.cc	/^void* signal_listener(void* args)$/;"	f
+signal_listener	slave/slave.cc	/^void signal_listener()$/;"	f
 size	common/file.hh	/^  size_t size; $/;"	m	class:File
 size	deprecated/packets.hh	/^  size_t size;$/;"	m	class:Packet
 slave_job	slave/slave_job.hh	/^class slave_job$/;"	c

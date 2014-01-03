@@ -3,6 +3,7 @@
 
 #define MR_PATH "/home/youngmoon01/mr_storage/"
 #define LIB_PATH "/home/youngmoon01/MRR/src/"
+#define HDFS_PATH "/home/youngmoon01/hadoop-1.2.0/src/c++/libhdfs/"
 #define BUF_SIZE 512
 
 enum mr_role

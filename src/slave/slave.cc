@@ -508,6 +508,12 @@ void launch_task(slave_task* atask)
 		while(execv(args[0], args) == -1)
 		{
 cout<<"Debugging: execv failed"<<endl;
+cout<<"Arguments:";
+for(int i=0;i<count+3;i++)
+{
+	cout<<" "<<args[i];
+}
+cout<<endl;
 			// sleeps for 0.0001 seconds. change this if necessary
 			usleep(100);
 		}
