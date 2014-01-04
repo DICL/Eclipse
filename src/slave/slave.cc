@@ -351,22 +351,8 @@ void signal_listener()
 					// send terminate message
 					write(running_tasks[i]->get_writefd(), "terminate", BUF_SIZE);
 
-					// send 'taskcomplete' message to the master
-					stringstream ss;
-					string msg = "taskcomplete";
-					ss<<" jobid ";
-					ss<<running_tasks[i]->get_job()->get_jobid();
-					ss<<" taskid ";
-					ss<<running_tasks[i]->get_taskid();
-					msg.append(ss.str());
-
-					write(masterfd, msg.c_str(), BUF_SIZE);
-
-					// clear all to things related to this task
-					running_tasks[i]->get_job()->finish_task(running_tasks[i]);
-					running_tasks.erase(running_tasks.begin()+i);
-					i--;
-
+					// mark the task as completed
+					running_tasks[i]->set_status(COMPLETED);
 				}
 				else if(strncmp(read_buf, "requestconf", 11) == 0)
 				{
@@ -409,24 +395,45 @@ void signal_listener()
 			}
 		}
 
-		// check abnormal termination of task process
-
+		// check task clear
 		for(int i=0;(unsigned)i<running_tasks.size();i++)
 		{
 			if(waitpid(running_tasks[i]->get_pid(), &(running_tasks[i]->pstat), WNOHANG)) // waitpid returned nonzero 
 			{
-				cout<<"[slave]A ";
-				if(running_tasks[i]->get_taskrole() == MAP)
-					cout<<"map ";
-				else if(running_tasks[i]->get_taskrole() == REDUCE)
-					cout<<"reduce ";
-				cout<<"task with taskid "<<running_tasks[i]->get_taskid();
-				cout<<" and jobid "<<running_tasks[i]->get_job()->get_jobid();
-				cout<<" terminated abnormally"<<endl;
-				cout<<"pid: "<<running_tasks[i]->get_pid()<<endl;
-				// TODO: clear data structures for the task
+				if(running_tasks[i]->get_status() == COMPLETED) // successful termination
+				{
+					// send 'taskcomplete' message to the master
+					stringstream ss;
+					string msg = "taskcomplete";
+					ss<<" jobid ";
+					ss<<running_tasks[i]->get_job()->get_jobid();
+					ss<<" taskid ";
+					ss<<running_tasks[i]->get_taskid();
+					msg.append(ss.str());
 
-				// TODO: launch the failed task again
+					write(masterfd, msg.c_str(), BUF_SIZE);
+
+					// clear all to things related to this task
+					running_tasks[i]->get_job()->finish_task(running_tasks[i]);
+					delete running_tasks[i];
+					running_tasks.erase(running_tasks.begin()+i);
+					i--;
+				}
+				else
+				{
+					cout<<"[slave]A ";
+					if(running_tasks[i]->get_taskrole() == MAP)
+						cout<<"map ";
+					else if(running_tasks[i]->get_taskrole() == REDUCE)
+						cout<<"reduce ";
+					cout<<"task with taskid "<<running_tasks[i]->get_taskid();
+					cout<<" and jobid "<<running_tasks[i]->get_job()->get_jobid();
+					cout<<" terminated abnormally"<<endl;
+					cout<<"pid: "<<running_tasks[i]->get_pid()<<endl;
+					// TODO: clear data structures for the task
+
+					// TODO: launch the failed task again
+				}
 			}
 		}
 
@@ -505,6 +512,11 @@ void launch_task(slave_task* atask)
 		args[count+3] = NULL;
 
 		// launch the task with the passed arguments
+cout<<"Arguments:";
+for(int i=0;i<count+3;i++)
+{
+	cout<<" "<<args[i];
+}
 		while(execv(args[0], args) == -1)
 		{
 cout<<"Debugging: execv failed"<<endl;
@@ -514,8 +526,8 @@ for(int i=0;i<count+3;i++)
 	cout<<" "<<args[i];
 }
 cout<<endl;
-			// sleeps for 0.0001 seconds. change this if necessary
-			usleep(100);
+			// sleeps for 1 seconds. change this if necessary
+			sleep(1);
 		}
 	}
 	else if(pid < 0)

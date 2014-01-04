@@ -10,8 +10,8 @@ client/client.cc \
 client/client.hh \
 \
 mapreduce/definitions.hh \
-mapreduce/mapreduce_nfs.hh \
-mapreduce/mapreduce_hdfs.hh \
+mapreduce/nfs_hh/mapreduce.hh \
+mapreduce/hdfs_hh/mapreduce.hh \
 \
 master/Makefile \
 master/connclient.hh \

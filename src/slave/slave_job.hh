@@ -47,7 +47,7 @@ void slave_job::finish_task(slave_task* atask)
 		if(this->running_tasks[i] == atask)
 		{
 			this->running_tasks.erase(this->running_tasks.begin()+i);
-			completed_tasks.push_back(atask);
+			this->completed_tasks.push_back(atask);
 			atask->set_status(COMPLETED);
 			return;
 		}
@@ -66,9 +66,7 @@ slave_job::slave_job(int id)
 
 slave_job::~slave_job()
 {
-	// delete all the tasks of the job
-	for(int i=0;(unsigned)i<this->tasks.size();i++)
-		delete this->tasks[i];
+	// do nothing as default
 }
 
 void slave_job::set_jobid(int id)

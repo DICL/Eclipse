@@ -1,6 +1,6 @@
 #include <iostream>
 #include <mapreduce/definitions.hh>
-#include "mcc.hh"
+#include "mcc_nfs.hh"
 
 using namespace std;
 
@@ -20,8 +20,11 @@ int main(int argc, char** argv)
 		cout<<"\t(If using those words as arguments is inevitable, please avoid them to be the last argument.)"<<endl;
 	}
 
-	char** argvalue = new char*[argc+4];
+	char** argvalue = new char*[argc+3];
 	argvalue[0] = "/usr/bin/g++";
+
+	string libpath = LIB_PATH;
+	libpath.append("mapreduce/nfs_hh/");
 
 	for(int i=1;i<argc;i++)
 	{
@@ -31,14 +34,10 @@ int main(int argc, char** argv)
 	argvalue[argc] = new char[3];
 	strcpy(argvalue[argc], "-I");
 
-	argvalue[argc+1] = new char[strlen(LIB_PATH)+1];
-	strcpy(argvalue[argc+1], LIB_PATH);
+	argvalue[argc+1] = new char[strlen(libpath.c_str())+1];
+	strcpy(argvalue[argc+1], libpath.c_str());
 
-	argvalue[argc+2] = new char[3];
-	strcpy(argvalue[argc+2], "-I");
-
-	argvalue[argc+3] = new char[strlen(HDFS_PATH)+2];
-	strcpy(argvalue[argc+3], HDFS_PATH);
+	argvalue[argc+2] = NULL;
 
 	execv(argvalue[0], argvalue);
 	return 0;
