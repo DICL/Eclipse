@@ -52,7 +52,7 @@ log (int type, const char* _ip, const char* in, ...)
  if (type == M_ERR) exit (EXIT_SUCCESS);
 }
 
-inline bool
+bool
 fd_is_ready (int fd) 
 {
  struct timeval timeout = {1, 0};

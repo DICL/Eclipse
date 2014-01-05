@@ -26,7 +26,8 @@
 #define MRR_IP_LENGTH 64 
 #endif
 // }}}
-//
+// DHTclient class definition {{{
+// ------------------------------------
 class DHTclient {
  public:
   DHTclient (const char * ip, int port) {
@@ -34,14 +35,14 @@ class DHTclient {
    this->port = port;
   }
 
-  virtual ~DHTclient ( close (); );
+  ~DHTclient () { close (); }
   
-  int lookup (const char * key); 
+  int lookup (const char *); 
   bool bind ();
   bool close ();
  
  protected:
-  bool server_request (int key);
+  bool server_request (uint32_t key);
   int server_receive ();
 
  protected:
@@ -53,3 +54,4 @@ class DHTclient {
 };
 
 #endif
+// }}}

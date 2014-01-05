@@ -21,7 +21,7 @@ enum m_error {
 };
 
 void        log           (int, const char* _ip, const char* in, ...);
-inline bool fd_is_ready   (int);
+bool        fd_is_ready   (int);
 uint64_t    timediff      (struct timeval*, struct timeval*);
 void        send_msg      (int, const char*);
 void        recv_msg      (int, char*) __attribute__((weak));

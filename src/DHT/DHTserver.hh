@@ -2,7 +2,6 @@
 // @brief Blocking server for distributed hash table 
 //  
 // :TODO: UDP Sockets may be more suitable ?
-// :TODO: Which hash function use ?
 //
 // Preprocessor {{{
 #ifndef __DHTCLIENT_HH__
@@ -30,27 +29,28 @@
 //
 class DHTserver {
  public:
-  DHTserver (const char * ip, int port) {
-   strncpy (this->ip, ip, MRR_IP_LENGTH);
+  DHTserver (int port) {
    this->port = port;
   }
-
-  virtual ~DHTserver ( close (); );
+  ~DHTserver() { this->close (); };
   
-  int lookup (const char * key); 
   bool bind ();
   bool listen ();
   bool close ();
- 
+  
+  bool report (const char*, int);
+
  protected:
   bool server_request (int key);
   int server_receive ();
+  static void* listening (void*);
 
  protected:
-  char ip [MRR_IP_LENGTH];
   int port;
-  int server_fd, server_fd;
-  struct sockaddr_in server_server; 
+  int server_fd;
+  struct sockaddr_in server_addr; 
+
+  pthread_t tserver;
 };
 
 #endif

@@ -3,14 +3,15 @@ vpath %.cc ../
 #CXX := colorgcc -lstdc++
 CXX := g++
 LIBDIR  ?= ../../../lib
+LIBDIR2 := ../../common
 INCLUDE := -I ./../
 INCLUDE += -I ./../../common
 INCLUDE += -I $(LIBDIR)/unittest++/
 
 CXXFLAGS := -g -Wall $(INCLUDE) -std=gnu++98 
-LDFLAGS := -L $(LIBDIR) -lUnitTest++ -lm
+LDFLAGS := -L $(LIBDIR) -L $(LIBDIR2) -lUnitTest++ -lm -lpthread -lmrr
 
-SOURCES := DHTserver.cc DHTclient.cc
+SOURCES := DHTserver.cc DHTclient.cc DHTserver_test.cc DHTclient_test.cc main.cc
 OBJECTS := $(patsubst %.cc, %.o, $(SOURCES))
 
 %.o : %.cc 

@@ -22,6 +22,10 @@
 #define DPSIZE (2 << 13) //! 4096 Bytes
 #endif
 
+#ifndef LOT
+#define LOT (1024) //! 4096 Bytes
+#endif
+
 #ifndef DATAFILE
 #define DATAFILE "/scratch/youngmoon01/garbage2.bin"
 #endif
