@@ -25,6 +25,7 @@ vector<connclient*> clients;
 
 vector<master_job*> jobs;
 
+
 int num_slave = -1;
 int backlog = -1;
 int port = -1;
@@ -126,6 +127,9 @@ int main(int argc, char** argv)
 		if(fd < 0)
 		{
 			cout<<"[master]Accepting failed"<<endl;
+
+			// sleep 0.0001 seconds. change this if necessary
+			usleep(100);
 			continue;
 		}
 		else
@@ -640,6 +644,7 @@ void* signal_listener(void* args)
 					// send message to the job to inform that map phase is completed
 					write(jobs[i]->getjobfd(), "mapcomplete", BUF_SIZE);
 
+					cout<<"[master]Number of keys generated from map phase: "<<jobs[i]->get_numkey()<<endl;
 					// fork reduce tasks
 					for(set<string>::iterator it = jobs[i]->get_keybegin();it != jobs[i]->get_keyend(); it++)
 					{
@@ -717,10 +722,13 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 					}
 if(ss.str().length()>=BUF_SIZE)
 cout<<"[master]Debugging: the argument string exceeds the limited length"<<endl;
-					write(slaves[j]->getfd(), ss.str().c_str(), BUF_SIZE);
+					strcpy(write_buf, ss.str().c_str());
+					write(slaves[j]->getfd(), write_buf, BUF_SIZE);
 
 					// forward waiting task to slave slot
 					jobs[i]->schedule_task(thetask, slaves[j]);
+					// sleeps for 0.0001 seconds. change this if necessary
+					usleep(100);
 				}
 			}
 		}

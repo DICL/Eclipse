@@ -2,6 +2,7 @@
 #define _MAPREDUCE_
 
 #include <iostream>
+#include <errno.h>
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -522,7 +523,25 @@ void summ_mapreduce()
 					reported_keys.insert(key);
 
 					// send 'key' meesage to the slave node
-					write(pipefd[1], keystr.c_str(), BUF_SIZE);
+					strcpy(write_buf, keystr.c_str());
+					while(write(pipefd[1], write_buf, BUF_SIZE)< 0)
+					{
+						cout<<"[mapreduce]write to slave failed"<<endl;
+						int err = errno;
+						if(err == EAGAIN)
+						{
+							cout<<"[mapreduce]due to the EAGAIN"<<endl;
+						}
+						else if(err ==  EFAULT)
+						{
+							cout<<"[mapreduce]due to the EFAULT"<<endl;
+						}
+						// sleeps for 1 second. change this if necessary
+						sleep(1);
+					}
+
+					// sleeps for 0.0001 seconds. change this if necessary
+					usleep(100);
 				}
 			}
 		}
@@ -546,7 +565,7 @@ void summ_mapreduce()
 			{
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
-					cout<<"[mapreduce]Task is successfully completed"<<endl;
+//					cout<<"[mapreduce]Map task is successfully completed"<<endl;
 
 					// clear task
 					input.close();
@@ -603,7 +622,7 @@ cout<<"the reduce task is gone"<<endl;
 			{
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
-					cout<<"[mapreduce]Task is successfully completed"<<endl; // <- this message will be printed in the slave process side
+//					cout<<"[mapreduce]Reduce task is successfully completed"<<endl; // <- this message will be printed in the slave process side
 
 					// clear task
 					input.close();
@@ -876,7 +895,8 @@ int writeoutfile(int fd, string data)
 
 	// critical section
 	{
-		write(fd, data.c_str(), strlen(data.c_str()));
+		strcpy(write_buf, data.c_str());
+		write(fd, write_buf, strlen(data.c_str()));
 		write(fd, "\n", 1);
 	}
 

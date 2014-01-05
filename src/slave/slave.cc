@@ -1,4 +1,5 @@
 #include <iostream>
+#include <errno.h>
 #include <fstream>
 #include <sstream>
 #include <sys/unistd.h>
@@ -309,9 +310,26 @@ void signal_listener()
 
 				keystr.append(" ");
 				keystr.append(key);
+				strcpy(write_buf, keystr.c_str());
 
 				// send message to the master node
-				write(masterfd, keystr.c_str(), BUF_SIZE);
+				while(write(masterfd, write_buf, BUF_SIZE)<0)
+				{
+					// sleeps for 0.0001 seconds. change this if necessary
+					cout<<"[slave]write to master failed"<<endl;
+					int err = errno;
+					if(err == EAGAIN)
+					{
+						cout<<"[slave]due to EAEGIN"<<endl;
+					}
+					else if(err == EFAULT)
+					{
+						cout<<"[slave]due to EFAULT"<<endl;
+					}
+					sleep(1);
+				}
+				// sleeps for 0.0001 second. change this if necessary
+				usleep(100);
 			}
 
 			// check if all tasks in the job are finished
@@ -333,8 +351,7 @@ void signal_listener()
 			readbytes = read(running_tasks[i]->get_readfd(), read_buf, BUF_SIZE);
 			if(readbytes == 0)
 			{
-				cout<<"[slave]Pipe from the task was closed"<<endl;
-				cout<<"       Debug if necessary"<<endl;
+				// ignore this case as default
 			}
 			else if(readbytes < 0)
 			{
@@ -512,21 +529,17 @@ void launch_task(slave_task* atask)
 		args[count+3] = NULL;
 
 		// launch the task with the passed arguments
-cout<<"Arguments:";
-for(int i=0;i<count+3;i++)
-{
-	cout<<" "<<args[i];
-}
 		while(execv(args[0], args) == -1)
 		{
-cout<<"Debugging: execv failed"<<endl;
-cout<<"Arguments:";
-for(int i=0;i<count+3;i++)
-{
-	cout<<" "<<args[i];
-}
-cout<<endl;
-			// sleeps for 1 seconds. change this if necessary
+			cout<<"Debugging: execv failed"<<endl;
+			cout<<"Arguments:";
+			for(int i=0;i<count+3;i++)
+			{
+				cout<<" "<<args[i];
+			}
+			cout<<endl;
+
+			// sleeps for 1 seconds and retry execv. change this if necessary
 			sleep(1);
 		}
 	}
