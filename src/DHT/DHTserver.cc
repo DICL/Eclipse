@@ -3,6 +3,7 @@
 // DHTserver::report {{{
 // ----------------------------------------------- 
 bool DHTserver::report (const char * key, int server) {
+ table[h(key, strlen (key))] = server; 
  return true;
 }
 // }}}
@@ -79,7 +80,7 @@ void* DHTserver::listening (void* in) {
 
    default:
     // Handle normal situation
-    uint32_t server_number = (input);
+    uint32_t server_number = _this->table [input];
     sendto (client_fd, &server_number, 4, 0, (struct sockaddr*)&client_addr, sa);
     break; 
   }

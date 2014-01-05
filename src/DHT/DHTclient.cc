@@ -63,7 +63,6 @@ uint32_t h (const char * data, size_t len) {
 #endif
 // }}}
 // lookup {{{
-//
 // ----------------------------------------------- 
 int DHTclient::lookup (const char * key) {
  //prepare packet
@@ -126,6 +125,7 @@ bool DHTclient::server_request (uint32_t key) {
  int ret = sendto (server_fd, &key, 4, 0,          // 4 bytes for int
    (struct sockaddr*)&server_addr,
    sizeof (server_addr));
+
  switch (ret) {
   case -1: 
    return false;

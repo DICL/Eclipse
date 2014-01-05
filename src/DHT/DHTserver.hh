@@ -21,12 +21,16 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <math.h>
+#include <map>
+#include <hash.hh>
+
+using std::map;
 
 #ifndef MRR_IP_LENGTH
 #define MRR_IP_LENGTH 64 
 #endif
 // }}}
-//
+// DHTserver class definition {{{
 class DHTserver {
  public:
   DHTserver (int port) {
@@ -51,6 +55,8 @@ class DHTserver {
   struct sockaddr_in server_addr; 
 
   pthread_t tserver;
+  map<int, int> table;
 };
 
 #endif
+// }}}

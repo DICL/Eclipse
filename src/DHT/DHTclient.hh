@@ -21,6 +21,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <math.h>
+#include <hash.hh>
 
 #ifndef MRR_IP_LENGTH
 #define MRR_IP_LENGTH 64 
