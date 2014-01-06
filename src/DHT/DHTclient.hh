@@ -9,7 +9,6 @@
 #define __DHTCLIENT_HH__
 // 
 #include <string.h>
-#include <utils.hh>  //! Where the hash function is
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -21,6 +20,8 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <math.h>
+
+#include <utils.hh>  //! Where the hash function is
 #include <hash.hh>
 
 #ifndef MRR_IP_LENGTH

@@ -35,13 +35,14 @@ class DHTserver {
  public:
   DHTserver (int port) {
    this->port = port;
+   thread_continue = true;
   }
   ~DHTserver() { this->close (); };
-  
+
   bool bind ();
+  bool set_interface (const char*);
   bool listen ();
   bool close ();
-  
   bool report (const char*, int);
 
  protected:
@@ -56,6 +57,7 @@ class DHTserver {
 
   pthread_t tserver;
   map<int, int> table;
+  bool thread_continue; //! there is not race condition
 };
 
 #endif
