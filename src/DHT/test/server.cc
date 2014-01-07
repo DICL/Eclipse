@@ -1,7 +1,7 @@
+#include <UnitTest++.h>
 #include <DHTserver.hh>
 
-int main(int argc, const char *argv[])
-{
+TEST (SERVER_MAIN) {
  DHTserver server (5555);
  
  server.bind ();
@@ -12,6 +12,7 @@ int main(int argc, const char *argv[])
  server.report ("hola", 1);
  server.report ("adios", 2);
 
+ sleep (5);
  server.close();
  return 0;
 }

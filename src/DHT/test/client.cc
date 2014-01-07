@@ -1,17 +1,14 @@
-#include <DHTclient.hh>
+#include <UnitTest++.h>
+#include <DHTclient.h>
 
-int main(int argc, const char *argv[])
-{
+TEST (CLIENT_MAIN) {
  DHTclient client ("localhost", 5555);
 
  client.bind ();
 
- if (0 != client.lookup ("Ahoy"))
-  err ("bad");
- if (1 != client.lookup ("hola"))
-  err ("bad");
- if (2 != client.lookup ("adios"))
-  err ("bad");
+ CHECK (0 == client.lookup ("Ahoy"))
+ CHECK (1 == client.lookup ("hola"))
+ CHECK (2 == client.lookup ("adios"))
 
  client.close();
  return 0;
