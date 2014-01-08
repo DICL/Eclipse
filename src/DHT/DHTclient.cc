@@ -25,20 +25,25 @@ bool DHTclient::bind () {
  server_addr.sin_port = htons (port);
  server_addr.sin_addr.s_addr = inet_addr (ip);
  bzero (&(server_addr.sin_zero), 8);
- // status = DISCONNECTED;
 
- if ((server_fd = socket (AF_INET, SOCK_STREAM, 0)) == -1)
+ if ((server_fd = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
   log (M_ERR, "DHT", "Socket");
 
  if (setsockopt (server_fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(int)) == -1)
   log (M_ERR, "DHT", "Setsockopt");
 
+#ifdef _DEBUG
+ log (M_DEBUG, "DHTclient", "UDP client setted up host = [%s:%i]", 
+      inet_ntoa(server_addr.sin_addr),
+      ntohs (server_addr.sin_port));
+#endif
+
  client_addr.sin_family = AF_INET;
- client_addr.sin_port = htons (port);
+ client_addr.sin_port = htons (port + 1);
  client_addr.sin_addr.s_addr = inet_addr (ip);
  bzero (&(client_addr.sin_zero), 8);
 
- if ((client_fd = socket (AF_INET, SOCK_STREAM, 0)) == -1)
+ if ((client_fd = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
   log (M_ERR, "DHT", "Socket");
 
  if (setsockopt (client_fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(int)) == -1)
@@ -48,48 +53,54 @@ bool DHTclient::bind () {
     sizeof(struct sockaddr)) == -1)
   log (M_ERR, "DHT", "Unable to bind");
 
- if (::listen (client_fd, 1) == -1)
-  log (M_ERR, "DHT", "Listen");
-
- log (M_INFO, "DHT", "Network setted up using port = %i", port);
-
  return true;
 }
 // }}}
 // server_request {{{
 // ----------------------------------------------- 
 bool DHTclient::server_request (uint32_t key) {
- /* code */
- int ret = sendto (server_fd, &key, 4, 0,          // 4 bytes for int
-   (struct sockaddr*)&server_addr,
-   sizeof (server_addr));
+ int key_serialized = htonl (key);
+ int ret = sendto (server_fd, &key_serialized, 4, MSG_WAITALL,          // 4 bytes for int
+   (struct sockaddr*)&server_addr, sizeof (server_addr));
+
+#ifdef _DEBUG
+ log (M_DEBUG, "DHTclient", "petition sent to %s:%i", inet_ntoa(server_addr.sin_addr),
+     ntohs (server_addr.sin_port));
+#endif
 
  switch (ret) {
   case -1: 
    return false;
 
-  default:
+  case 4:
    return true;
+  default:
+   perror ("Terrible error");
+   return false;
  } 
 }
 // }}}
 // server_receive {{{
 // ----------------------------------------------- 
 int DHTclient::server_receive () {
- if (fd_is_ready (client_fd)) { 
-  uint32_t reply;
+ //if (fd_is_ready (client_fd)) { 
+  uint32_t reply = 0;
   socklen_t sl = sizeof (client_addr);
-  int ret = recvfrom (client_fd, &reply, 4 ,0, (struct sockaddr*)&client_addr, &sl);
+  int ret = recvfrom (server_fd, &reply, 4, MSG_WAITALL, (struct sockaddr*)&server_addr, &sl);
+
+#ifdef _DEBUG
+ //printf("Recieved %i\n", ntohl (reply));
+#endif 
 
   switch (ret) {
    case -1: 
-    return false;
+    return -1;
 
    default:
-    return true;
+    return ntohl (reply);
   } 
- } 
- return false;
+ //} 
+ return -1;
 }
 // }}}
 // close {{{

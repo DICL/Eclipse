@@ -1,15 +1,16 @@
 #include <UnitTest++.h>
-#include <DHTclient.h>
+#include <DHTclient.hh>
 
-TEST (CLIENT_MAIN) {
- DHTclient client ("localhost", 5555);
+SUITE (DHT) {
+ TEST (CLIENT_MAIN) {
+  DHTclient client ("localhost", 5555);
 
- client.bind ();
+  client.bind ();
 
- CHECK (0 == client.lookup ("Ahoy"))
- CHECK (1 == client.lookup ("hola"))
- CHECK (2 == client.lookup ("adios"))
+  CHECK (0 == client.lookup ("Ahoy"));
+  CHECK (1 == client.lookup ("hola"));
+  CHECK (2 == client.lookup ("adios"));
 
- client.close();
- return 0;
+  client.close();
+ }
 }

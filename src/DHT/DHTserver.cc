@@ -17,7 +17,6 @@ bool DHTserver::bind () {
  server_addr.sin_family = AF_INET;
  server_addr.sin_port = htons (port);
  server_addr.sin_addr.s_addr = htonl (INADDR_ANY);
-// status = DISCONNECTED;
 
  if ((server_fd = socket (PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
   log (M_ERR, "DHT", "socket function");
@@ -25,9 +24,11 @@ bool DHTserver::bind () {
  if (setsockopt (server_fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(int)) == -1)
   log (M_ERR, "DHT", "setsockopt function");
 
- if (::bind (server_fd, (struct sockaddr*)&server_addr, 
-     sizeof (server_addr)) == -1)
+ if (::bind (server_fd, (struct sockaddr*)&server_addr, sizeof (server_addr)) == -1)
   log (M_ERR, "DHT", "bind function");
+
+ log (M_INFO, "DHTserver", "UDP server setted up [%s:%i]", 
+   inet_ntoa (server_addr.sin_addr), ntohs (server_addr.sin_port));
 
  return true;
 }
@@ -80,22 +81,20 @@ void* DHTserver::listening (void* in) {
  //! receiving petitions and sending back
  do {
   struct sockaddr_in client_addr;
+  int ret = recvfrom (_this->server_fd, &input, 4, MSG_DONTWAIT, (struct sockaddr*)&client_addr, &sa); 
 
-  int client_fd = accept4 (_this->server_fd, (struct sockaddr*)&(_this->server_addr), &sa, SOCK_NONBLOCK);
-  if (client_fd == -1 || errno == EAGAIN) continue;                  //! Skip if no connection is presented
-
-  int ret = recvfrom (client_fd, &input, 4, MSG_DONTWAIT, (struct sockaddr*)&client_addr, &sa); 
-
+  if (ret == -1 && errno == EAGAIN) continue;                        //! No data received
   switch (ret) {
-   case -1: log (M_ERR, "DHT", "Error from recvfrom");        break; //! Error handle log
+   case -1: log (M_DEBUG, "DHT", "Error from recvfrom");      break; //! Error handle log
    case 0:  log (M_INFO, "DHT", "Shutdown message received"); break; //! Handle shutdown
    default:                                                          //! Handle normal situation
-    uint32_t server_number = _this->table [input];
-    sendto (client_fd, &server_number, 4, 0, (struct sockaddr*)&client_addr, sa);
-    break; 
+            uint32_t server_number = htonl (_this->table [ntohl(input)]);
+            //printf("recieved %i -> %i\n", ntohl (input), ntohl (server_number));
+            sendto (_this->server_fd, &server_number, 4, MSG_WAITALL, (struct sockaddr*)&client_addr, sa);
+            break; 
   }
 
- } while (_this->thread_continue);
+ } while (_this->thread_continue != false);
 
  pthread_exit (NULL);
 }
