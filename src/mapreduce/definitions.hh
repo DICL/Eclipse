@@ -2,7 +2,7 @@
 #define _DEFINITIONS_
 
 #define MR_PATH "/home/youngmoon01/mr_storage/"
-#define LIB_PATH "/home/youngmoon01/MRR/src_mr/"
+#define LIB_PATH "/home/youngmoon01/MRR/src/"
 #define BUF_SIZE 512
 
 enum mr_role
@@ -10,6 +10,22 @@ enum mr_role
 	JOB,
 	MAP,
 	REDUCE
+};
+
+
+enum task_status
+{
+	WAITING,
+	RUNNING,
+	COMPLETED
+};
+
+enum job_stage
+{
+	INITIAL,
+	MAP,
+	REDUCE,
+	COMPLETED
 };
 
 #endif

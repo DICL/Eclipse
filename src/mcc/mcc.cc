@@ -13,6 +13,12 @@ int main(int argc, char** argv)
 		cout<<"Exiting..."<<endl;
 		return 1;
 	}
+	else
+	{
+		cout<<"Compiling the code..."<<endl;
+		cout<<"\tRemember, your program cannot use the words 'MAP', 'REDUCE' as arguments of your program."<<endl;
+		cout<<"\t(If using those words as arguments is inevitable, please avoid them to be the last argument.)"<<endl;
+	}
 
 	char** argvalue = new char*[argc+2];
 	argvalue[0] = "/usr/bin/g++";
@@ -23,7 +29,7 @@ int main(int argc, char** argv)
 		strcpy(argvalue[i], argv[i]);
 	}
 	argvalue[argc] = "-I";
-	argvalue[argc+1] = "/home/youngmoon01/MRR/MRR/src_mr/";
+	argvalue[argc+1] = LIB_PATH;
 
 
 	execv("/usr/bin/g++", argvalue);
