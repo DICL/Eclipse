@@ -2,6 +2,7 @@
 #define _MAPREDUCE_
 
 #include <iostream>
+#include <errno.h>
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -20,6 +21,9 @@
 
 #include "../definitions.hh"
 
+#define HDFS_HOST "ravenleader"
+#define HDFS_PORT 9000
+
 using namespace std;
 
 // user functions
@@ -35,12 +39,14 @@ char** get_argv(void); // get user argv excepting passed pipe fd
 void write_keyvalue(string key, string value);
 void write_output(string record); // function used in reduce function
 
+int writeoutfile(hdfsFile* hdfsFile, string data); // write to the task/job result file
 bool get_record(string* record); // return true when successful, false when out of input record
-bool get_key(string* value); // return true when successful, false when out of key value pair
+bool get_nextkey(string* value); // return true when successful, false when out of key value pair
 int get_argc(void); // get user argc excepting passed pipe fd
 void report_key(int index);
 int connect_to_server(char *host, unsigned short port);
 int get_jobid();
+string hdfs_getline(hdfsFile* file);
 
 mr_role role = JOB;
 char read_buf[BUF_SIZE]; // read buffer for pipe
@@ -64,10 +70,12 @@ bool inside_map = false; // true if the code is inside map function
 bool inside_reduce = false; // true if the code is inside reduce function 
 char master_address[BUF_SIZE];
 vector<string> inputpaths; // list of input paths.
-ifstream input; // input file stream for get_record
+hdfsFile input; // input file stream for get_record
 string outputpath = "default_output";
 
 // variables for task role
+
+hdfsFS hadoopfs;
 string jobdirpath;
 int taskid;
 int pipefd[2]; // pipe fd when the role is map task or reduce task
@@ -84,6 +92,9 @@ bool is_nextval = false;
 
 void init_mapreduce(int argc, char** argv)
 {
+	// connect to hdfs server
+	hadoopfs = hdfsConnect(HDFS_HOST, HDFS_PORT);
+
 	int readbytes; // number of bytes read from pipe fd
 
 	// check the arguments do determine the role
@@ -160,7 +171,7 @@ void init_mapreduce(int argc, char** argv)
 			cout<<"Master_address should be specified in the setup.conf"<<endl;
 			exit(1);
 		}
-		
+
 		masterfd = connect_to_server(master_address, port);
 		if(masterfd<0)
 		{
@@ -236,8 +247,7 @@ void init_mapreduce(int argc, char** argv)
 		fcntl(masterfd, F_SETFL, O_NONBLOCK);
 
 		// make directories for the job
-		int pid;
-		string apath = MR_PATH;
+		string apath = HDMR_PATH;
 		stringstream jobidss;
 
 		// pass job id to the string stream
@@ -247,27 +257,7 @@ void init_mapreduce(int argc, char** argv)
 		jobdirpath = jobidss.str();
 		apath.append(jobdirpath);
 
-		// fork new process and give command mkdir to the child process
-		pid = fork();
-		if(pid == 0) // child process
-		{
-			// parse the arguments to make the job directory
-			char** argv;
-			argv = new char*[3];
-			argv[0] = new char[6];
-			strcpy(argv[0], "mkdir");
-			argv[1] = new char[apath.length()+1];
-			strcpy(argv[1], apath.c_str());
-			argv[2] = NULL;
-			
-
-			// launch the mkdir program
-			execvp(argv[0], argv);
-		}
-		else // parent side
-		{
-			// do nothing
-		}
+		hdfsCreateDirectory(hadoopfs, apath);
 	}
 	else // when the role is map task or reduce task
 	{
@@ -322,7 +312,7 @@ void init_mapreduce(int argc, char** argv)
 					jobidss<<jobid;
 					jobidss<<"/";
 					jobdirpath = jobidss.str();
-					
+
 				}
 				else if(strncmp(token, "taskid", 6) == 0)
 				{
@@ -366,6 +356,7 @@ void summ_mapreduce()
 		cout<<"Mapreduce has not been initialized"<<endl;
 		exit(1);
 	}
+
 	if(role == JOB) // running job
 	{
 		if((nummap >= 0 && isset_mapper) || (numreduce >= 0 && isset_reducer)) // when neither mapper and reducer are activated
@@ -393,7 +384,7 @@ void summ_mapreduce()
 
 			// find the program name and pass as 0th argument
 			char* tmp = new char[strlen(argvalues[0])+1];
-			string apath = MR_PATH;
+			string apath = HDMR_PATH;
 			char* token;
 			char* next_token;
 
@@ -457,37 +448,13 @@ void summ_mapreduce()
 		}
 
 		// remove the job directory
-		int pid;
-		pid = fork();
-		if(pid == 0) // child process
-		{
-			string apath;
-			char** argv = new char*[4];
+		string apath = HDMR_PATH;
+		apath.append(jobdirpath);
+		hdfsDelete(hadoopfs, apath.c_str());
 
-			argv[0] = new char[3];
-			strcpy(argv[0], "rm");
-
-			argv[1] = new char[4];
-			strcpy(argv[1], "-rf");
-
-			apath = MR_PATH;
-			apath.append(jobdirpath);
-			argv[2] = new char[apath.length()+1];
-			strcpy(argv[2], apath.c_str());
-
-			argv[3] = NULL;
-
-			execvp(argv[0], argv);
-		}
-		else if(pid < 0)
-		{
-			cout<<"Debugging: forking failed"<<endl;
-		}
-		else // parent process
-		{
-			int status;
-			waitpid(pid, &status, 0);
-		}
+		// disonnect from hdfs server and close the hdfs file
+		hdfsCloseFile(hadoopfs, input);
+		hdfsDisconnect(hadoopfs);
 
 		exit(0);
 	}
@@ -499,9 +466,10 @@ void summ_mapreduce()
 			cout<<"[mapreduce]Debugging: The map or reduce function is called from the map or reduce function."<<endl;
 		}
 
+
 		// run the mapfunction until input all inputs are processed
 		string record;
-		
+
 		if(isset_mapper)
 		{
 			while(get_record(&record))
@@ -516,18 +484,37 @@ void summ_mapreduce()
 					string key = *unreported_keys.begin();
 					string keystr = "key ";
 					keystr.append(key);
+cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 					unreported_keys.erase(*unreported_keys.begin());
 					reported_keys.insert(key);
 
 					// send 'key' meesage to the slave node
-					write(pipefd[1], keystr.c_str(), BUF_SIZE);
+					strcpy(write_buf, keystr.c_str());
+					while(write(pipefd[1], write_buf, BUF_SIZE)< 0)
+					{
+						cout<<"[mapreduce]write to slave failed"<<endl;
+						int err = errno;
+						if(err == EAGAIN)
+						{
+							cout<<"[mapreduce]due to the EAGAIN"<<endl;
+						}
+						else if(err ==  EFAULT)
+						{
+							cout<<"[mapreduce]due to the EFAULT"<<endl;
+						}
+						// sleeps for 1 second. change this if necessary
+						sleep(1);
+					}
+
+					// sleeps for 0.0001 seconds. change this if necessary
+					usleep(100);
 				}
 			}
 		}
 
 		// send complete message
 		write(pipefd[1], "complete", BUF_SIZE);
-		
+
 		// blocking read until the 'terminate' message
 		while(1)
 		{
@@ -535,14 +522,22 @@ void summ_mapreduce()
 			if(readbytes == 0) // pipe fd was closed abnormally
 			{
 				// TODO: Terminate the task properly
+				hdfsCloseFile(hadoopfs, input);
+				hdfsDisconnect(hadoopfs);
 				exit(0);
 			}
 			else if(readbytes > 0)
 			{
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
-					cout<<"[mapreduce]Task is successfully completed"<<endl;
-					break;
+					//cout<<"[mapreduce]Map task is successfully completed"<<endl;
+
+					// clear task
+					hdfsCloseFile(hadoopfs, input);
+					hdfsDisconnect(hadoopfs);
+
+					// terminate successfully
+					exit(0);
 				}
 				else // all other messages are ignored
 					continue;
@@ -564,7 +559,7 @@ void summ_mapreduce()
 		if(isset_reducer)
 		{
 			string key;
-			while(get_key(&key))
+			while(get_nextkey(&key))
 			{
 				inside_reduce = true;
 				(*reducefunction)(key);
@@ -582,15 +577,22 @@ void summ_mapreduce()
 			if(readbytes == 0) // pipe fd was closed abnormally
 			{
 				// TODO: Terminate the task properly
-cout<<"the reduce task is gone"<<endl;
+				hdfsCloseFile(hadoopfs, input);
+				cout<<"the reduce task is gone"<<endl;
+				hdfsDisconnect(hadoopfs);
 				exit(0);
 			}
 			else if(readbytes > 0)
 			{
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
-					cout<<"[mapreduce]Task is successfully completed"<<endl; // <- this message will be printed in the slave process side
-					break;
+					//					cout<<"[mapreduce]Reduce task is successfully completed"<<endl; // <- this message will be printed in the slave process side
+
+					// clear task
+					hdfsCloseFile(hadoopfs, input);
+					hdfsDisconnect(hadoopfs);
+					// terminate successfully
+					exit(0);
 				}
 				else // all other messages are ignored
 					continue;
@@ -660,7 +662,6 @@ int connect_to_server(char *host, unsigned short port)
 
 	hp = gethostbyname(host);
 
-
 	if (hp == NULL)
 	{
 		cout<<"[mapreduce]Cannot find host by host name"<<endl;
@@ -681,49 +682,59 @@ void write_keyvalue(string key, string value)
 	// check if thie function is called inside the map function
 	if(inside_map)
 	{
-		ofstream keyfile;
-		fstream keylockfile;
-
 		if(reported_keys.find(key) == reported_keys.end()
-			&& unreported_keys.find(key) == unreported_keys.end())
+				&& unreported_keys.find(key) == unreported_keys.end())
 		{
 			unreported_keys.insert(key);
-		}
 
-		// write the key value pair
-		string keypath = MR_PATH;
-		keypath.append(jobdirpath);
-		string keylockpath;
-		keypath.append(key);
-		keylockpath = keypath;
-		keylockpath.append(".lock");
-		
-		// lock the key file
-		keylockfile.open(keylockpath.c_str());
-		while(keylockfile.is_open()) // lock is being held by other task
-		{
-			// sleep for 0.0001 second. change this if necessary
+			// send 'key' message to the slave node
+			string key = *unreported_keys.begin();
+			string keystr = "key ";
+			keystr.append(key);
+			cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
+			unreported_keys.erase(*unreported_keys.begin());
+			reported_keys.insert(key);
+
+			// send 'key' meesage to the slave node
+			strcpy(write_buf, keystr.c_str());
+			while(write(pipefd[1], write_buf, BUF_SIZE)< 0)
+			{
+				cout<<"[mapreduce]write to slave failed"<<endl;
+				int err = errno;
+				if(err == EAGAIN)
+				{
+					cout<<"[mapreduce]due to the EAGAIN"<<endl;
+				}
+				else if(err == EFAULT)
+				{
+					cout<<"[mapreduce]due to the EFAULT"<<endl;
+				}
+				// sleeps for 1 second. change this if necessary
+				sleep(1);
+			}
+
+			// sleeps for 0.0001 seconds. change this if necessary
 			usleep(100);
-			keylockfile.close();
-			keylockfile.open(keylockpath.c_str());
-		}
-		
-		// hold the lock
-		keylockfile.open(keylockpath.c_str(), fstream::out);
-		
-		// critical section
-		{
-			keyfile.open(keypath.c_str(), ofstream::app);
-			keyfile<<key; // write key
-			keyfile<<" ";
-			keyfile<<value;
-			keyfile<<endl;
-			keyfile.close();
 		}
 
-		// release the lock
-		keylockfile.close();
-		remove(keylockpath.c_str());
+		// path of the key file
+		string keypath = HDMR_PATH;
+		keypath.append(jobdirpath);
+		keypath.append(key);
+
+		// result string
+		string rst = key;
+		rst.append(" ");
+		rst.append(value);
+		int fd = openoutfile(keypath);
+
+		if(fd<0)
+		{
+			cout<<"[mapreduce]Debugging: openoutfile error"<<endl;
+		}
+
+		writeoutfile(fd, rst);
+		closeoutfile(fd);
 	}
 	else
 	{
@@ -739,12 +750,14 @@ bool get_record(string* record) // internal function for the map
 	{
 		if(inputpaths.size() == 0) // no more record
 		{
+			input.close();
 			return false;
 		}
 
 		// open another input data
-		string apath = MR_PATH;
+		string apath = HDMR_PATH;
 		apath.append(inputpaths.back());
+		input.close();
 		input.open(apath.c_str());
 		inputpaths.pop_back();
 
@@ -755,21 +768,23 @@ bool get_record(string* record) // internal function for the map
 	return true;
 }
 
-bool get_key(string* key) // internal function for the reduce
+bool get_nextkey(string* key) // internal function for the reduce
 {
 	if(inputpaths.size() == 0) // no more key
 	{
+		input.close();
 		return false;
 	}
 	else
 	{
 		*key = inputpaths.back(); // in reduce function, inputpath name is the key
-		string apath = MR_PATH;
+		string apath = HDMR_PATH;
 		apath.append(jobdirpath);
 		apath.append(inputpaths.back());
+		input.close();
 		input.open(apath.c_str());
 		inputpaths.pop_back();
-		
+
 		// pre-process first value 
 		input>>nextvalue; // key. pass this key
 		input>>nextvalue; // first value
@@ -821,10 +836,8 @@ string get_nextvalue() // returns values in reduce function
 
 void write_output(string record) // this user function can be used anywhere but after initialization
 {
-	ofstream outfile;
-	fstream outlockfile;
-
-	string outpath = MR_PATH;
+	hdfsFile outfile;
+	string outpath = HDMR_PATH;
 	if(outputpath == "default_output")
 	{
 		stringstream ss;
@@ -837,37 +850,37 @@ void write_output(string record) // this user function can be used anywhere but 
 	{
 		outpath.append(outputpath);
 	}
-	string outlockpath = outpath;
-	outlockpath.append(".lock");
-
-	// lock the output file
-	outlockfile.open(outlockpath.c_str());
-	while(outlockfile.is_open()) // lock is being held by other task or job
+	if(hdfsExists(hadoopfs, outpath))
 	{
-		// sleep for 0.0001 second. change this if necessary
-		usleep(100);
-		outlockfile.close();
-		outlockfile.open(outlockpath.c_str());
+		outfile = hdfsOpenFile(hadoopfs, outpath, O_WRONLY, 0, 0, 0);
 	}
-	
-	// hold the lock
-	outlockfile.open(outlockpath.c_str(), fstream::out);
-
-	// critical section
+	else
 	{
-		outfile.open(outpath.c_str(), ofstream::app);
-		outfile<<record<<endl;
-		outfile.close();
+		outfile = hdfsOpenFile(hadoopfs, outpath, O_WRONLY|O_APPEND, 0, 0, 0);
 	}
 
-	// release the lock
-	outlockfile.close();
-	remove(outlockpath.c_str());
+	record.append("\n");
+	strcpy(write_buf, record.c_str());
+
+	hdfsWrite(hadoopfs, outfile, write_buf, strlen(write_buf));
+	hdfsCloseFile(hadoopfs, outfile);
 }
 
 int get_jobid()
 {
 	return jobid;
+}
+
+int writeoutfile(hdfsFile* hdfsFile, string data)
+{
+	data.append("\n");
+	strcpy(write_buf, data.c_str());
+	hdfsWrite(hadoopfs, write_buf, strlen(write_buf.c_str()));
+}
+
+string hdfs_getline(hdfsFile* file)
+{
+	return "";
 }
 
 #endif
