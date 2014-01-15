@@ -8,7 +8,7 @@ INCLUDE := -I ./../
 INCLUDE += -I ./../../common
 INCLUDE += -I $(LIBDIR)/unittest++/
 
-CXXFLAGS := -g -Wall $(INCLUDE) -std=gnu++98 -fopenmp #-D_DEBUG
+CXXFLAGS := -g -Wall $(INCLUDE) -std=gnu++98 -fopenmp # -D_DEBUG
 LDFLAGS := -L $(LIBDIR) -L $(LIBDIR2) -lUnitTest++ -lm -lpthread -lmrr
 
 SOURCES := DHTserver.cc DHTclient.cc DHTserver_test.cc DHTclient_test.cc integration.cc main.cc 

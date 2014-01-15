@@ -17,6 +17,27 @@ int DHTclient::lookup (const char * key) {
  return ip;
 }
 // }}}
+// lookup_str {{{
+// ----------------------------------------------- 
+char* DHTclient::lookup_str (const char * key) {
+ //prepare packet
+ uint32_t key_int = h (key, strlen (key));
+
+ // Send it 
+ server_request (key_int);
+
+ // Receive back  
+ int ip = server_receive ();
+ if (ip == -1) {
+  static char out [] = "NOTFOUND";
+  return out;
+ }
+ 
+ struct in_addr out; 
+ out.s_addr = ip;
+ return inet_ntoa (out);
+}
+// }}}
 // bind {{{
 // ----------------------------------------------- 
 bool DHTclient::bind () {
@@ -66,7 +87,7 @@ bool DHTclient::server_request (uint32_t key) {
    (struct sockaddr*)&server_addr, sizeof (server_addr));
 
 #ifdef _DEBUG
- log (M_DEBUG, "DHTclient", "petition sent to %s:%i", inet_ntoa(server_addr.sin_addr),
+ log (M_DEBUG, "DHTclient", "petition %u sent to %s:%i", key, inet_ntoa(server_addr.sin_addr),
      ntohs (server_addr.sin_port));
 #endif
 
@@ -86,14 +107,16 @@ bool DHTclient::server_request (uint32_t key) {
 // server_receive {{{
 // ----------------------------------------------- 
 int DHTclient::server_receive () {
- //if (fd_is_ready (client_fd)) { 
   uint32_t reply = 0;
   socklen_t sl = sizeof (client_addr);
   int ret = recvfrom (server_fd, &reply, 4, MSG_WAITALL, (struct sockaddr*)&server_addr, &sl);
 
 #ifdef _DEBUG
- log (M_DEBUG, "DHTclient", "Recieved %i\n", ntohl (reply));
+ log (M_DEBUG, "DHTclient", "Recieved %u\n", ntohl (reply));
 #endif 
+
+  if (ntohl (reply) == DHT_NOT_FOUND) 
+   return -1;
 
   switch (ret) {
    case -1: 

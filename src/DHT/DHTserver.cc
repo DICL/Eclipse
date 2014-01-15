@@ -1,10 +1,11 @@
 #include <errno.h>
 #include <DHTserver.hh>
+#include <stdexcept>
 
 // DHTserver::report {{{
 // ----------------------------------------------- 
-bool DHTserver::report (const char * key, int server) {
- table[h(key, strlen (key))] = server; 
+bool DHTserver::report (const char * key, const char * server) {
+ table [h(key, strlen (key))] = inet_addr (server); 
  return true;
 }
 // }}}
@@ -78,7 +79,7 @@ void* DHTserver::listening (void* in) {
  uint32_t input;
  DHTserver* _this = (DHTserver*) in;
  socklen_t sa = sizeof (_this->server_addr);
-//================================================
+ //================================================
 
  //! receiving petitions and sending back
  do {
@@ -86,12 +87,25 @@ void* DHTserver::listening (void* in) {
   int ret = recvfrom (_this->server_fd, &input, 4, MSG_DONTWAIT, (struct sockaddr*)&client_addr, &sa); 
 
   if (ret == -1 && errno == EAGAIN) continue;                        //! No data received
+
   switch (ret) {
    case -1: log (M_DEBUG, "DHT", "Error from recvfrom");      break; //! Error handle log
    case 0:  log (M_INFO, "DHT", "Shutdown message received"); break; //! Handle shutdown
    default:                                                          //! Handle normal situation
-            uint32_t server_number = htonl (_this->table [ntohl(input)]);
-            //printf("recieved %i -> %i\n", ntohl (input), ntohl (server_number));
+            uint32_t server_number;
+            try {
+             server_number = htonl (_this->table.at (ntohl(input)));
+
+            } catch (std::out_of_range& e) {
+             server_number = htonl (DHT_NOT_FOUND);
+#ifdef _DEBUG
+             log (M_DEBUG, "DHT", "Key not found");
+#endif
+            }
+
+#ifdef _DEBUG
+            log (M_DEBUG, "DHTserver", "petition %u recieved -> %u", ntohl(input), ntohl (server_number));
+#endif
             sendto (_this->server_fd, &server_number, 4, MSG_WAITALL, (struct sockaddr*)&client_addr, sa);
             break; 
   }

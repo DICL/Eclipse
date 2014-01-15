@@ -18,7 +18,7 @@
 #define CACHE_XU5J91EC
 
 #define CACHE_LRU         0x0
-#define CACHE_EMA         0x1
+#define CACHE_SPATIAL     0x1
 #define CACHE_SYNCHRONIZE 0x2
 #define CACHE_MIGRATION   0x4
 #define CACHE_PUSH        0x8
@@ -39,30 +39,41 @@ using std::map;
 // }}}
 // Cache class {{{
 // -------------------------------------------- * * * -- Vicente Bolea
+struct Chunk {
+ char * str;
+ size_t size;
+ uint64_t time;
+ uint64_t point;
+};
+// }}}
+// Cache class {{{
+// -------------------------------------------- * * * -- Vicente Bolea
+//
 class Cache {
  public:
-  Cache (size_t s) {
-   this->_size = s;
+  Cache (size_t s) { this->_size = s; }
+  Cache (size_t s, uint8_t p = 0) { 
+   this->_size = s; 
+   this->policies = p; 
   }
-  Cache () {
-   this->_size = _DEFAULT_SIZE;
-  }
+  Cache () { this->_size = _DEFAULT_SIZE; }
   ~Cache ();
 
   void set_maxsize (size_t s) { this->_size = s; }
-  size_t get_size () { return this->_map.size; }
-  int set_policy (int p) { policies = p; return p; }
+  size_t get_size ()          { return this->_map.size; }
+  int set_policy (int p)      { policies = p; return p; }
 
-  bool lookup (int key, char* output);
-  //char* lookup (int key); :TODO:
-
-  bool insert (int key, char* output);
+  bool lookup (int, char*, size_t*);
+  bool insert (int, char*, size_t);
 
  protected:
-  char* discard ();
+  void discard ();
+  void discard_lru ();
+  void discard_spatial ();
 
  protected:
-  map<int, char*> _map;                                //! int to string
+  map<uint64_t, Chunk*> map_time;              //! int to string
+  map<uint64_t, Chunk*> map_spatial;           //! int to string
   size_t _size;
   uint8_t policies;
 };

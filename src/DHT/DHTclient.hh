@@ -21,25 +21,24 @@
 #include <time.h>
 #include <math.h>
 
+#include <macros.h>  //! Some macros
 #include <utils.hh>  //! Where the hash function is
 #include <hash.hh>
 
-#ifndef MRR_IP_LENGTH
-#define MRR_IP_LENGTH 64 
-#endif
 // }}}
 // DHTclient class definition {{{
 // ------------------------------------
 class DHTclient {
  public:
   DHTclient (const char * ip, int port) {
-   strncpy (this->ip, ip, MRR_IP_LENGTH);
+   strncpy (this->ip, ip, DHT_IP_LENGTH);
    this->port = port;
   }
 
   ~DHTclient () { close (); }
   
   int lookup (const char *); 
+  char* lookup_str (const char *); 
   bool bind ();
   bool close ();
  
@@ -48,7 +47,7 @@ class DHTclient {
   int server_receive ();
 
  protected:
-  char ip [MRR_IP_LENGTH];
+  char ip [DHT_IP_LENGTH];
   int port;
   int server_fd, client_fd;
   struct sockaddr_in server_addr; 
