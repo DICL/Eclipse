@@ -16,8 +16,9 @@
 #include <sys/wait.h>
 #include <sys/unistd.h>
 #include <arpa/inet.h>
+#include <hdfs.h>
 
-#include <mapreduce/definitions.hh>
+#include "../definitions.hh"
 
 using namespace std;
 
@@ -262,7 +263,6 @@ void init_mapreduce(int argc, char** argv)
 
 			// launch the mkdir program
 			execvp(argv[0], argv);
-cout<<"Until here8"<<endl;
 		}
 		else // parent side
 		{
@@ -535,7 +535,6 @@ void summ_mapreduce()
 			if(readbytes == 0) // pipe fd was closed abnormally
 			{
 				// TODO: Terminate the task properly
-cout<<"the map task is gone"<<endl;
 				exit(0);
 			}
 			else if(readbytes > 0)

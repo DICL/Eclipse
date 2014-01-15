@@ -1,0 +1,939 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.6	//
+ALPHA	common/macros.h	42;"	d
+Address_book	deprecated/master/address_book.hh	/^  Address_book (int argc, const char ** argv) {$/;"	f	class:Address_book
+Address_book	deprecated/master/address_book.hh	/^class Address_book { $/;"	c
+Address_book_page	deprecated/master/address_book_page.cc	/^Address_book_page::Address_book_page (const char * host, int port) { $/;"	f	class:Address_book_page
+Address_book_page	deprecated/master/address_book_page.hh	/^class Address_book_page: public IAddress_book_page {$/;"	c
+Arguments	deprecated/node.hh	/^struct Arguments {$/;"	s
+AveExecTime	deprecated/master/scheduler.cc	/^uint64_t AveExecTime = 0, AveWaitTime = 0; $/;"	v
+AveExecTime	deprecated/scheduler.cc	/^uint64_t AveExecTime = 0, AveWaitTime = 0; $/;"	v
+AveWaitTime	deprecated/master/scheduler.cc	/^uint64_t AveExecTime = 0, AveWaitTime = 0; $/;"	v
+AveWaitTime	deprecated/scheduler.cc	/^uint64_t AveExecTime = 0, AveWaitTime = 0; $/;"	v
+BOUNDARY	deprecated/SETcache.hh	/^ BOUNDARY = 0x4,$/;"	e	enum:policy
+BOUNDARY	slave/SETcache.hh	/^ BOUNDARY = 0x4,$/;"	e	enum:policy
+BUF_SIZE	mapreduce/definitions.hh	6;"	d
+CACHESIZE	deprecated/node.cc	28;"	d	file:
+CLOSED	deprecated/master/address_book_page.hh	/^enum Status { DISCONNECTED, CONNECTED, CLOSED, ERROR };$/;"	e	enum:Status
+COMPLETED	mapreduce/definitions.hh	/^	COMPLETED$/;"	e	enum:task_status
+COMPLETED_STAGE	mapreduce/definitions.hh	/^	COMPLETED_STAGE \/\/ not used but reserved$/;"	e	enum:job_stage
+CONNECTED	deprecated/master/address_book_page.hh	/^enum Status { DISCONNECTED, CONNECTED, CLOSED, ERROR };$/;"	e	enum:Status
+CXX	common/test/Makefile	/^CXX := g++$/;"	m
+CXX	deprecated/master/test/Makefile	/^CXX := colorgcc -lstdc++$/;"	m
+CXXFLAGS	common/test/Makefile	/^CXXFLAGS := -g -Wall $(INCLUDE) -std=gnu++98 $/;"	m
+CXXFLAGS	deprecated/master/test/Makefile	/^CXXFLAGS := -g -Wall $(INCLUDE) -std=gnu++98 $/;"	m
+DATAFILE	common/macros.h	26;"	d
+DHT	deprecated/dht.cc	/^DHT::DHT () {}$/;"	f	class:DHT
+DHT	deprecated/dht.cc	/^DHT::DHT (int port, int n, const char* ifa, const char ** in) { $/;"	f	class:DHT
+DHT	deprecated/dht.hh	/^class DHT {$/;"	c
+DHT	slave/dht.cc	/^DHT::DHT () {}$/;"	f	class:DHT
+DHT	slave/dht.cc	/^DHT::DHT (int port, int n, const char* ifa, const char ** in) { $/;"	f	class:DHT
+DHT	slave/dht.hh	/^class DHT {$/;"	c
+DHT_PORT	deprecated/node.cc	33;"	d	file:
+DISCONNECTED	deprecated/master/address_book_page.hh	/^enum Status { DISCONNECTED, CONNECTED, CLOSED, ERROR };$/;"	e	enum:Status
+DISK_PAGE_SIZE	deprecated/order.hh	/^const size_t DISK_PAGE_SIZE = 4092;$/;"	v
+DOWNLOAD	deprecated/order.hh	/^    DOWNLOAD = 0x0,$/;"	e	enum:Order::type
+DPSIZE	common/macros.h	22;"	d
+EMA	common/metadata.hh	/^  double EMA;$/;"	m	class:Metadata
+EMA	deprecated/master/node_client.hh	/^		double EMA, low_b, upp_b, alpha;$/;"	m	class:Node
+EMA	deprecated/packets.hh	/^  double EMA, low_b, upp_b;$/;"	m	class:Header
+ERROR	deprecated/master/address_book_page.hh	/^enum Status { DISCONNECTED, CONNECTED, CLOSED, ERROR };$/;"	e	enum:Status
+EWMA	common/EWMA.hh	/^  EWMA (double initial_val, double alpha) {$/;"	f	class:EWMA
+EWMA	common/EWMA.hh	/^class EWMA {$/;"	c
+EXIT_IF	common/macros.h	49;"	d
+FAIL	common/macros.h	19;"	d
+File	common/file.hh	/^  File (const char * _name) {$/;"	f	class:File
+File	common/file.hh	/^class File {$/;"	c
+HOST	common/macros.h	38;"	d
+Header	deprecated/packets.hh	/^  Header () { trace = false; }$/;"	f	class:Header
+Header	deprecated/packets.hh	/^class Header {$/;"	c
+IAddress_book_page	deprecated/master/address_book_page.hh	/^class IAddress_book_page {$/;"	c
+IMaster	deprecated/master/master.hh	/^class IMaster {$/;"	c
+INCLUDE	common/test/Makefile	/^INCLUDE := -I .\/..\/$/;"	m
+INCLUDE	deprecated/master/Makefile	/^INCLUDE := -I.\/$/;"	m
+INCLUDE	deprecated/master/test/Makefile	/^INCLUDE := -I .\/..\/$/;"	m
+INCLUDE	slave/test/Makefile	/^INCLUDE := -I.\/..\/..\/..\/lib\/$/;"	m
+INITIAL_STAGE	mapreduce/definitions.hh	/^	INITIAL_STAGE,$/;"	e	enum:job_stage
+JOB	mapreduce/definitions.hh	/^	JOB,$/;"	e	enum:mr_role
+JOIN	deprecated/SETcache.hh	/^ JOIN     = 0x8$/;"	e	enum:policy
+JOIN	slave/SETcache.hh	/^ JOIN     = 0x8$/;"	e	enum:policy
+LDFLAGS	common/test/Makefile	/^LDFLAGS := -L $(LIBDIR) -lUnitTest++ -lm$/;"	m
+LDFLAGS	deprecated/master/test/Makefile	/^LDFLAGS := -L ..\/ -lsimring -L $(LIBDIR) -lUnitTest++ -lm$/;"	m
+LIB	deprecated/master/Makefile	/^LIB     := -l simring$/;"	m
+LIB	slave/test/Makefile	/^LIB     := -l simring -l pthread$/;"	m
+LIBDIR	common/test/Makefile	/^LIBDIR  ?= ..\/..\/..\/lib$/;"	m
+LIBDIR	deprecated/master/Makefile	/^LIBDIR  := -L.\/..\/common\/$/;"	m
+LIBDIR	deprecated/master/test/Makefile	/^LIBDIR  ?= ..\/..\/..\/lib$/;"	m
+LIBDIR	slave/test/Makefile	/^LIBDIR  := -L.\/..\/..\/..\/lib\/$/;"	m
+LIB_PATH	mapreduce/definitions.hh	5;"	d
+LOT	common/macros.h	46;"	d
+LRU	deprecated/SETcache.hh	/^ LRU      = 0x2,$/;"	e	enum:policy
+LRU	slave/SETcache.hh	/^ LRU      = 0x2,$/;"	e	enum:policy
+MAP	mapreduce/definitions.hh	/^	MAP,$/;"	e	enum:mr_role
+MAP_STAGE	mapreduce/definitions.hh	/^	MAP_STAGE,$/;"	e	enum:job_stage
+MAX_HILBERT_VALUE	deprecated/em_kde.cc	/^const int MAX_HILBERT_VALUE = 10;$/;"	v
+MAX_HILBERT_VALUE	deprecated/master/em_kde.cc	/^const int MAX_HILBERT_VALUE = 10;$/;"	v
+MR_PATH	mapreduce/definitions.hh	4;"	d
+M_DEBUG	common/utils.hh	/^ M_DEBUG = 2,$/;"	e	enum:m_error
+M_ERR	common/utils.hh	/^ M_ERR   = 0,$/;"	e	enum:m_error
+M_INFO	common/utils.hh	/^ M_INFO  = 3$/;"	e	enum:m_error
+M_WARN	common/utils.hh	/^ M_WARN  = 1,$/;"	e	enum:m_error
+Master	deprecated/master/master.hh	/^  Master () { } $/;"	f	class:Master
+Master	deprecated/master/master.hh	/^class Master: public IMaster {$/;"	c
+MaxExecTime	deprecated/master/scheduler.cc	/^uint64_t MaxExecTime = 0, MaxWaitTime = 0; $/;"	v
+MaxExecTime	deprecated/scheduler.cc	/^uint64_t MaxExecTime = 0, MaxWaitTime = 0; $/;"	v
+MaxWaitTime	deprecated/master/scheduler.cc	/^uint64_t MaxExecTime = 0, MaxWaitTime = 0; $/;"	v
+MaxWaitTime	deprecated/scheduler.cc	/^uint64_t MaxExecTime = 0, MaxWaitTime = 0; $/;"	v
+Metadata	common/metadata.hh	/^  Metadata () {$/;"	f	class:Metadata
+Metadata	common/metadata.hh	/^class Metadata {$/;"	c
+NOTHING	deprecated/SETcache.hh	/^ NOTHING  = 0x0,$/;"	e	enum:policy
+NOTHING	slave/SETcache.hh	/^ NOTHING  = 0x0,$/;"	e	enum:policy
+NSERVERS	common/macros.h	34;"	d
+Node	deprecated/master/node_client.hh	/^		Node () : EMA (.0), low_b (.0), upp_b (.0), alpha (.0) {} $/;"	f	class:Node
+Node	deprecated/master/node_client.hh	/^		Node (double a) : EMA (.0), low_b (.0), upp_b (.0), alpha (a) {} $/;"	f	class:Node
+Node	deprecated/master/node_client.hh	/^		Node (double a, double e) : EMA (e), low_b (.0), upp_b (.0) , alpha (a) {} $/;"	f	class:Node
+Node	deprecated/master/node_client.hh	/^class Node { $/;"	c
+Node	slave/node.cc	/^Node::Node (int argc, const char ** argv, const char * ifa, const char ** net) {$/;"	f	class:Node
+Node	slave/node.hh	/^class Node {$/;"	c
+Node	slave/node_sketch.cc	/^Node::Node (int argc, const char ** argv, const char * ifa, const char ** net) {$/;"	f	class:Node
+Node	slave/node_sketch.hh	/^class Node {$/;"	c
+OBJECT	slave/test/Makefile	/^OBJECT  := common.cc$/;"	m
+OBJECTS	common/test/Makefile	/^OBJECTS := $(patsubst %.cc, %.o, $(SOURCES))$/;"	m
+OBJECTS	deprecated/master/test/Makefile	/^OBJECTS := $(patsubst %.cc, %.o, $(SOURCES))$/;"	m
+OK	common/macros.h	18;"	d
+Order	deprecated/order.cc	/^Order::Order (char* file_name, uint8_t* chunk, size_t size) {$/;"	f	class:Order
+Order	deprecated/order.hh	/^  Order () { }$/;"	f	class:Order
+Order	deprecated/order.hh	/^class Order {$/;"	c
+PATH_LENGTH	common/task.hh	8;"	d
+PEER_PORT	deprecated/node.cc	32;"	d	file:
+PORT	common/macros.h	30;"	d
+Packet	common/packet.hh	/^  Packet (File* _file) {$/;"	f	class:Packet
+Packet	common/packet.hh	/^  Packet (File* _file, Metadata* _meta) {$/;"	f	class:Packet
+Packet	common/packet.hh	/^  Packet (const Packet& that) {$/;"	f	class:Packet
+Packet	common/packet.hh	/^class Packet {$/;"	c
+Packet	deprecated/packets.hh	/^  Packet () : Header () {} $/;"	f	class:Packet
+Packet	deprecated/packets.hh	/^  Packet (const Packet& that) : Header (that), time (that.time) {}$/;"	f	class:Packet
+Packet	deprecated/packets.hh	/^  Packet (uint64_t p) : Header () { point = p; }	$/;"	f	class:Packet
+Packet	deprecated/packets.hh	/^class Packet: public Header {$/;"	c
+PacketFactory	deprecated/packetfactory.hh	/^class PacketFactory {$/;"	c
+Query	deprecated/packets.hh	/^  Query (): Packet() {}$/;"	f	class:Query
+Query	deprecated/packets.hh	/^class Query: public Packet {$/;"	c
+Query	deprecated/query.cc	/^Query::Query (const Packet& p): Packet(p) { }$/;"	f	class:Query
+Query	deprecated/query.cc	/^Query::Query (const Query& that): Packet(that) {$/;"	f	class:Query
+REDUCE	mapreduce/definitions.hh	/^	REDUCE$/;"	e	enum:mr_role
+REDUCE_STAGE	mapreduce/definitions.hh	/^	REDUCE_STAGE,$/;"	e	enum:job_stage
+RULER	deprecated/master/scheduler.cc	7;"	d	file:
+RULER	deprecated/scheduler.cc	7;"	d	file:
+RUNNING	mapreduce/definitions.hh	/^	RUNNING,$/;"	e	enum:task_status
+ReceivedData	deprecated/master/scheduler.cc	/^uint64_t RequestedData = 0, ReceivedData = 0; $/;"	v
+ReceivedData	deprecated/node.cc	/^uint64_t ReceivedData = 0;$/;"	v
+ReceivedData	deprecated/scheduler.cc	/^uint64_t RequestedData = 0, ReceivedData = 0; $/;"	v
+RequestedData	deprecated/master/scheduler.cc	/^uint64_t RequestedData = 0, ReceivedData = 0; $/;"	v
+RequestedData	deprecated/node.cc	/^uint64_t RequestedData = 0;$/;"	v
+RequestedData	deprecated/scheduler.cc	/^uint64_t RequestedData = 0, ReceivedData = 0; $/;"	v
+SCH_PORT	deprecated/node.cc	31;"	d	file:
+SETcache	deprecated/SETcache.cc	/^SETcache::SETcache (int _size, char* p) {$/;"	f	class:SETcache
+SETcache	deprecated/SETcache.hh	/^class SETcache {$/;"	c
+SETcache	slave/SETcache.cc	/^SETcache::SETcache (int _size, char* p) {$/;"	f	class:SETcache
+SETcache	slave/SETcache.hh	/^class SETcache {$/;"	c
+SOURCES	common/test/Makefile	/^SOURCES := main.cc ewma_test.cc metadata_test.cc file_test.cc packet_test.cc task_test.cc$/;"	m
+SOURCES	deprecated/master/test/Makefile	/^SOURCES := main.cc address_book_page.cc address_book_page_test.cc$/;"	m
+SUITE	common/test/ewma_test.cc	/^SUITE (NORMAL) {$/;"	f
+SUITE	common/test/file_test.cc	/^SUITE (File) {$/;"	f
+SUITE	common/test/metadata_test.cc	/^SUITE (METADATA) {$/;"	f
+SUITE	common/test/packet_test.cc	/^SUITE (Packet) {$/;"	f
+SUITE	common/test/task_test.cc	/^SUITE (TASK_TEST) {$/;"	f
+SUITE	deprecated/dht_test.cc	/^SUITE (DHT) {$/;"	f
+SUITE	deprecated/master/test/address_book_page_test.cc	/^SUITE (address_book_page_test) {$/;"	f
+SUITE	deprecated/master/test/address_book_test.cc	/^SUITE (address_book_test) {$/;"	f
+SUITE	deprecated/master/test/dht_test.cc	/^SUITE (DHT) {$/;"	f
+SUITE	deprecated/master/test/ds_test.cc	/^SUITE (SETCACHE) {$/;"	f
+SUITE	deprecated/master/test/master_test.cc	/^SUITE (MASTER) {$/;"	f
+SUITE	deprecated/order_test.cc	/^SUITE (normal) { $/;"	f
+SUITE	slave/test/dht_test.cc	/^SUITE (DHT) {$/;"	f
+SUITE	slave/test/ds_test.cc	/^SUITE (SETCACHE) {$/;"	f
+SentShiftedQuery	deprecated/master/scheduler.cc	/^uint64_t TotalExecTime = 0, TotalWaitTime = 0, shiftedQuery = 0, SentShiftedQuery = 0; $/;"	v
+SentShiftedQuery	deprecated/node.cc	/^uint64_t SentShiftedQuery = 0;$/;"	v
+SentShiftedQuery	deprecated/scheduler.cc	/^uint64_t TotalExecTime = 0, TotalWaitTime = 0, shiftedQuery = 0, SentShiftedQuery = 0; $/;"	v
+Status	deprecated/master/address_book_page.hh	/^enum Status { DISCONNECTED, CONNECTED, CLOSED, ERROR };$/;"	g
+Task	common/task.hh	/^  Task (const char * path) {$/;"	f	class:Task
+Task	common/task.hh	/^class Task {$/;"	c
+TotalCacheHit	deprecated/master/scheduler.cc	/^uint64_t TotalCacheHit = 0, TotalCacheMiss = 0, numQuery = 0;$/;"	v
+TotalCacheHit	deprecated/scheduler.cc	/^uint64_t TotalCacheHit = 0, TotalCacheMiss = 0, numQuery = 0;$/;"	v
+TotalCacheMiss	deprecated/master/scheduler.cc	/^uint64_t TotalCacheHit = 0, TotalCacheMiss = 0, numQuery = 0;$/;"	v
+TotalCacheMiss	deprecated/scheduler.cc	/^uint64_t TotalCacheHit = 0, TotalCacheMiss = 0, numQuery = 0;$/;"	v
+TotalExecTime	deprecated/master/scheduler.cc	/^uint64_t TotalExecTime = 0, TotalWaitTime = 0, shiftedQuery = 0, SentShiftedQuery = 0; $/;"	v
+TotalExecTime	deprecated/node.cc	/^uint64_t TotalExecTime = 0;$/;"	v
+TotalExecTime	deprecated/scheduler.cc	/^uint64_t TotalExecTime = 0, TotalWaitTime = 0, shiftedQuery = 0, SentShiftedQuery = 0; $/;"	v
+TotalExecTime	slave/node.hh	/^  uint64_t TotalExecTime;$/;"	m	class:Node
+TotalExecTime	slave/node_sketch.hh	/^  uint64_t TotalExecTime;$/;"	m	class:Node
+TotalWaitTime	deprecated/master/scheduler.cc	/^uint64_t TotalExecTime = 0, TotalWaitTime = 0, shiftedQuery = 0, SentShiftedQuery = 0; $/;"	v
+TotalWaitTime	deprecated/node.cc	/^uint64_t TotalWaitTime = 0;$/;"	v
+TotalWaitTime	deprecated/scheduler.cc	/^uint64_t TotalExecTime = 0, TotalWaitTime = 0, shiftedQuery = 0, SentShiftedQuery = 0; $/;"	v
+TotalWaitTime	slave/node.hh	/^  uint64_t TotalWaitTime;$/;"	m	class:Node
+TotalWaitTime	slave/node_sketch.hh	/^  uint64_t TotalWaitTime;$/;"	m	class:Node
+UPDATE	deprecated/SETcache.hh	/^ UPDATE   = 0x1,$/;"	e	enum:policy
+UPDATE	slave/SETcache.hh	/^ UPDATE   = 0x1,$/;"	e	enum:policy
+UPLOAD	deprecated/order.hh	/^    UPLOAD   = 0x1$/;"	e	enum:Order::type
+WAITING	mapreduce/definitions.hh	/^	WAITING,$/;"	e	enum:task_status
+WEAK	common/macros.h	11;"	d
+WEAK	common/macros.h	9;"	d
+WEAK	slave/node.hh	/^  static void* thread_func_dht       (void*) WEAK;$/;"	m	class:Node
+WEAK	slave/node.hh	/^  static void* thread_func_forward   (void*) WEAK;$/;"	m	class:Node
+WEAK	slave/node.hh	/^  static void* thread_func_neighbor  (void*) WEAK;$/;"	m	class:Node
+WEAK	slave/node.hh	/^  static void* thread_func_scheduler (void*) WEAK;$/;"	m	class:Node
+WEAK	slave/node.hh	/^  void close_all              (void) WEAK;$/;"	m	class:Node
+WEAK	slave/node.hh	/^  void parse_args             (int, const char**, Arguments*) WEAK;$/;"	m	class:Node
+WEAK	slave/node.hh	/^  void setup_client_peer      (const int, const char*, int*, struct sockaddr_in*) WEAK;$/;"	m	class:Node
+WEAK	slave/node.hh	/^  void setup_client_scheduler (int, const char*, int*) WEAK;$/;"	m	class:Node
+WEAK	slave/node.hh	/^  void setup_server_peer      (int, int*, struct sockaddr_in*) WEAK;$/;"	m	class:Node
+WEAK	slave/node_sketch.hh	/^  static void* thread_func_dht       (void*) WEAK;$/;"	m	class:Node
+WEAK	slave/node_sketch.hh	/^  static void* thread_func_forward   (void*) WEAK;$/;"	m	class:Node
+WEAK	slave/node_sketch.hh	/^  static void* thread_func_neighbor  (void*) WEAK;$/;"	m	class:Node
+WEAK	slave/node_sketch.hh	/^  static void* thread_func_scheduler (void*) WEAK;$/;"	m	class:Node
+WEAK	slave/node_sketch.hh	/^  void close_all              (void) WEAK;$/;"	m	class:Node
+WEAK	slave/node_sketch.hh	/^  void parse_args             (int, const char**, Arguments*) WEAK;$/;"	m	class:Node
+WEAK	slave/node_sketch.hh	/^  void setup_client_peer      (const int, const char*, int*, struct sockaddr_in*) WEAK;$/;"	m	class:Node
+WEAK	slave/node_sketch.hh	/^  void setup_client_scheduler (int, const char*, int*) WEAK;$/;"	m	class:Node
+WEAK	slave/node_sketch.hh	/^  void setup_server_peer      (int, int*, struct sockaddr_in*) WEAK;$/;"	m	class:Node
+_CLIENT_	client/client.hh	2;"	d
+_CONNCLIENT_	master/connclient.hh	2;"	d
+_CONNSLAVE_	master/connslave.hh	2;"	d
+_DEBUG	slave/test/common.cc	1;"	d	file:
+_DEBUG	slave/test/main.cc	1;"	d	file:
+_DEBUG	slave/test/random_number.cc	1;"	d	file:
+_DEBUG	slave/test/same_number.cc	1;"	d	file:
+_DEFINITIONS_	mapreduce/definitions.hh	2;"	d
+_MAPREDUCE_	mapreduce/mapreduce.hh	2;"	d
+_MASTER_	master/master.hh	2;"	d
+_MASTER_JOB_	master/master_job.hh	2;"	d
+_MASTER_TASK_	master/master_task.hh	2;"	d
+_MCC_	mcc/mcc.hh	2;"	d
+_SIMRING_HH_	common/simring.hh	8;"	d
+_SLAVE_	slave/slave.hh	2;"	d
+_SLAVE_JOB_	slave/slave_job.hh	2;"	d
+_SLAVE_TASK_	slave/slave_task.hh	2;"	d
+__ADDRESS_BOOK_HH	deprecated/master/address_book.hh	3;"	d
+__ADDRESS_BOOK_PAGE_HH__	deprecated/master/address_book_page.hh	2;"	d
+__DHT_HH_	deprecated/dht.hh	2;"	d
+__DHT_HH_	slave/dht.hh	2;"	d
+__EWMA_HH_	common/EWMA.hh	2;"	d
+__FILE_HH__	common/file.hh	2;"	d
+__LOGGER_HH_	common/logger.hh	9;"	d
+__MACROS_H__	common/macros.h	2;"	d
+__METADATA_HH_	common/metadata.hh	2;"	d
+__MRR_H_	deprecated/common/mrr.hh	6;"	d
+__NODE_CLIENT_HH_	deprecated/master/node_client.hh	2;"	d
+__NODE_HH_	deprecated/node.hh	7;"	d
+__NODE_SKETCH_HH_	slave/node.hh	2;"	d
+__NODE_SKETCH_HH_	slave/node_sketch.hh	2;"	d
+__ORDER_HH	deprecated/order.hh	2;"	d
+__PACKETS_HH_	deprecated/packets.hh	2;"	d
+__PACKET_FACTORY_HH_	deprecated/packetfactory.hh	2;"	d
+__PACKET_HH__	common/packet.hh	2;"	d
+__SETCACHE_HH_	deprecated/SETcache.hh	2;"	d
+__SETCACHE_HH_	slave/SETcache.hh	2;"	d
+__SR_MASTER_HH_	deprecated/master/master.hh	2;"	d
+__STDC_FORMAT_MACROS	common/macros.h	15;"	d
+__TASK_HH_	common/task.hh	2;"	d
+__UTILS_HH_	common/utils.hh	2;"	d
+_connect	deprecated/node.cc	/^int (*_connect) (int, const struct sockaddr*, socklen_t) = connect;$/;"	v
+_m	common/test/metadata_test.cc	/^ Metadata* _m;$/;"	m	struct:fix_metadata	file:
+_max	deprecated/SETcache.hh	/^  int _max, policy;$/;"	m	class:SETcache
+_max	slave/SETcache.hh	/^  int _max, policy;$/;"	m	class:SETcache
+_nservers	deprecated/dht.hh	/^  int _nservers;$/;"	m	class:DHT
+_nservers	slave/dht.hh	/^  int _nservers;$/;"	m	class:DHT
+_recv	deprecated/node.cc	/^ssize_t (*_recv) (int, void*, size_t, int) = recv;$/;"	v
+_send	deprecated/node.cc	/^ssize_t (*_send) (int, const void*, size_t, int) = send;$/;"	v
+_sendto	deprecated/node.cc	/^ssize_t (*_sendto) (int, const void*, size_t, int) = send;$/;"	v
+a	deprecated/master/test/address_book_page_test.cc	/^ Address_book_page *a;$/;"	m	struct:address_book_page_test_t	file:
+a	deprecated/master/test/address_book_test.cc	/^ Address_book* a; $/;"	m	struct:address_book_test_t	file:
+abc	master/master_task.hh	/^	int abc;$/;"	m	class:master_task
+accept	deprecated/master/address_book_page.cc	/^Address_book_page& Address_book_page::accept (int sock) {$/;"	f	class:Address_book_page
+accept	deprecated/master/node_client.hh	/^		Node& accept (int sock) {$/;"	f	class:Node
+add_inputpath	mapreduce/mapreduce.hh	/^void add_inputpath(string path) \/\/ the path is relative path to MR_PATH$/;"	f
+add_inputpath	master/master_job.hh	/^void master_job::add_inputpath(string path)$/;"	f	class:master_job
+add_inputpath	master/master_job.hh	/^void master_task::add_inputpath(string path)$/;"	f	class:master_task
+add_inputpath	slave/slave_job.hh	/^void slave_task::add_inputpath(string apath)$/;"	f	class:slave_task
+add_key	master/master_job.hh	/^void master_job::add_key(string akey)$/;"	f	class:master_job
+add_key	slave/slave_job.hh	/^void slave_job::add_key(string key)$/;"	f	class:slave_job
+add_runningtask	master/connslave.hh	/^void connslave::add_runningtask(master_task* atask)$/;"	f	class:connslave
+add_task	master/master_job.hh	/^void master_job::add_task(master_task* atask)$/;"	f	class:master_job
+add_task	slave/slave_job.hh	/^void slave_job::add_task(slave_task* atask)$/;"	f	class:slave_job
+addr	deprecated/master/address_book.hh	/^  struct sockaddr_in addr;$/;"	m	class:Address_book	typeref:struct:Address_book::sockaddr_in
+addr	deprecated/master/address_book_page.hh	/^  struct sockaddr_in addr;$/;"	m	class:Address_book_page	typeref:struct:Address_book_page::sockaddr_in
+addr	deprecated/master/node_client.hh	/^		struct sockaddr_in addr;$/;"	m	class:Node	typeref:struct:Node::sockaddr_in
+addr_left	slave/node.hh	/^  struct sockaddr_in addr_left, addr_right, addr_server;$/;"	m	class:Node	typeref:struct:Node::sockaddr_in
+addr_left	slave/node_sketch.hh	/^  struct sockaddr_in addr_left, addr_right, addr_server;$/;"	m	class:Node	typeref:struct:Node::sockaddr_in
+addr_right	slave/node.hh	/^  struct sockaddr_in addr_left, addr_right, addr_server;$/;"	m	class:Node	typeref:struct:Node::
+addr_right	slave/node_sketch.hh	/^  struct sockaddr_in addr_left, addr_right, addr_server;$/;"	m	class:Node	typeref:struct:Node::
+addr_server	slave/node.hh	/^  struct sockaddr_in addr_left, addr_right, addr_server;$/;"	m	class:Node	typeref:struct:Node::
+addr_server	slave/node_sketch.hh	/^  struct sockaddr_in addr_left, addr_right, addr_server;$/;"	m	class:Node	typeref:struct:Node::
+address_book_page_test_t	deprecated/master/test/address_book_page_test.cc	/^ address_book_page_test_t () {$/;"	f	struct:address_book_page_test_t
+address_book_page_test_t	deprecated/master/test/address_book_page_test.cc	/^struct address_book_page_test_t {$/;"	s	file:
+address_book_test_t	deprecated/master/test/address_book_test.cc	/^ address_book_test_t () {$/;"	f	struct:address_book_test_t
+address_book_test_t	deprecated/master/test/address_book_test.cc	/^struct address_book_test_t {$/;"	s	file:
+alpha	common/EWMA.hh	/^  double ewma, alpha;$/;"	m	class:EWMA
+alpha	deprecated/master/node_client.hh	/^		double EMA, low_b, upp_b, alpha;$/;"	m	class:Node
+argcount	mapreduce/mapreduce.hh	/^int argcount = -1;$/;"	v
+argcount	master/master_job.hh	/^	int argcount;$/;"	m	class:master_job
+argcount	slave/slave_task.hh	/^	int argcount;$/;"	m	class:slave_task
+argvalues	mapreduce/mapreduce.hh	/^char** argvalues = NULL;$/;"	v
+argvalues	master/master_job.hh	/^	char** argvalues; \/\/ contains program name$/;"	m	class:master_job
+argvalues	slave/slave_task.hh	/^	char** argvalues;$/;"	m	class:slave_task
+array	deprecated/master/address_book.hh	/^  vector<Address_book_page> array;$/;"	m	class:Address_book
+backend	deprecated/master/scheduler.cc	/^Node** backend;$/;"	v
+backend	deprecated/scheduler.cc	/^Node** backend;$/;"	v
+backlog	master/master.cc	/^int backlog = -1;$/;"	v
+bandwidth	deprecated/em_kde.cc	/^const int bandwidth = 0;$/;"	v
+bandwidth	deprecated/master/em_kde.cc	/^const int bandwidth = 0;$/;"	v
+boundary_low	deprecated/SETcache.hh	/^  double boundary_low, boundary_upp, ema;$/;"	m	class:SETcache
+boundary_low	slave/SETcache.hh	/^  double boundary_low, boundary_upp, ema;$/;"	m	class:SETcache
+boundary_upp	deprecated/SETcache.hh	/^  double boundary_low, boundary_upp, ema;$/;"	m	class:SETcache
+boundary_upp	slave/SETcache.hh	/^  double boundary_low, boundary_upp, ema;$/;"	m	class:SETcache
+c	slave/test/common.cc	/^static int c = 0;$/;"	v	file:
+c	slave/test/random_number.cc	/^int c = 0;$/;"	v
+cache	deprecated/SETcache.hh	/^  set<diskPage, bool (*) (const diskPage&, const diskPage&)>* cache;$/;"	m	class:SETcache
+cache	deprecated/master/test/ds_test.cc	/^ SETcache* cache;$/;"	m	struct:fix_setcache	file:
+cache	slave/SETcache.hh	/^  set<diskPage, bool (*) (const diskPage&, const diskPage&)>* cache;$/;"	m	class:SETcache
+cache	slave/node.hh	/^  SETcache cache; $/;"	m	class:Node
+cache	slave/node_sketch.hh	/^  SETcache cache; $/;"	m	class:Node
+cache	slave/test/ds_test.cc	/^ SETcache* cache;$/;"	m	struct:fix_setcache	file:
+cache_time	deprecated/SETcache.hh	/^   cache_time;$/;"	m	class:SETcache
+cache_time	slave/SETcache.hh	/^   cache_time;$/;"	m	class:SETcache
+catchSignal	deprecated/master/scheduler.cc	/^void catchSignal (int Signal) {$/;"	f
+catchSignal	deprecated/scheduler.cc	/^void catchSignal (int Signal) {$/;"	f
+catch_signal	deprecated/node.cc	/^void catch_signal (int arg) {$/;"	f
+catch_signal	slave/node.cc	/^void Node::catch_signal (int arg) {$/;"	f	class:Node
+catch_signal	slave/node_sketch.cc	/^void Node::catch_signal (int arg) {$/;"	f	class:Node
+check	deprecated/dht.cc	/^bool DHT::check (Header& h) {$/;"	f	class:DHT
+check	slave/dht.cc	/^bool DHT::check (Header& h) {$/;"	f	class:DHT
+chunk	deprecated/packets.hh	/^  char chunk [DPSIZE];$/;"	m	class:diskPage
+chunk1	deprecated/order_test.cc	/^  uint8_t* chunk1;$/;"	m	struct:fix_order	file:
+clients	master/master.cc	/^vector<connclient*> clients;$/;"	v
+close	deprecated/master/address_book.hh	/^  Address_book& close () { ::close (fd); status = CLOSED; return *this; }$/;"	f	class:Address_book
+close	deprecated/master/address_book_page.cc	/^Address_book_page& Address_book_page::close () { $/;"	f	class:Address_book_page
+close	deprecated/master/node_client.hh	/^		Node& close () { ::close (fd); return *this; }$/;"	f	class:Node
+close_all	deprecated/node.cc	/^void close_all () {$/;"	f
+close_all	slave/node.cc	/^void Node::close_all () {$/;"	f	class:Node
+close_all	slave/node_sketch.cc	/^void Node::close_all () {$/;"	f	class:Node
+completed_map	mapreduce/mapreduce.hh	/^int completed_map = 0;$/;"	v
+completed_reduce	mapreduce/mapreduce.hh	/^int completed_reduce = 0;$/;"	v
+completed_tasks	master/master_job.hh	/^	vector<master_task*> completed_tasks;$/;"	m	class:master_job
+completed_tasks	slave/slave_job.hh	/^	vector<slave_task*> completed_tasks;$/;"	m	class:slave_job
+connclient	master/connclient.hh	/^class connclient \/\/ connection to the client$/;"	c
+connclient	master/connclient.hh	/^connclient::connclient(int fd)$/;"	f	class:connclient
+connect_mock	deprecated/master/test/master_test.cc	/^int connect_mock (int sock, const struct sockaddr* a, socklen_t l) {$/;"	f
+connect_mock	slave/test/common.cc	/^int connect_mock (int sock, const struct sockaddr* a, socklen_t l) {$/;"	f
+connect_to_server	client/client.cc	/^int connect_to_server(char *host, unsigned short port)$/;"	f
+connect_to_server	mapreduce/mapreduce.hh	/^int connect_to_server(char *host, unsigned short port)$/;"	f
+connect_to_server	slave/slave.cc	/^int connect_to_server(char* host, unsigned short port)$/;"	f
+connected	deprecated/master/scheduler.cc	/^int16_t* connected;$/;"	v
+connected	deprecated/scheduler.cc	/^int16_t* connected;$/;"	v
+connslave	master/connslave.hh	/^class connslave \/\/ connection to the slave$/;"	c
+connslave	master/connslave.hh	/^connslave::connslave(int fd)$/;"	f	class:connslave
+connslave	master/connslave.hh	/^connslave::connslave(int maxtask, int fd)$/;"	f	class:connslave
+count	deprecated/SETcache.hh	/^  uint64_t count;$/;"	m	class:SETcache
+count	slave/SETcache.hh	/^  uint64_t count;$/;"	m	class:SETcache
+data	common/file.hh	/^  uint8_t* data;$/;"	m	class:File
+data	deprecated/packets.hh	/^  uint8_t* data;$/;"	m	class:Packet
+data_file	deprecated/node.hh	/^  char data_file [256];$/;"	m	struct:Arguments
+data_file	slave/node.hh	/^  char *local_ip, peer_left [32], peer_right[32], host_str [128], data_file [128];$/;"	m	class:Node
+data_file	slave/node_sketch.hh	/^  char *local_ip, peer_left [32], peer_right[32], host_str [128], data_file [128];$/;"	m	class:Node
+data_set	deprecated/dht.hh	/^const uint64_t data_set = 1000000;$/;"	v
+data_set	slave/dht.hh	/^const uint64_t data_set = 1000000;$/;"	v
+debug	common/logger.hh	/^  static void debug(const char* in, ...) {$/;"	f	class:logger
+def	master/master_task.hh	/^	int def;$/;"	m	class:master_task
+deserialize	deprecated/order.cc	/^void Order::deserialize (uint8_t* chunk) {$/;"	f	class:Order
+dht	deprecated/node.cc	/^DHT dht;$/;"	v
+dht	slave/node.hh	/^  DHT dht;$/;"	m	class:Node
+dht	slave/node_sketch.hh	/^  DHT dht;$/;"	m	class:Node
+dht_port	slave/node.hh	/^  int sch_port, peer_port, dht_port;$/;"	m	class:Node
+dht_port	slave/node_sketch.hh	/^  int sch_port, peer_port, dht_port;$/;"	m	class:Node
+diskPage	deprecated/packets.hh	/^  diskPage () : Header () {}$/;"	f	class:diskPage
+diskPage	deprecated/packets.hh	/^  diskPage (const diskPage& that) : Header (that) {$/;"	f	class:diskPage
+diskPage	deprecated/packets.hh	/^  diskPage (const uint64_t i) : Header () { point = i; }$/;"	f	class:diskPage
+diskPage	deprecated/packets.hh	/^class diskPage : public Header {$/;"	c
+dump_trace	common/utils.cc	/^void dump_trace (void) {$/;"	f
+ema	common/test/ewma_test.cc	/^ EWMA* ema;$/;"	m	struct:fix_ewma	file:
+ema	deprecated/SETcache.hh	/^  double boundary_low, boundary_upp, ema;$/;"	m	class:SETcache
+ema	slave/SETcache.hh	/^  double boundary_low, boundary_upp, ema;$/;"	m	class:SETcache
+err	common/logger.hh	/^  static void err(const char* in, ...) {$/;"	f	class:logger
+error_str	common/logger.hh	/^const char *error_str [32] = {$/;"	v
+error_str	common/utils.cc	/^const char *error_str [20] = {$/;"	v
+error_str_nocolor	common/logger.hh	/^const char *error_str_nocolor [20] = {"[ERROR]", "[WARN]", "[DEBUG]", "[INFO]"};$/;"	v
+error_str_nocolor	common/utils.cc	/^const char *error_str_nocolor [20] = {"[ERROR]", "[WARN]", "[DEBUG]", "[INFO]"};$/;"	v
+ewma	common/EWMA.hh	/^  double ewma, alpha;$/;"	m	class:EWMA
+failed	deprecated/master/test/ds_test.cc	/^ uint64_t success, failed;$/;"	m	struct:fix_setcache	file:
+failed	slave/test/ds_test.cc	/^ uint64_t success, failed;$/;"	m	struct:fix_setcache	file:
+fd	deprecated/master/address_book.hh	/^  int fd, nslaves, sock;$/;"	m	class:Address_book
+fd	deprecated/master/address_book_page.hh	/^  int fd;$/;"	m	class:Address_book_page
+fd	deprecated/master/node_client.hh	/^		int fd;$/;"	m	class:Node
+fd	master/connclient.hh	/^	int fd;$/;"	m	class:connclient
+fd	master/connslave.hh	/^	int fd;$/;"	m	class:connslave
+fd_is_ready	common/utils.cc	/^fd_is_ready (int fd) $/;"	f
+file	common/packet.hh	/^  File* file;$/;"	m	class:Packet
+file_name	deprecated/order.hh	/^  char file_name [128];$/;"	m	class:Order
+filename	common/file.hh	/^  char filename [32];$/;"	m	class:File
+find_jobfromid	master/master.cc	/^master_job* find_jobfromid(int id)$/;"	f
+find_jobfromid	slave/slave.cc	/^slave_job* find_jobfromid(int id)$/;"	f
+find_taskfromid	master/master_job.hh	/^master_task* master_job::find_taskfromid(int id)$/;"	f	class:master_job
+find_taskfromid	slave/slave_job.hh	/^slave_task* slave_job::find_taskfromid(int id)$/;"	f	class:slave_job
+finish	deprecated/master/scheduler.cc	/^static jmp_buf finish;$/;"	v	file:
+finish	deprecated/scheduler.cc	/^static jmp_buf finish;$/;"	v	file:
+finish_task	master/master_job.hh	/^void master_job::finish_task(master_task* atask, connslave* aslave)$/;"	f	class:master_job
+finish_task	slave/slave_job.hh	/^void slave_job::finish_task(slave_task* atask)$/;"	f	class:slave_job
+finishedDate	deprecated/packets.hh	/^  struct timeval finishedDate;$/;"	m	class:Query	typeref:struct:Query::timeval
+fix_File	common/test/file_test.cc	/^ fix_File () {$/;"	f	struct:fix_File
+fix_File	common/test/file_test.cc	/^struct fix_File {$/;"	s	file:
+fix_Packet	common/test/packet_test.cc	/^ fix_Packet () {$/;"	f	struct:fix_Packet
+fix_Packet	common/test/packet_test.cc	/^struct fix_Packet {$/;"	s	file:
+fix_Task	common/test/task_test.cc	/^ fix_Task () {$/;"	f	struct:fix_Task
+fix_Task	common/test/task_test.cc	/^struct fix_Task {$/;"	s	file:
+fix_ewma	common/test/ewma_test.cc	/^ fix_ewma () { ema = new EWMA (10, 0.5); }$/;"	f	struct:fix_ewma
+fix_ewma	common/test/ewma_test.cc	/^struct fix_ewma {$/;"	s	file:
+fix_master	deprecated/master/test/master_test.cc	/^ fix_master () {$/;"	f	struct:fix_master
+fix_master	deprecated/master/test/master_test.cc	/^struct fix_master {$/;"	s	file:
+fix_metadata	common/test/metadata_test.cc	/^ fix_metadata () { _m = new Metadata (); }$/;"	f	struct:fix_metadata
+fix_metadata	common/test/metadata_test.cc	/^struct fix_metadata {$/;"	s	file:
+fix_order	deprecated/order_test.cc	/^  fix_order () {$/;"	f	struct:fix_order
+fix_order	deprecated/order_test.cc	/^struct fix_order {$/;"	s	file:
+fix_setcache	deprecated/master/test/ds_test.cc	/^ fix_setcache () {$/;"	f	struct:fix_setcache
+fix_setcache	deprecated/master/test/ds_test.cc	/^struct fix_setcache {$/;"	s	file:
+fix_setcache	slave/test/ds_test.cc	/^ fix_setcache () {$/;"	f	struct:fix_setcache
+fix_setcache	slave/test/ds_test.cc	/^struct fix_setcache {$/;"	s	file:
+fromDiskPage	deprecated/packetfactory.cc	/^Packet& PacketFactory::fromDiskPage (DiskPage& in) {$/;"	f	class:PacketFactory
+fromHeader	deprecated/packetfactory.cc	/^Packet& PacketFactory::fromHeader (Header& in) {$/;"	f	class:PacketFactory
+fromOrder	deprecated/packetfactory.cc	/^Packet& PacketFactory::fromOrder (Order& in) {$/;"	f	class:PacketFactory
+getExecTime	deprecated/query.cc	/^uint64_t Query::getExecTime() {$/;"	f	class:Query
+getWaitTime	deprecated/query.cc	/^uint64_t Query::getWaitTime() {$/;"	f	class:Query
+get_EMA	common/metadata.hh	/^  double   get_EMA   () { return EMA; }$/;"	f	class:Metadata
+get_EMA	deprecated/master/node_client.hh	/^		double get_EMA () const { return EMA; }$/;"	f	class:Node
+get_EMA	deprecated/packets.hh	/^  double   get_EMA   () { return EMA; }$/;"	f	class:Header
+get_argc	mapreduce/mapreduce.hh	/^int get_argc(void)$/;"	f
+get_argcount	slave/slave_job.hh	/^int slave_task::get_argcount()$/;"	f	class:slave_task
+get_argv	mapreduce/mapreduce.hh	/^char** get_argv(void)$/;"	f
+get_argvalues	slave/slave_job.hh	/^char** slave_task::get_argvalues()$/;"	f	class:slave_task
+get_completedtask	slave/slave_job.hh	/^slave_task* slave_job::get_completedtask(int index)$/;"	f	class:slave_job
+get_diskPage	deprecated/SETcache.cc	/^diskPage SETcache::get_diskPage (uint64_t idx) {$/;"	f	class:SETcache
+get_diskPage	slave/SETcache.cc	/^diskPage SETcache::get_diskPage (uint64_t idx) {$/;"	f	class:SETcache
+get_distance	deprecated/master/node_client.hh	/^		double get_distance (Packet& p) { return fabs (EMA - p.get_point ()); }$/;"	f	class:Node
+get_distance	deprecated/master/node_client.hh	/^		double get_distance (uint64_t p) { return fabs (EMA - p); }$/;"	f	class:Node
+get_fd	deprecated/master/address_book.hh	/^  const int get_fd () const { return fd; }$/;"	f	class:Address_book
+get_fd	deprecated/master/address_book_page.hh	/^  const int get_fd () const { return fd; }$/;"	f	class:Address_book_page
+get_fd	deprecated/master/node_client.hh	/^		int get_fd () { return fd; }$/;"	f	class:Node
+get_file	common/packet.hh	/^  File* get_file () { return file; }$/;"	f	class:Packet
+get_file_name	deprecated/order.hh	/^  const char* get_file_name () { return file_name; }$/;"	f	class:Order
+get_filename	common/file.hh	/^  const char* get_filename () { return filename; }$/;"	f	class:File
+get_host	common/logger.hh	/^  virtual static void get_host (char* host) {$/;"	f	class:logger
+get_index	common/metadata.hh	/^  uint64_t get_index () { return index; }$/;"	f	class:Metadata
+get_inputpath	master/master_job.hh	/^string master_job::get_inputpath(int index)$/;"	f	class:master_job
+get_inputpath	master/master_job.hh	/^string master_task::get_inputpath(int index)$/;"	f	class:master_task
+get_inputpath	slave/slave_job.hh	/^string slave_task::get_inputpath(int index)$/;"	f	class:slave_task
+get_ip	common/utils.cc	/^char* get_ip (const char* interface) {$/;"	f
+get_job	master/master_job.hh	/^master_job* master_task::get_job()$/;"	f	class:master_task
+get_job	slave/slave_job.hh	/^slave_job* slave_task::get_job()$/;"	f	class:slave_task
+get_jobid	mapreduce/mapreduce.hh	/^int get_jobid()$/;"	f
+get_jobid	slave/slave_job.hh	/^int slave_job::get_jobid()$/;"	f	class:slave_job
+get_key	mapreduce/mapreduce.hh	/^bool get_key(string* key) \/\/ internal function for the reduce$/;"	f
+get_keybegin	master/master_job.hh	/^set<string>::iterator master_job::get_keybegin()$/;"	f	class:master_job
+get_keyend	master/master_job.hh	/^set<string>::iterator master_job::get_keyend()$/;"	f	class:master_job
+get_lastwaitingtask	master/master_job.hh	/^master_task* master_job::get_lastwaitingtask()$/;"	f	class:master_job
+get_low	common/metadata.hh	/^  uint64_t get_low   () { return low_b; }$/;"	f	class:Metadata
+get_low	deprecated/SETcache.cc	/^diskPage SETcache::get_low () {$/;"	f	class:SETcache
+get_low	deprecated/master/node_client.hh	/^		double get_low () { return low_b; }$/;"	f	class:Node
+get_low	deprecated/packets.hh	/^  double   get_low   () { return low_b; }$/;"	f	class:Header
+get_low	slave/SETcache.cc	/^diskPage SETcache::get_low () {$/;"	f	class:SETcache
+get_metadata	common/packet.hh	/^  Metadata* get_metadata () { return metadata; }$/;"	f	class:Packet
+get_nextvalue	mapreduce/mapreduce.hh	/^string get_nextvalue() \/\/ returns values in reduce function$/;"	f
+get_nslaves	deprecated/master/address_book.hh	/^  int get_nslaves () { return nslaves;}$/;"	f	class:Address_book
+get_numcompleted_tasks	master/master_job.hh	/^int master_job::get_numcompleted_tasks()$/;"	f	class:master_job
+get_numcompletedtasks	slave/slave_job.hh	/^int slave_job::get_numcompletedtasks()$/;"	f	class:slave_job
+get_numinputpaths	master/master_job.hh	/^int master_job::get_numinputpaths()$/;"	f	class:master_job
+get_numinputpaths	master/master_job.hh	/^int master_task::get_numinputpaths()$/;"	f	class:master_task
+get_numinputpaths	slave/slave_job.hh	/^int slave_task::get_numinputpaths()$/;"	f	class:slave_task
+get_numkey	master/master_job.hh	/^int master_job::get_numkey()$/;"	f	class:master_job
+get_numrunning_tasks	master/master_job.hh	/^int master_job::get_numrunning_tasks()$/;"	f	class:master_job
+get_numrunningtasks	slave/slave_job.hh	/^int slave_job::get_numrunningtasks()$/;"	f	class:slave_job
+get_numtasks	master/master_job.hh	/^int master_job::get_numtasks()$/;"	f	class:master_job
+get_numtasks	slave/slave_job.hh	/^int slave_job::get_numtasks()$/;"	f	class:slave_job
+get_numwaiting_tasks	master/master_job.hh	/^int master_job::get_numwaiting_tasks()$/;"	f	class:master_job
+get_path	common/task.hh	/^  void get_path (char * path) {$/;"	f	class:Task
+get_pid	slave/slave_job.hh	/^int slave_task::get_pid()$/;"	f	class:slave_task
+get_point	deprecated/packets.hh	/^  uint64_t get_point () { return point; }$/;"	f	class:Header
+get_port	deprecated/master/address_book.hh	/^  int get_port ()    { return port;}$/;"	f	class:Address_book
+get_readfd	slave/slave_job.hh	/^int slave_task::get_readfd()$/;"	f	class:slave_task
+get_record	mapreduce/mapreduce.hh	/^bool get_record(string* record) \/\/ internal function for the map$/;"	f
+get_size	common/file.hh	/^  size_t get_size () { return size; }$/;"	f	class:File
+get_size	deprecated/packets.hh	/^  size_t get_size () { return size; }$/;"	f	class:Packet
+get_stage	master/master_job.hh	/^job_stage master_job::get_stage()$/;"	f	class:master_job
+get_status	deprecated/master/address_book_page.hh	/^  const Status get_status () const { return status; } $/;"	f	class:Address_book_page
+get_status	master/master_job.hh	/^task_status master_task::get_status()$/;"	f	class:master_task
+get_status	slave/slave_job.hh	/^task_status slave_task::get_status()$/;"	f	class:slave_task
+get_task	master/master_job.hh	/^master_task* master_job::get_task(int index)$/;"	f	class:master_job
+get_task	slave/slave_job.hh	/^slave_task* slave_job::get_task(int index)$/;"	f	class:slave_job
+get_taskid	slave/slave_job.hh	/^int slave_task::get_taskid()$/;"	f	class:slave_task
+get_taskrole	master/master_job.hh	/^mr_role master_task::get_taskrole()$/;"	f	class:master_task
+get_taskrole	slave/slave_job.hh	/^mr_role slave_task::get_taskrole()$/;"	f	class:slave_task
+get_upp	common/metadata.hh	/^  uint64_t get_upp   () { return upp_b; }$/;"	f	class:Metadata
+get_upp	deprecated/SETcache.cc	/^diskPage SETcache::get_upp () {$/;"	f	class:SETcache
+get_upp	deprecated/master/node_client.hh	/^		double get_upp () { return upp_b; } $/;"	f	class:Node
+get_upp	deprecated/packets.hh	/^  double   get_upp   () { return upp_b; }$/;"	f	class:Header
+get_upp	slave/SETcache.cc	/^diskPage SETcache::get_upp () {$/;"	f	class:SETcache
+get_writefd	slave/slave_job.hh	/^int slave_task::get_writefd()$/;"	f	class:slave_task
+getargcount	master/master_job.hh	/^int master_job::getargcount()$/;"	f	class:master_job
+getargvalue	master/master_job.hh	/^string master_job::getargvalue(int index)$/;"	f	class:master_job
+getargvalues	master/master_job.hh	/^char** master_job::getargvalues()$/;"	f	class:master_job
+getfd	master/connclient.hh	/^int connclient::getfd()$/;"	f	class:connclient
+getfd	master/connslave.hh	/^int connslave::getfd()$/;"	f	class:connslave
+getjobfd	master/master_job.hh	/^int master_job::getjobfd()$/;"	f	class:master_job
+getjobid	master/master_job.hh	/^int master_job::getjobid()$/;"	f	class:master_job
+getmaxtask	master/connslave.hh	/^int connslave::getmaxtask()$/;"	f	class:connslave
+getnummap	master/master_job.hh	/^int master_job::getnummap()$/;"	f	class:master_job
+getnumreduce	master/master_job.hh	/^int master_job::getnumreduce()$/;"	f	class:master_job
+getnumrunningtasks	master/connslave.hh	/^int connslave::getnumrunningtasks()$/;"	f	class:connslave
+getrunningtask	master/connslave.hh	/^master_task* connslave::getrunningtask(int index)$/;"	f	class:connslave
+gettaskid	master/master_job.hh	/^int master_task::gettaskid()$/;"	f	class:master_task
+h	deprecated/master/master.cc	/^int h (const char* k, size_t length = 0) {$/;"	f
+hilbert	common/utils.cc	/^hilbert (int64_t n, int64_t x, int64_t y) $/;"	f
+hitCount	deprecated/node.cc	/^uint64_t hitCount = 0;$/;"	v
+hitCount	slave/node.hh	/^  uint64_t hitCount;$/;"	m	class:Node
+hitCount	slave/node_sketch.hh	/^  uint64_t hitCount;$/;"	m	class:Node
+host	deprecated/master/address_book_page.hh	/^  char host [64];$/;"	m	class:Address_book_page
+host_str	deprecated/node.hh	/^  char host_str [32];$/;"	m	struct:Arguments
+host_str	slave/node.hh	/^  char *local_ip, peer_left [32], peer_right[32], host_str [128], data_file [128];$/;"	m	class:Node
+host_str	slave/node_sketch.hh	/^  char *local_ip, peer_left [32], peer_right[32], host_str [128], data_file [128];$/;"	m	class:Node
+index	common/metadata.hh	/^  uint64_t index, low_b, upp_b;$/;"	m	class:Metadata
+info	common/logger.hh	/^  static void info (const char* in, ...) {$/;"	f	class:logger
+init_mapreduce	mapreduce/mapreduce.hh	/^void init_mapreduce(int argc, char** argv)$/;"	f
+input	mapreduce/mapreduce.hh	/^ifstream input; \/\/ input file stream for get_record$/;"	v
+inputpaths	mapreduce/mapreduce.hh	/^vector<string> inputpaths; \/\/ list of input paths.$/;"	v
+inputpaths	master/master_job.hh	/^	vector<string> inputpaths;$/;"	m	class:master_job
+inputpaths	master/master_task.hh	/^	vector<string> inputpaths;\/\/ a vector of inputpaths. inputpaths can be multiple$/;"	m	class:master_task
+inputpaths	slave/slave_task.hh	/^	vector<string> inputpaths; \/\/ a vector of inputpaths. inputpaths can be multiple$/;"	m	class:slave_task
+inside_map	mapreduce/mapreduce.hh	/^bool inside_map = false; \/\/ true if the code is inside map function $/;"	v
+inside_reduce	mapreduce/mapreduce.hh	/^bool inside_reduce = false; \/\/ true if the code is inside reduce function $/;"	v
+instance	slave/node.hh	/^  static Node& instance;$/;"	m	class:Node
+instance	slave/node_sketch.hh	/^  static Node& instance;$/;"	m	class:Node
+ips	deprecated/dht_test.cc	/^const char * ips [32] = {$/;"	v
+ips	deprecated/master/test/dht_test.cc	/^const char * ips [32] = {$/;"	v
+ips	slave/test/dht_test.cc	/^const char * ips [32] = {$/;"	v
+is_key	master/master_job.hh	/^bool master_job::is_key()$/;"	f	class:master_job
+is_nextval	mapreduce/mapreduce.hh	/^bool is_nextval = false;$/;"	v
+is_nextvalue	mapreduce/mapreduce.hh	/^bool is_nextvalue() \/\/ returns true if there is next value$/;"	f
+is_unreportedkey	slave/slave_job.hh	/^bool slave_job::is_unreportedkey()$/;"	f	class:slave_job
+is_valid	deprecated/SETcache.cc	/^bool SETcache::is_valid (diskPage& dp) {$/;"	f	class:SETcache
+is_valid	slave/SETcache.cc	/^bool SETcache::is_valid (diskPage& dp) {$/;"	f	class:SETcache
+isset_mapper	mapreduce/mapreduce.hh	/^bool isset_mapper = false;$/;"	v
+isset_reducer	mapreduce/mapreduce.hh	/^bool isset_reducer = false;$/;"	v
+job	master/master_task.hh	/^	master_job* job;$/;"	m	class:master_task
+job	slave/slave_task.hh	/^	slave_job* job;$/;"	m	class:slave_task
+job_stage	mapreduce/definitions.hh	/^enum job_stage$/;"	g
+jobdirpath	mapreduce/mapreduce.hh	/^string jobdirpath;$/;"	v
+jobfd	master/master_job.hh	/^	int jobfd;$/;"	m	class:master_job
+jobid	mapreduce/mapreduce.hh	/^int jobid;$/;"	v
+jobid	master/master_job.hh	/^	int jobid;$/;"	m	class:master_job
+jobid	slave/slave_job.hh	/^	int jobid;$/;"	m	class:slave_job
+jobidclock	master/master.cc	/^int jobidclock = 0; \/\/ job id starts 0$/;"	v
+jobs	master/master.cc	/^vector<master_job*> jobs;$/;"	v
+join	deprecated/SETcache.cc	/^void join (uint64_t item) {$/;"	f
+join	slave/SETcache.cc	/^void join (uint64_t item) {$/;"	f
+join	slave/node.cc	/^void Node::join () {$/;"	f	class:Node
+join	slave/node_sketch.cc	/^void Node::join () {$/;"	f	class:Node
+keys	master/master_job.hh	/^	set<string> keys; \/\/ set of keys for the reducers$/;"	m	class:master_job
+launch_task	slave/slave.cc	/^void launch_task(slave_task* atask)$/;"	f
+length	common/task.hh	/^  size_t length;$/;"	m	class:Task
+less_than	deprecated/packets.hh	/^  static bool less_than (const diskPage& a, const diskPage& b) {$/;"	f	class:diskPage
+less_than_lru	deprecated/packets.hh	/^  static bool less_than_lru (const diskPage& a, const diskPage& b) {$/;"	f	class:diskPage
+list_chunk	deprecated/order.hh	/^  list<uint8_t*> list_chunk; \/\/! Splited in 4KiB chuncks$/;"	m	class:Order
+listen	deprecated/master/address_book.cc	/^Address_book& Master::listen () {$/;"	f	class:Master
+local_ip	deprecated/dht.hh	/^  char local_ip [32];$/;"	m	class:DHT
+local_ip	deprecated/node.cc	/^char* local_ip;$/;"	v
+local_ip	slave/dht.hh	/^  char local_ip [32];$/;"	m	class:DHT
+local_ip	slave/node.hh	/^  char *local_ip, peer_left [32], peer_right[32], host_str [128], data_file [128];$/;"	m	class:Node
+local_ip	slave/node_sketch.hh	/^  char *local_ip, peer_left [32], peer_right[32], host_str [128], data_file [128];$/;"	m	class:Node
+local_no	deprecated/dht.hh	/^  int local_no;$/;"	m	class:DHT
+local_no	slave/dht.hh	/^  int local_no;$/;"	m	class:DHT
+log	common/logger.hh	/^  static void log (int type, const char* in, ...) {$/;"	f	class:logger
+log	common/utils.cc	/^log (int type, const char* _ip, const char* in, ...) $/;"	f
+logger	common/logger.hh	/^class logger {$/;"	c
+low_b	common/metadata.hh	/^  uint64_t index, low_b, upp_b;$/;"	m	class:Metadata
+low_b	deprecated/master/node_client.hh	/^		double EMA, low_b, upp_b, alpha;$/;"	m	class:Node
+low_b	deprecated/packets.hh	/^  double EMA, low_b, upp_b;$/;"	m	class:Header
+m	deprecated/master/test/master_test.cc	/^ Master* m;$/;"	m	struct:fix_master	file:
+m_error	common/utils.hh	/^enum m_error {$/;"	g
+main	client/client.cc	/^int main(int argc, char** argv)$/;"	f
+main	common/test/main.cc	/^int main () {$/;"	f
+main	deprecated/main_node.cc	/^int main (int argc, const char** argv) {$/;"	f
+main	deprecated/master/scheduler.cc	/^int main (int argc, char** argv) {$/;"	f
+main	deprecated/scheduler.cc	/^int main (int argc, char** argv) {$/;"	f
+main	master/master.cc	/^int main(int argc, char** argv)$/;"	f
+main	mcc/mcc.cc	/^int main(int argc, char** argv)$/;"	f
+main	slave/main.cc	/^int main (int argc, const char** argv) {$/;"	f
+main	slave/slave.cc	/^int main(int argc, char** argv)$/;"	f
+main	slave/test/main.cc	/^int main (int argc, const char** argv) {$/;"	f
+mapfunction	mapreduce/mapreduce.hh	/^void (*mapfunction) (string record); \/\/ map function pointer$/;"	v
+master_address	client/client.cc	/^char master_address[BUF_SIZE];$/;"	v
+master_address	mapreduce/mapreduce.hh	/^char master_address[BUF_SIZE];$/;"	v
+master_address	slave/slave.cc	/^char master_address[BUF_SIZE];$/;"	v
+master_is_set	client/client.cc	/^bool master_is_set = false;$/;"	v
+master_is_set	mapreduce/mapreduce.hh	/^bool master_is_set = false; \/\/ check if the configure file includes master address$/;"	v
+master_is_set	slave/slave.cc	/^bool master_is_set = false;$/;"	v
+master_job	master/master_job.hh	/^class master_job$/;"	c
+master_job	master/master_job.hh	/^master_job::master_job()$/;"	f	class:master_job
+master_job	master/master_job.hh	/^master_job::master_job(int id, int fd)$/;"	f	class:master_job
+master_task	master/master_job.hh	/^master_task::master_task()$/;"	f	class:master_task
+master_task	master/master_job.hh	/^master_task::master_task(master_job* ajob)$/;"	f	class:master_task
+master_task	master/master_job.hh	/^master_task::master_task(master_job* ajob, mr_role arole)$/;"	f	class:master_task
+master_task	master/master_job.hh	/^master_task::master_task(mr_role arole)$/;"	f	class:master_task
+master_task	master/master_task.hh	/^class master_task$/;"	c
+masterfd	client/client.cc	/^int masterfd = -1;$/;"	v
+masterfd	mapreduce/mapreduce.hh	/^int masterfd = -1;$/;"	v
+masterfd	slave/slave.cc	/^int masterfd = -1;$/;"	v
+match	deprecated/SETcache.cc	/^bool SETcache::match (Query& q) {$/;"	f	class:SETcache
+match	slave/SETcache.cc	/^bool SETcache::match (Query& q) {$/;"	f	class:SETcache
+max_job	master/master.cc	/^int max_job = -1;$/;"	v
+maxtask	master/connslave.hh	/^	int maxtask;$/;"	m	class:connslave
+metadata	common/packet.hh	/^  Metadata* metadata;$/;"	m	class:Packet
+missCount	deprecated/node.cc	/^uint64_t missCount = 0;$/;"	v
+missCount	slave/node.hh	/^  uint64_t missCount;$/;"	m	class:Node
+missCount	slave/node_sketch.hh	/^  uint64_t missCount;$/;"	m	class:Node
+mock	deprecated/master/test/master_test.cc	/^ MockRepository mock;$/;"	m	struct:fix_master	file:
+mr_role	mapreduce/definitions.hh	/^enum mr_role$/;"	g
+mutex_match	deprecated/SETcache.hh	/^  pthread_mutex_t mutex_match     ;$/;"	m	class:SETcache
+mutex_match	slave/SETcache.hh	/^  pthread_mutex_t mutex_match     ;$/;"	m	class:SETcache
+mutex_queue_low	deprecated/SETcache.hh	/^  pthread_mutex_t mutex_queue_low ;$/;"	m	class:SETcache
+mutex_queue_low	slave/SETcache.hh	/^  pthread_mutex_t mutex_queue_low ;$/;"	m	class:SETcache
+mutex_queue_upp	deprecated/SETcache.hh	/^  pthread_mutex_t mutex_queue_upp ;$/;"	m	class:SETcache
+mutex_queue_upp	slave/SETcache.hh	/^  pthread_mutex_t mutex_queue_upp ;$/;"	m	class:SETcache
+nbins	deprecated/em_kde.cc	/^const int nbins = 10;$/;"	v
+nbins	deprecated/master/em_kde.cc	/^const int nbins = 10;$/;"	v
+network_addr	deprecated/dht.hh	/^  struct sockaddr_in *network_addr;$/;"	m	class:DHT	typeref:struct:DHT::sockaddr_in
+network_addr	slave/dht.hh	/^  struct sockaddr_in *network_addr;$/;"	m	class:DHT	typeref:struct:DHT::sockaddr_in
+network_ip	deprecated/dht.hh	/^  char ** network_ip;$/;"	m	class:DHT
+network_ip	deprecated/node.cc	/^const char * network_ip [10] = $/;"	v
+network_ip	slave/dht.hh	/^  char ** network_ip;$/;"	m	class:DHT
+network_ip	slave/node.hh	/^  const char * network_ip [10] = $/;"	m	class:Node
+network_ip	slave/node_sketch.hh	/^  const char * network_ip [10] = $/;"	m	class:Node
+nextvalue	mapreduce/mapreduce.hh	/^string nextvalue;$/;"	v
+nservers	deprecated/master/scheduler.cc	/^int sock, port = 0, nservers = 0;$/;"	v
+nservers	deprecated/scheduler.cc	/^int sock, port = 0, nservers = 0;$/;"	v
+nslaves	deprecated/master/address_book.hh	/^  int fd, nslaves, sock;$/;"	m	class:Address_book
+numQuery	deprecated/master/scheduler.cc	/^uint64_t TotalCacheHit = 0, TotalCacheMiss = 0, numQuery = 0;$/;"	v
+numQuery	deprecated/scheduler.cc	/^uint64_t TotalCacheHit = 0, TotalCacheMiss = 0, numQuery = 0;$/;"	v
+num_slave	master/master.cc	/^int num_slave = -1;$/;"	v
+nummap	mapreduce/mapreduce.hh	/^int nummap = 0;$/;"	v
+nummap	master/master_job.hh	/^	int nummap;$/;"	m	class:master_job
+numreduce	mapreduce/mapreduce.hh	/^int numreduce = 0;$/;"	v
+numreduce	master/master_job.hh	/^	int numreduce;$/;"	m	class:master_job
+o	deprecated/order_test.cc	/^  Order* o;$/;"	m	struct:fix_order	file:
+open_server	master/master.cc	/^int open_server(int port)$/;"	f
+operator ()	common/EWMA.hh	/^  double operator () (int point) {$/;"	f	class:EWMA
+operator ()	common/EWMA.hh	/^  double operator () (void) {$/;"	f	class:EWMA
+operator <<	deprecated/SETcache.cc	/^ostream& operator<< (ostream& out, SETcache& in) {$/;"	f
+operator <<	slave/SETcache.cc	/^ostream& operator<< (ostream& out, SETcache& in) {$/;"	f
+operator =	deprecated/packets.hh	/^  Header& operator= (const Header& that) {$/;"	f	class:Header
+operator =	deprecated/packets.hh	/^  Packet& operator= (const Packet& that) {$/;"	f	class:Packet
+operator =	deprecated/packets.hh	/^  diskPage& operator= (const diskPage& that) {$/;"	f	class:diskPage
+operator ==	common/metadata.hh	/^  bool operator== (const Metadata& that) {$/;"	f	class:Metadata
+operator ==	deprecated/packets.hh	/^  bool operator== (const Header& that) {$/;"	f	class:Header
+operator File*	common/packet.hh	/^  operator File* () { return file; }$/;"	f	class:Packet
+operator Metadata*	common/packet.hh	/^  operator Metadata* () { return metadata; }$/;"	f	class:Packet
+outputpath	mapreduce/mapreduce.hh	/^string outputpath = "default_output";$/;"	v
+packet_vector	slave/test/random_number.cc	/^packet packet_vector [] = {packet (1), packet (2), packet (3), packet (4), packet (5)}; $/;"	v
+panic	deprecated/node.cc	/^bool panic = false;$/;"	v
+panic	slave/node.hh	/^  bool panic;$/;"	m	class:Node
+panic	slave/node_sketch.hh	/^  bool panic;$/;"	m	class:Node
+parse_args	deprecated/node.cc	/^void parse_args (int argc, const char** argv, Arguments* args) {$/;"	f
+parse_args	slave/node.cc	/^void Node::parse_args (int argc, const char** argv) {$/;"	f	class:Node
+parse_args	slave/node_sketch.cc	/^void Node::parse_args (int argc, const char** argv) {$/;"	f	class:Node
+parse_args	slave/test/common.cc	/^void parse_args (int argc, const char** argv) {$/;"	f
+path	common/task.hh	/^  char path [PATH_LENGTH];$/;"	m	class:Task
+path	deprecated/SETcache.hh	/^  char path [256];$/;"	m	class:SETcache
+path	slave/SETcache.hh	/^  char path [256];$/;"	m	class:SETcache
+peer_left	deprecated/node.hh	/^  char peer_left [32];$/;"	m	struct:Arguments
+peer_left	slave/node.hh	/^  char *local_ip, peer_left [32], peer_right[32], host_str [128], data_file [128];$/;"	m	class:Node
+peer_left	slave/node_sketch.hh	/^  char *local_ip, peer_left [32], peer_right[32], host_str [128], data_file [128];$/;"	m	class:Node
+peer_port	slave/node.hh	/^  int sch_port, peer_port, dht_port;$/;"	m	class:Node
+peer_port	slave/node_sketch.hh	/^  int sch_port, peer_port, dht_port;$/;"	m	class:Node
+peer_right	deprecated/node.hh	/^  char peer_right [32];$/;"	m	struct:Arguments
+peer_right	slave/node.hh	/^  char *local_ip, peer_left [32], peer_right[32], host_str [128], data_file [128];$/;"	m	class:Node
+peer_right	slave/node_sketch.hh	/^  char *local_ip, peer_left [32], peer_right[32], host_str [128], data_file [128];$/;"	m	class:Node
+pid	slave/slave_task.hh	/^	int pid;$/;"	m	class:slave_task
+pipefd	mapreduce/mapreduce.hh	/^int pipefd[2]; \/\/ pipe fd when the role is map task or reduce task$/;"	v
+pipefds	slave/slave_task.hh	/^	int pipefds[2]; \/\/ 0 for read, 1 for write$/;"	m	class:slave_task
+point	deprecated/packets.hh	/^  uint64_t point;  \/\/! Key\/ index$/;"	m	class:Header
+poisson	common/utils.cc	/^poisson (double c)$/;"	f
+policy	deprecated/SETcache.hh	/^  int _max, policy;$/;"	m	class:SETcache
+policy	deprecated/SETcache.hh	/^enum policy {$/;"	g
+policy	slave/SETcache.hh	/^  int _max, policy;$/;"	m	class:SETcache
+policy	slave/SETcache.hh	/^enum policy {$/;"	g
+pop_farthest	deprecated/SETcache.cc	/^void SETcache::pop_farthest () {$/;"	f	class:SETcache
+pop_farthest	slave/SETcache.cc	/^void SETcache::pop_farthest () {$/;"	f	class:SETcache
+pop_key	master/master_job.hh	/^string master_job::pop_key()$/;"	f	class:master_job
+pop_unreportedkey	slave/slave_job.hh	/^string slave_job::pop_unreportedkey()$/;"	f	class:slave_job
+port	client/client.cc	/^int port = -1;$/;"	v
+port	deprecated/dht.hh	/^  int sock, port;$/;"	m	class:DHT
+port	deprecated/master/scheduler.cc	/^int sock, port = 0, nservers = 0;$/;"	v
+port	deprecated/node.hh	/^  int port;$/;"	m	struct:Arguments
+port	deprecated/scheduler.cc	/^int sock, port = 0, nservers = 0;$/;"	v
+port	mapreduce/mapreduce.hh	/^int port = -1;$/;"	v
+port	master/master.cc	/^int port = -1;$/;"	v
+port	slave/dht.hh	/^  int sock, port;$/;"	m	class:DHT
+port	slave/slave.cc	/^int port = -1;$/;"	v
+prepare_input	common/utils.cc	/^uint64_t prepare_input (char* in) {$/;"	f
+print_header	deprecated/master/scheduler.cc	/^void print_header (void) {$/;"	f
+print_header	deprecated/scheduler.cc	/^void print_header (void) {$/;"	f
+print_out	deprecated/master/scheduler.cc	/^void print_out (void) {$/;"	f
+print_out	deprecated/scheduler.cc	/^void print_out (void) {$/;"	f
+pstat	slave/slave_task.hh	/^	int pstat; \/\/ status value for waitpid()$/;"	m	class:slave_task
+purpose	deprecated/order.hh	/^  enum type purpose; $/;"	m	class:Order	typeref:enum:Order::type
+queryProcessed	deprecated/node.cc	/^uint32_t queryProcessed = 0;$/;"	v
+queryProcessed	slave/node.hh	/^  uint32_t queryProcessed;$/;"	m	class:Node
+queryProcessed	slave/node_sketch.hh	/^  uint32_t queryProcessed;$/;"	m	class:Node
+queryRecieves	slave/node.hh	/^  uint32_t queryRecieves;$/;"	m	class:Node
+queryRecieves	slave/node_sketch.hh	/^  uint32_t queryRecieves;$/;"	m	class:Node
+queue_lower	deprecated/SETcache.hh	/^  queue<diskPage> queue_lower;$/;"	m	class:SETcache
+queue_lower	slave/SETcache.hh	/^  queue<diskPage> queue_lower;$/;"	m	class:SETcache
+queue_upper	deprecated/SETcache.hh	/^  queue<diskPage> queue_upper;$/;"	m	class:SETcache
+queue_upper	slave/SETcache.hh	/^  queue<diskPage> queue_upper;$/;"	m	class:SETcache
+read_buf	client/client.cc	/^char read_buf[BUF_SIZE];$/;"	v
+read_buf	mapreduce/mapreduce.hh	/^char read_buf[BUF_SIZE]; \/\/ read buffer for pipe$/;"	v
+read_buf	master/master.cc	/^char read_buf[BUF_SIZE]; \/\/ read buffer for signal_listener thread$/;"	v
+read_buf	slave/slave.cc	/^char read_buf[BUF_SIZE];$/;"	v
+receive_all	deprecated/master/scheduler.cc	/^void receive_all (void) {$/;"	f
+receive_all	deprecated/scheduler.cc	/^void receive_all (void) {$/;"	f
+recv_mock	slave/test/random_number.cc	/^ssize_t recv_mock (int fd, void* buff, size_t s, int flags) {$/;"	f
+recv_mock	slave/test/same_number.cc	/^int recv_mock (int fd, void* buff, size_t s, int flags) {$/;"	f
+recv_msg	common/utils.cc	/^recv_msg (int socket, char* recv_data)$/;"	f
+recv_msg	slave/test/common.cc	/^void recv_msg (int fd, char* in) {$/;"	f
+recv_msg2	slave/test/common.cc	/^void recv_msg2 (int fd, char* in) {$/;"	f
+reducefunction	mapreduce/mapreduce.hh	/^void (*reducefunction) (string key); \/\/ reduce function pointer$/;"	v
+remove_runningtask	master/connslave.hh	/^void connslave::remove_runningtask(master_task* atask)$/;"	f	class:connslave
+reported_keys	mapreduce/mapreduce.hh	/^set<string> reported_keys;$/;"	v
+reported_keys	slave/slave_job.hh	/^	set<string> reported_keys;$/;"	m	class:slave_job
+request	deprecated/dht.cc	/^bool DHT::request (Header& h) {$/;"	f	class:DHT
+request	slave/dht.cc	/^bool DHT::request (Header& h) {$/;"	f	class:DHT
+role	mapreduce/mapreduce.hh	/^mr_role role = JOB;$/;"	v
+role	master/master_task.hh	/^	mr_role role; \/\/ MAP or REDUCE$/;"	m	class:master_task
+role	slave/slave_task.hh	/^	mr_role role; \/\/ MAP or REDUCE$/;"	m	class:slave_task
+rot	common/utils.cc	/^rot (int64_t n, int64_t  *x, int64_t *y, int64_t  rx, int64_t ry) $/;"	f
+run	slave/node.cc	/^void Node::run () {$/;"	f	class:Node
+run	slave/node_sketch.cc	/^void Node::run () {$/;"	f	class:Node
+running_jobs	slave/slave.cc	/^vector<slave_job*> running_jobs; \/\/ a vector of job, one or multiple tasks of which are running on this slave node$/;"	v
+running_tasks	master/connslave.hh	/^	vector<master_task*> running_tasks;$/;"	m	class:connslave
+running_tasks	master/master_job.hh	/^	vector<master_task*> running_tasks;$/;"	m	class:master_job
+running_tasks	slave/slave.cc	/^vector<slave_task*> running_tasks; \/\/ a vector of running tasks$/;"	v
+running_tasks	slave/slave_job.hh	/^	vector<slave_task*> running_tasks;$/;"	m	class:slave_job
+sch_port	slave/node.hh	/^  int sch_port, peer_port, dht_port;$/;"	m	class:Node
+sch_port	slave/node_sketch.hh	/^  int sch_port, peer_port, dht_port;$/;"	m	class:Node
+schedule	deprecated/em_kde.cc	/^void schedule (Query& q, int boundary [], int nservers) {$/;"	f
+schedule	deprecated/master/em_kde.cc	/^void schedule (Query& q, int boundary [], int nservers) {$/;"	f
+schedule_task	master/master_job.hh	/^void master_job::schedule_task(master_task* atask, connslave* aslave)$/;"	f	class:master_job
+scheduledDate	deprecated/packets.hh	/^  struct timeval scheduledDate;$/;"	m	class:Query	typeref:struct:Query::timeval
+select_slave	deprecated/master/master.cc	/^int Master::select_slave (uint64_t key) {$/;"	f	class:Master
+send	deprecated/master/address_book.cc	/^Address_book& Address_book::send (File* f, bool trace = false) {$/;"	f	class:Address_book
+send	deprecated/master/address_book_page.cc	/^Address_book_page& Address_book_page::send (Packet* packet, bool trace = false) {$/;"	f	class:Address_book_page
+send	deprecated/master/node_client.hh	/^		Node& send (uint64_t point, bool trace = false) {$/;"	f	class:Node
+send_mock	slave/test/random_number.cc	/^ssize_t send_mock (int fd, const void* buff, size_t s, int flags) {$/;"	f
+send_mock	slave/test/same_number.cc	/^int send_mock (int fd, void* buff, size_t s, int flags) {$/;"	f
+send_msg	common/utils.cc	/^send_msg (int socket, const char* send_data)$/;"	f
+send_msg	deprecated/master/address_book.hh	/^  Address_book& send_msg (const char * in) { ::send_msg (fd, in); return *this; }$/;"	f	class:Address_book
+send_msg	deprecated/master/address_book_page.cc	/^Address_book_page& Address_book_page::send_msg (const char * in) {$/;"	f	class:Address_book_page
+send_msg	deprecated/master/node_client.hh	/^		Node& send_msg (const char * in) { ::send_msg (fd, in); return *this; }$/;"	f	class:Node
+serialize	deprecated/order.cc	/^uint8_t* Order::serialize (size_t* size = NULL) {$/;"	f	class:Order
+server_sock	deprecated/master/test/address_book_page_test.cc	/^ int server_sock;$/;"	m	struct:address_book_page_test_t	file:
+setDataFile	deprecated/SETcache.cc	/^void SETcache::setDataFile (char* p) { $/;"	f	class:SETcache
+setDataFile	slave/SETcache.cc	/^void SETcache::setDataFile (char* p) { $/;"	f	class:SETcache
+setFinishedDate	deprecated/query.cc	/^void Query::setFinishedDate() {$/;"	f	class:Query
+setScheduledDate	deprecated/query.cc	/^void Query::setScheduledDate () {$/;"	f	class:Query
+setStartDate	deprecated/query.cc	/^void Query::setStartDate() {$/;"	f	class:Query
+set_EMA	common/metadata.hh	/^  Metadata& set_EMA (double e)     { EMA = e;      return *this; }$/;"	f	class:Metadata
+set_EMA	deprecated/master/node_client.hh	/^		Node& set_EMA (double a)    { EMA= a;    return *this;}$/;"	f	class:Node
+set_EMA	deprecated/packets.hh	/^  Header& set_EMA (double e)     { EMA = e;      return *this; }$/;"	f	class:Header
+set_alpha	deprecated/master/node_client.hh	/^		Node& set_alpha (double a)  { alpha = a; return *this;}$/;"	f	class:Node
+set_argcount	slave/slave_job.hh	/^void slave_task::set_argcount(int num)$/;"	f	class:slave_task
+set_argvalues	slave/slave_job.hh	/^void slave_task::set_argvalues(char** argv)$/;"	f	class:slave_task
+set_color	common/logger.hh	/^  virtual static void set_color () { return true; }$/;"	f	class:logger
+set_data	deprecated/order.cc	/^Order& Order::set_data (uint8_t* data) {$/;"	f	class:Order
+set_fd	deprecated/master/address_book.hh	/^  Address_book& set_fd (int f) { fd = f; return *this;}$/;"	f	class:Address_book
+set_fd	deprecated/master/address_book_page.hh	/^  Address_book_page& set_fd (int f) { fd = f; return *this;}$/;"	f	class:Address_book_page
+set_fd	deprecated/master/node_client.hh	/^		Node& set_fd (int f)        { fd = f;    return *this;}$/;"	f	class:Node
+set_file_name	deprecated/order.hh	/^  Order& set_file_name (const char* in) { $/;"	f	class:Order
+set_index	common/metadata.hh	/^  Metadata& set_index (uint64_t p) { index = p;    return *this; }$/;"	f	class:Metadata
+set_job	master/master_job.hh	/^void master_task::set_job(master_job* ajob)$/;"	f	class:master_task
+set_job	slave/slave_job.hh	/^void slave_task::set_job(slave_job* ajob)$/;"	f	class:slave_task
+set_jobid	slave/slave_job.hh	/^void slave_job::set_jobid(int id)$/;"	f	class:slave_job
+set_low	common/metadata.hh	/^  Metadata& set_low (uint64_t l)   { low_b = l;    return *this; }$/;"	f	class:Metadata
+set_low	deprecated/master/node_client.hh	/^		Node& set_low (double l)    { low_b = l; return *this;}$/;"	f	class:Node
+set_low	deprecated/packets.hh	/^  Header& set_low (double l)     { low_b = l;    return *this; }$/;"	f	class:Header
+set_mapper	mapreduce/mapreduce.hh	/^void set_mapper(void (*map_func) (string record))$/;"	f
+set_metadata	common/packet.hh	/^  Packet& set_metadata (const Metadata& _m) {$/;"	f	class:Packet
+set_network	deprecated/dht.cc	/^void DHT::set_network (int port, int n, const char* ifa, const char ** in) {$/;"	f	class:DHT
+set_network	slave/dht.cc	/^void DHT::set_network (int port, int n, const char* ifa, const char ** in) {$/;"	f	class:DHT
+set_outputpath	mapreduce/mapreduce.hh	/^void set_outputpath(string path) \/\/ this user function can be used in anywhere but after initialization$/;"	f
+set_pid	slave/slave_job.hh	/^void slave_task::set_pid(int id)$/;"	f	class:slave_task
+set_point	deprecated/packets.hh	/^  Header& set_point (uint64_t p) { point = p;    return *this; }$/;"	f	class:Header
+set_readfd	slave/slave_job.hh	/^void slave_task::set_readfd(int fd)$/;"	f	class:slave_task
+set_reducer	mapreduce/mapreduce.hh	/^void set_reducer(void (*red_func) (string key))$/;"	f
+set_stage	master/master_job.hh	/^void master_job::set_stage(job_stage astage)$/;"	f	class:master_job
+set_status	master/master_job.hh	/^void master_task::set_status(task_status astatus)$/;"	f	class:master_task
+set_status	slave/slave_job.hh	/^void slave_task::set_status(task_status astatus)$/;"	f	class:slave_task
+set_taskid	slave/slave_job.hh	/^void slave_task::set_taskid(int id)$/;"	f	class:slave_task
+set_taskrole	master/master_job.hh	/^void master_task::set_taskrole(mr_role arole)$/;"	f	class:master_task
+set_taskrole	slave/slave_job.hh	/^void slave_task::set_taskrole(mr_role arole)$/;"	f	class:slave_task
+set_time	deprecated/master/node_client.hh	/^		Node& set_time (uint64_t u) { time = u;  return *this;} $/;"	f	class:Node
+set_time	deprecated/packets.hh	/^  Packet& set_time (uint64_t t) { time = t; return *this; }$/;"	f	class:Packet
+set_trazable	common/metadata.hh	/^  Metadata& set_trazable ()        { trace = true; return *this; }$/;"	f	class:Metadata
+set_trazable	deprecated/packets.hh	/^  Header& set_trazable ()        { trace = true; return *this; }$/;"	f	class:Header
+set_upp	common/metadata.hh	/^  Metadata& set_upp (uint64_t u)   { upp_b = u;    return *this; }$/;"	f	class:Metadata
+set_upp	deprecated/master/node_client.hh	/^		Node& set_upp (double u)    { upp_b = u; return *this;} $/;"	f	class:Node
+set_upp	deprecated/packets.hh	/^  Header& set_upp (double u)     { upp_b = u;    return *this; }$/;"	f	class:Header
+set_writefd	slave/slave_job.hh	/^void slave_task::set_writefd(int fd)$/;"	f	class:slave_task
+setargcount	master/master_job.hh	/^void master_job::setargcount(int num)$/;"	f	class:master_job
+setargvalues	master/master_job.hh	/^void master_job::setargvalues(char** values)$/;"	f	class:master_job
+setfd	master/connclient.hh	/^void connclient::setfd(int num)$/;"	f	class:connclient
+setjobfd	master/master_job.hh	/^void master_job::setjobfd(int num)$/;"	f	class:master_job
+setjobid	master/master_job.hh	/^void master_job::setjobid(int num)$/;"	f	class:master_job
+setmaxtask	master/connslave.hh	/^void connslave::setmaxtask(int num)$/;"	f	class:connslave
+setnummap	master/master_job.hh	/^void master_job::setnummap(int num)$/;"	f	class:master_job
+setnumreduce	master/master_job.hh	/^void master_job::setnumreduce(int num)$/;"	f	class:master_job
+settaskid	master/master_job.hh	/^void master_task::settaskid(int num)$/;"	f	class:master_task
+setup_client_peer	deprecated/node.cc	/^void setup_client_peer (const int port, const char* host, int* sock, sockaddr_in* addr) {$/;"	f
+setup_client_peer	slave/node.cc	/^Node::setup_client_peer (const int port, const char* host, int* sock, sockaddr_in* addr)$/;"	f	class:Node
+setup_client_peer	slave/node_sketch.cc	/^Node::setup_client_peer (const int port, const char* host, int* sock, sockaddr_in* addr)$/;"	f	class:Node
+setup_client_scheduler	deprecated/node.cc	/^void setup_client_scheduler (int port, const char* host, int* sock) {$/;"	f
+setup_client_scheduler	slave/node.cc	/^void Node::setup_client_scheduler (int port, const char* host, int* sock) {$/;"	f	class:Node
+setup_client_scheduler	slave/node_sketch.cc	/^void Node::setup_client_scheduler (int port, const char* host, int* sock) {$/;"	f	class:Node
+setup_server_peer	deprecated/node.cc	/^void setup_server_peer (int port, int* sock, sockaddr_in* addr) {$/;"	f
+setup_server_peer	slave/node.cc	/^void Node::setup_server_peer (int port, int* sock, sockaddr_in* addr) {$/;"	f	class:Node
+setup_server_peer	slave/node_sketch.cc	/^void Node::setup_server_peer (int port, int* sock, sockaddr_in* addr) {$/;"	f	class:Node
+shiftedQuery	deprecated/master/scheduler.cc	/^uint64_t TotalExecTime = 0, TotalWaitTime = 0, shiftedQuery = 0, SentShiftedQuery = 0; $/;"	v
+shiftedQuery	deprecated/node.cc	/^uint64_t shiftedQuery = 0;$/;"	v
+shiftedQuery	deprecated/scheduler.cc	/^uint64_t TotalExecTime = 0, TotalWaitTime = 0, shiftedQuery = 0, SentShiftedQuery = 0; $/;"	v
+signal_handler	slave/node.cc	/^void Node::signal_handler () { Node.catch_signal(); }$/;"	f	class:Node
+signal_handler	slave/node_sketch.cc	/^void Node::signal_handler () { Node.catch_signal(); }$/;"	f	class:Node
+signal_listener	client/client.cc	/^void* signal_listener(void* args)$/;"	f
+signal_listener	master/master.cc	/^void* signal_listener(void* args)$/;"	f
+signal_listener	slave/slave.cc	/^void signal_listener()$/;"	f
+size	common/file.hh	/^  size_t size; $/;"	m	class:File
+size	deprecated/packets.hh	/^  size_t size;$/;"	m	class:Packet
+slave_job	slave/slave_job.hh	/^class slave_job$/;"	c
+slave_job	slave/slave_job.hh	/^slave_job::slave_job()$/;"	f	class:slave_job
+slave_job	slave/slave_job.hh	/^slave_job::slave_job(int id)$/;"	f	class:slave_job
+slave_task	slave/slave_job.hh	/^slave_task::slave_task()$/;"	f	class:slave_task
+slave_task	slave/slave_job.hh	/^slave_task::slave_task(int id)$/;"	f	class:slave_task
+slave_task	slave/slave_task.hh	/^class slave_task$/;"	c
+sock	deprecated/dht.hh	/^  int sock, port;$/;"	m	class:DHT
+sock	deprecated/master/address_book.hh	/^  int fd, nslaves, sock;$/;"	m	class:Address_book
+sock	deprecated/master/scheduler.cc	/^int sock, port = 0, nservers = 0;$/;"	v
+sock	deprecated/scheduler.cc	/^int sock, port = 0, nservers = 0;$/;"	v
+sock	slave/dht.hh	/^  int sock, port;$/;"	m	class:DHT
+sock_left	deprecated/node.cc	/^int sock_scheduler, sock_left, sock_right, sock_server;  $/;"	v
+sock_left	slave/node.hh	/^  int sock_scheduler, sock_left, sock_right, sock_server;  $/;"	m	class:Node
+sock_left	slave/node_sketch.hh	/^  int sock_scheduler, sock_left, sock_right, sock_server;  $/;"	m	class:Node
+sock_right	deprecated/node.cc	/^int sock_scheduler, sock_left, sock_right, sock_server;  $/;"	v
+sock_right	slave/node.hh	/^  int sock_scheduler, sock_left, sock_right, sock_server;  $/;"	m	class:Node
+sock_right	slave/node_sketch.hh	/^  int sock_scheduler, sock_left, sock_right, sock_server;  $/;"	m	class:Node
+sock_scheduler	deprecated/node.cc	/^int sock_scheduler, sock_left, sock_right, sock_server;  $/;"	v
+sock_scheduler	slave/node.hh	/^  int sock_scheduler, sock_left, sock_right, sock_server;  $/;"	m	class:Node
+sock_scheduler	slave/node_sketch.hh	/^  int sock_scheduler, sock_left, sock_right, sock_server;  $/;"	m	class:Node
+sock_server	deprecated/node.cc	/^int sock_scheduler, sock_left, sock_right, sock_server;  $/;"	v
+sock_server	slave/node.hh	/^  int sock_scheduler, sock_left, sock_right, sock_server;  $/;"	m	class:Node
+sock_server	slave/node_sketch.hh	/^  int sock_scheduler, sock_left, sock_right, sock_server;  $/;"	m	class:Node
+stage	master/master_job.hh	/^	job_stage stage;$/;"	m	class:master_job
+startDate	deprecated/packets.hh	/^  struct timeval startDate;$/;"	m	class:Query	typeref:struct:Query::timeval
+status	deprecated/master/address_book_page.hh	/^  Status status;$/;"	m	class:Address_book_page
+status	master/master_task.hh	/^	task_status status;$/;"	m	class:master_task
+status	slave/slave_task.hh	/^	task_status status;$/;"	m	class:slave_task
+success	deprecated/master/test/ds_test.cc	/^ uint64_t success, failed;$/;"	m	struct:fix_setcache	file:
+success	slave/test/ds_test.cc	/^ uint64_t success, failed;$/;"	m	struct:fix_setcache	file:
+summ_mapreduce	mapreduce/mapreduce.hh	/^void summ_mapreduce()$/;"	f
+task_status	mapreduce/definitions.hh	/^enum task_status$/;"	g
+taskid	mapreduce/mapreduce.hh	/^int taskid;$/;"	v
+taskid	master/master_task.hh	/^	int taskid;$/;"	m	class:master_task
+taskid	slave/slave_task.hh	/^	int taskid;$/;"	m	class:slave_task
+tasks	master/master_job.hh	/^	vector<master_task*> tasks;$/;"	m	class:master_job
+tasks	slave/slave_job.hh	/^	vector<slave_task*> tasks;$/;"	m	class:slave_job
+thread_dht	slave/node.hh	/^  pthread_t thread_dht;$/;"	m	class:Node
+thread_dht	slave/node_sketch.hh	/^  pthread_t thread_dht;$/;"	m	class:Node
+thread_forward	slave/node.hh	/^  pthread_t thread_forward;$/;"	m	class:Node
+thread_forward	slave/node_sketch.hh	/^  pthread_t thread_forward;$/;"	m	class:Node
+thread_func_dht	deprecated/node.cc	/^void* thread_func_dht (void* arg) {$/;"	f
+thread_func_dht	slave/node.cc	/^void* Node::thread_func_dht (void* arg) {$/;"	f	class:Node
+thread_func_dht	slave/node_sketch.cc	/^void* Node::thread_func_dht (void* arg) {$/;"	f	class:Node
+thread_func_forward	deprecated/node.cc	/^void * thread_func_forward (void * argv) {$/;"	f
+thread_func_forward	slave/node.cc	/^void * Node::thread_func_forward (void * argv) {$/;"	f	class:Node
+thread_func_forward	slave/node_sketch.cc	/^void * Node::thread_func_forward (void * argv) {$/;"	f	class:Node
+thread_func_neighbor	deprecated/node.cc	/^void * thread_func_neighbor (void* argv) {$/;"	f
+thread_func_neighbor	slave/node.cc	/^void * Node::thread_func_neighbor (void* argv) {$/;"	f	class:Node
+thread_func_neighbor	slave/node_sketch.cc	/^void * Node::thread_func_neighbor (void* argv) {$/;"	f	class:Node
+thread_func_scheduler	deprecated/node.cc	/^void * thread_func_scheduler (void * argv) {$/;"	f
+thread_func_scheduler	slave/node.cc	/^void * Node::thread_func_scheduler (void * argv) {$/;"	f	class:Node
+thread_func_scheduler	slave/node_sketch.cc	/^void * Node::thread_func_scheduler (void * argv) {$/;"	f	class:Node
+thread_neighbor	slave/node.hh	/^  pthread_t thread_neighbor;$/;"	m	class:Node
+thread_neighbor	slave/node_sketch.hh	/^  pthread_t thread_neighbor;$/;"	m	class:Node
+thread_scheduler	slave/node.hh	/^  pthread_t thread_scheduler;$/;"	m	class:Node
+thread_scheduler	slave/node_sketch.hh	/^  pthread_t thread_scheduler;$/;"	m	class:Node
+time	deprecated/master/node_client.hh	/^		uint64_t time;$/;"	m	class:Node
+time	deprecated/packets.hh	/^  uint64_t time; $/;"	m	class:Packet
+time	deprecated/packets.hh	/^  uint64_t time;$/;"	m	class:diskPage
+timediff	common/utils.cc	/^timediff (struct timeval *end_time, struct timeval *start_time)$/;"	f
+trace	common/metadata.hh	/^  bool trace; $/;"	m	class:Metadata
+trace	deprecated/packets.hh	/^  bool trace;$/;"	m	class:Header
+type	deprecated/order.hh	/^  enum type {$/;"	g	class:Order
+unreported_keys	mapreduce/mapreduce.hh	/^set<string> unreported_keys;$/;"	v
+unreported_keys	slave/slave_job.hh	/^	set<string> unreported_keys;$/;"	m	class:slave_job
+update	deprecated/SETcache.cc	/^void SETcache::update (double low, double upp) {$/;"	f	class:SETcache
+update	slave/SETcache.cc	/^void SETcache::update (double low, double upp) {$/;"	f	class:SETcache
+update_EMA	deprecated/master/node_client.hh	/^		Node& update_EMA (double point)  { EMA += alpha * (point - EMA); return *this; } $/;"	f	class:Node
+upload	deprecated/master/master.cc	/^int Master::upload (Order& o) {$/;"	f	class:Master
+upp_b	common/metadata.hh	/^  uint64_t index, low_b, upp_b;$/;"	m	class:Metadata
+upp_b	deprecated/master/node_client.hh	/^		double EMA, low_b, upp_b, alpha;$/;"	m	class:Node
+upp_b	deprecated/packets.hh	/^  double EMA, low_b, upp_b;$/;"	m	class:Header
+victim	common/test/file_test.cc	/^ File* victim;$/;"	m	struct:fix_File	file:
+victim	common/test/packet_test.cc	/^ Packet* victim;$/;"	m	struct:fix_Packet	file:
+victim	common/test/task_test.cc	/^ Task* victim;$/;"	m	struct:fix_Task	file:
+waiting_tasks	master/master_job.hh	/^	vector<master_task*> waiting_tasks;$/;"	m	class:master_job
+wakeUpServer	deprecated/master/scheduler.cc	/^void wakeUpServer (void) {$/;"	f
+wakeUpServer	deprecated/scheduler.cc	/^void wakeUpServer (void) {$/;"	f
+warn	common/logger.hh	/^  static void warn(const char* in, ...) {$/;"	f	class:logger
+write_buf	client/client.cc	/^char write_buf[BUF_SIZE];$/;"	v
+write_buf	mapreduce/mapreduce.hh	/^char write_buf[BUF_SIZE]; \/\/ write buffer for pipe$/;"	v
+write_buf	master/master.cc	/^char write_buf[BUF_SIZE]; \/\/ write buffer for signal_listener thread$/;"	v
+write_buf	slave/slave.cc	/^char write_buf[BUF_SIZE];$/;"	v
+write_keyvalue	mapreduce/mapreduce.hh	/^void write_keyvalue(string key, string value)$/;"	f
+write_output	mapreduce/mapreduce.hh	/^void write_output(string record) \/\/ this user function can be used anywhere but after initialization$/;"	f
+~Address_book	deprecated/master/address_book.hh	/^  virtual ~Address_book () { this->close();}$/;"	f	class:Address_book
+~Address_book_page	deprecated/master/address_book_page.hh	/^  ~Address_book_page () { this->close();}$/;"	f	class:Address_book_page
+~DHT	deprecated/dht.cc	/^DHT::~DHT () {$/;"	f	class:DHT
+~DHT	slave/dht.cc	/^DHT::~DHT () {$/;"	f	class:DHT
+~File	common/file.hh	/^  ~File () { }$/;"	f	class:File
+~Master	deprecated/master/master.hh	/^  virtual ~Master () { }$/;"	f	class:Master
+~Metadata	common/metadata.hh	/^  virtual ~Metadata () {}$/;"	f	class:Metadata
+~Node	slave/node.cc	/^Node::~Node () { close_all (); }$/;"	f	class:Node
+~Node	slave/node_sketch.cc	/^Node::~Node () { close_all (); }$/;"	f	class:Node
+~Packet	common/packet.hh	/^  ~Packet () {$/;"	f	class:Packet
+~SETcache	deprecated/SETcache.hh	/^  ~SETcache () { delete cache; delete cache_time;}$/;"	f	class:SETcache
+~SETcache	slave/SETcache.hh	/^  ~SETcache () { delete cache; delete cache_time;}$/;"	f	class:SETcache
+~Task	common/task.hh	/^  ~Task () {}$/;"	f	class:Task
+~address_book_page_test_t	deprecated/master/test/address_book_page_test.cc	/^ ~address_book_page_test_t () {$/;"	f	struct:address_book_page_test_t
+~address_book_test_t	deprecated/master/test/address_book_test.cc	/^ ~address_book_test_t () {$/;"	f	struct:address_book_test_t
+~connclient	master/connclient.hh	/^connclient::~connclient()$/;"	f	class:connclient
+~connslave	master/connslave.hh	/^connslave::~connslave()$/;"	f	class:connslave
+~fix_File	common/test/file_test.cc	/^ ~fix_File () {$/;"	f	struct:fix_File
+~fix_Packet	common/test/packet_test.cc	/^ ~fix_Packet () {$/;"	f	struct:fix_Packet
+~fix_Task	common/test/task_test.cc	/^ ~fix_Task () {$/;"	f	struct:fix_Task
+~fix_ewma	common/test/ewma_test.cc	/^ ~fix_ewma () { delete ema; }$/;"	f	struct:fix_ewma
+~fix_master	deprecated/master/test/master_test.cc	/^ ~fix_master () {$/;"	f	struct:fix_master
+~fix_metadata	common/test/metadata_test.cc	/^ ~fix_metadata () { delete _m; }$/;"	f	struct:fix_metadata
+~fix_order	deprecated/order_test.cc	/^  ~fix_order () {$/;"	f	struct:fix_order
+~fix_setcache	deprecated/master/test/ds_test.cc	/^ ~fix_setcache () {$/;"	f	struct:fix_setcache
+~fix_setcache	slave/test/ds_test.cc	/^ ~fix_setcache () {$/;"	f	struct:fix_setcache
+~master_job	master/master_job.hh	/^master_job::~master_job()$/;"	f	class:master_job
+~slave_job	slave/slave_job.hh	/^slave_job::~slave_job()$/;"	f	class:slave_job
+~slave_task	slave/slave_job.hh	/^slave_task::~slave_task()$/;"	f	class:slave_task

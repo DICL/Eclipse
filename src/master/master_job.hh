@@ -54,32 +54,40 @@ public:
 	int get_numwaiting_tasks();
 	int get_numrunning_tasks();
 	int get_numcompleted_tasks();
+	job_stage get_stage();
+	void set_stage(job_stage astage);
 	master_task* get_lastwaitingtask();
 	void schedule_task(master_task* atask, connslave* aslave);
 	void finish_task(master_task* atask, connslave* aslave);
 	master_task* find_taskfromid(int id);
+	void add_key(string akey);
+	bool is_key();
+	int get_numkey();
+	string pop_key();
+	set<string>::iterator get_keybegin();
+	set<string>::iterator get_keyend();
 };
 
 master_job::master_job()
 {
 	this->jobid = -1;
 	this->jobfd = -1;
-	this->nummap = -1;
-	this->numreduce = -1;
+	this->nummap = 0;
+	this->numreduce = 0;
 	this->argcount = -1;
 	this->argvalues = NULL;
-	this->stage = INITIAL;
+	this->stage = INITIAL_STAGE;
 }
 
 master_job::master_job(int id, int fd)
 {
 	this->jobid = id;
 	this->jobfd = fd;
-	this->nummap = -1;
-	this->numreduce = -1;
+	this->nummap = 0;
+	this->numreduce = 0;
 	this->argcount = -1;
 	this->argvalues = NULL;
-	this->stage = INITIAL;
+	this->stage = INITIAL_STAGE;
 }
 
 master_job::~master_job()
@@ -167,6 +175,7 @@ void master_job::add_task(master_task* atask)
 {
 	// set the task id of the input task
 	atask->settaskid(tasks.size());
+	atask->set_job(this);
 	this->tasks.push_back(atask);
 	this->waiting_tasks.push_back(atask);
 }
@@ -294,6 +303,45 @@ void master_job::set_stage(job_stage astage)
 	this->stage = astage;
 }
 
+void master_job::add_key(string akey)
+{
+	// key should be distinct
+	if(keys.find(akey) != keys.end())
+		return;
+
+	keys.insert(akey);
+}
+
+bool master_job::is_key()
+{
+	if(keys.empty())
+		return false;
+	else
+		return true;
+}
+
+int master_job::get_numkey()
+{
+	return (int)keys.size();
+}
+
+string master_job::pop_key()
+{
+	string ret = *keys.begin();
+	keys.erase(keys.begin());
+	return ret;
+}
+
+set<string>::iterator master_job::get_keybegin()
+{
+	return keys.begin();
+}
+
+set<string>::iterator master_job::get_keyend()
+{
+	return keys.end();
+}
+
 
 // member functions of master_task class
 
@@ -395,5 +443,6 @@ void master_task::set_taskrole(mr_role arole)
 {
 	this->role = arole;
 }
+
 
 #endif

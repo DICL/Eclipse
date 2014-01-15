@@ -2,6 +2,7 @@
 #define _MAPREDUCE_
 
 #include <iostream>
+#include <errno.h>
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -17,7 +18,7 @@
 #include <sys/unistd.h>
 #include <arpa/inet.h>
 
-#include <mapreduce/definitions.hh>
+#include "../definitions.hh"
 
 using namespace std;
 
@@ -34,6 +35,9 @@ char** get_argv(void); // get user argv excepting passed pipe fd
 void write_keyvalue(string key, string value);
 void write_output(string record); // function used in reduce function
 
+int openoutfile(string path); // open a task/job result file
+int writeoutfile(int fd, string data); // write to the task/job result file
+int closeoutfile(int fd); // close task/job result file
 bool get_record(string* record); // return true when successful, false when out of input record
 bool get_key(string* value); // return true when successful, false when out of key value pair
 int get_argc(void); // get user argc excepting passed pipe fd
@@ -262,7 +266,6 @@ void init_mapreduce(int argc, char** argv)
 
 			// launch the mkdir program
 			execvp(argv[0], argv);
-cout<<"Until here8"<<endl;
 		}
 		else // parent side
 		{
@@ -481,7 +484,7 @@ void summ_mapreduce()
 		}
 		else if(pid < 0)
 		{
-			cout<<"Debugging: forking failed"<<endl;
+			cout<<"[mapreduce]Debugging: forking failed"<<endl;
 		}
 		else // parent process
 		{
@@ -520,7 +523,25 @@ void summ_mapreduce()
 					reported_keys.insert(key);
 
 					// send 'key' meesage to the slave node
-					write(pipefd[1], keystr.c_str(), BUF_SIZE);
+					strcpy(write_buf, keystr.c_str());
+					while(write(pipefd[1], write_buf, BUF_SIZE)< 0)
+					{
+						cout<<"[mapreduce]write to slave failed"<<endl;
+						int err = errno;
+						if(err == EAGAIN)
+						{
+							cout<<"[mapreduce]due to the EAGAIN"<<endl;
+						}
+						else if(err ==  EFAULT)
+						{
+							cout<<"[mapreduce]due to the EFAULT"<<endl;
+						}
+						// sleeps for 1 second. change this if necessary
+						sleep(1);
+					}
+
+					// sleeps for 0.0001 seconds. change this if necessary
+					usleep(100);
 				}
 			}
 		}
@@ -535,15 +556,23 @@ void summ_mapreduce()
 			if(readbytes == 0) // pipe fd was closed abnormally
 			{
 				// TODO: Terminate the task properly
-cout<<"the map task is gone"<<endl;
+				input.close();
+				close(pipefd[0]);
+				close(pipefd[1]);
 				exit(0);
 			}
 			else if(readbytes > 0)
 			{
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
-					cout<<"[mapreduce]Task is successfully completed"<<endl;
-					break;
+//					cout<<"[mapreduce]Map task is successfully completed"<<endl;
+
+					// clear task
+					input.close();
+					close(pipefd[0]);
+					close(pipefd[1]);
+					// terminate successfully
+					exit(0);
 				}
 				else // all other messages are ignored
 					continue;
@@ -583,6 +612,9 @@ cout<<"the map task is gone"<<endl;
 			if(readbytes == 0) // pipe fd was closed abnormally
 			{
 				// TODO: Terminate the task properly
+				input.close();
+				close(pipefd[0]);
+				close(pipefd[1]);
 cout<<"the reduce task is gone"<<endl;
 				exit(0);
 			}
@@ -590,8 +622,14 @@ cout<<"the reduce task is gone"<<endl;
 			{
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
-					cout<<"[mapreduce]Task is successfully completed"<<endl; // <- this message will be printed in the slave process side
-					break;
+//					cout<<"[mapreduce]Reduce task is successfully completed"<<endl; // <- this message will be printed in the slave process side
+
+					// clear task
+					input.close();
+					close(pipefd[0]);
+					close(pipefd[1]);
+					// terminate successfully
+					exit(0);
 				}
 				else // all other messages are ignored
 					continue;
@@ -682,49 +720,30 @@ void write_keyvalue(string key, string value)
 	// check if thie function is called inside the map function
 	if(inside_map)
 	{
-		ofstream keyfile;
-		fstream keylockfile;
-
 		if(reported_keys.find(key) == reported_keys.end()
 			&& unreported_keys.find(key) == unreported_keys.end())
 		{
 			unreported_keys.insert(key);
 		}
 
-		// write the key value pair
+		// path of the key file
 		string keypath = MR_PATH;
 		keypath.append(jobdirpath);
-		string keylockpath;
 		keypath.append(key);
-		keylockpath = keypath;
-		keylockpath.append(".lock");
-		
-		// lock the key file
-		keylockfile.open(keylockpath.c_str());
-		while(keylockfile.is_open()) // lock is being held by other task
+
+		// result string
+		string rst = key;
+		rst.append(" ");
+		rst.append(value);
+		int fd = openoutfile(keypath);
+
+		if(fd<0)
 		{
-			// sleep for 0.0001 second. change this if necessary
-			usleep(100);
-			keylockfile.close();
-			keylockfile.open(keylockpath.c_str());
-		}
-		
-		// hold the lock
-		keylockfile.open(keylockpath.c_str(), fstream::out);
-		
-		// critical section
-		{
-			keyfile.open(keypath.c_str(), ofstream::app);
-			keyfile<<key; // write key
-			keyfile<<" ";
-			keyfile<<value;
-			keyfile<<endl;
-			keyfile.close();
+			cout<<"[mapreduce]Debugging: openoutfile error"<<endl;
 		}
 
-		// release the lock
-		keylockfile.close();
-		remove(keylockpath.c_str());
+		writeoutfile(fd, rst);
+		closeoutfile(fd);
 	}
 	else
 	{
@@ -740,12 +759,14 @@ bool get_record(string* record) // internal function for the map
 	{
 		if(inputpaths.size() == 0) // no more record
 		{
+			input.close();
 			return false;
 		}
 
 		// open another input data
 		string apath = MR_PATH;
 		apath.append(inputpaths.back());
+		input.close();
 		input.open(apath.c_str());
 		inputpaths.pop_back();
 
@@ -768,6 +789,7 @@ bool get_key(string* key) // internal function for the reduce
 		string apath = MR_PATH;
 		apath.append(jobdirpath);
 		apath.append(inputpaths.back());
+		input.close();
 		input.open(apath.c_str());
 		inputpaths.pop_back();
 		
@@ -822,9 +844,6 @@ string get_nextvalue() // returns values in reduce function
 
 void write_output(string record) // this user function can be used anywhere but after initialization
 {
-	ofstream outfile;
-	fstream outlockfile;
-
 	string outpath = MR_PATH;
 	if(outputpath == "default_output")
 	{
@@ -838,37 +857,59 @@ void write_output(string record) // this user function can be used anywhere but 
 	{
 		outpath.append(outputpath);
 	}
-	string outlockpath = outpath;
-	outlockpath.append(".lock");
 
-	// lock the output file
-	outlockfile.open(outlockpath.c_str());
-	while(outlockfile.is_open()) // lock is being held by other task or job
-	{
-		// sleep for 0.0001 second. change this if necessary
-		usleep(100);
-		outlockfile.close();
-		outlockfile.open(outlockpath.c_str());
-	}
-	
-	// hold the lock
-	outlockfile.open(outlockpath.c_str(), fstream::out);
-
-	// critical section
-	{
-		outfile.open(outpath.c_str(), ofstream::app);
-		outfile<<record<<endl;
-		outfile.close();
-	}
-
-	// release the lock
-	outlockfile.close();
-	remove(outlockpath.c_str());
+	int fd = openoutfile(outpath);
+	writeoutfile(fd, record);
+	closeoutfile(fd);
 }
 
 int get_jobid()
 {
 	return jobid;
+}
+
+int openoutfile(string path) // path: full absolute path
+{
+	return open(path.c_str(), O_APPEND|O_SYNC|O_WRONLY|O_CREAT, 0644);
+}
+
+int writeoutfile(int fd, string data)
+{
+	struct flock alock;
+	struct flock ulock;
+
+	// set lock
+	alock.l_type = F_WRLCK;
+	alock.l_start = 0;
+	alock.l_whence = SEEK_SET;
+	alock.l_len = 0;
+
+	//set unlock
+	ulock.l_type = F_UNLCK;
+	ulock.l_start = 0;
+	ulock.l_whence = SEEK_SET;
+	ulock.l_len = 0;
+
+	// acquire file lock
+	fcntl(fd, F_SETLKW, &alock);
+
+	// critical section
+	{
+		strcpy(write_buf, data.c_str());
+		write(fd, write_buf, strlen(data.c_str()));
+		write(fd, "\n", 1);
+	}
+
+	// relase file lock
+	fcntl(fd, F_SETLK, &ulock);
+
+	// return 1 when successful
+	return 1;
+}
+
+int closeoutfile(int fd)
+{
+	return close(fd);
 }
 
 #endif
