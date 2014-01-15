@@ -27,8 +27,10 @@ bool DHTserver::bind () {
  if (::bind (server_fd, (struct sockaddr*)&server_addr, sizeof (server_addr)) == -1)
   log (M_ERR, "DHT", "bind function");
 
+#ifdef _DEBUG
  log (M_INFO, "DHTserver", "UDP server setted up [%s:%i]", 
    inet_ntoa (server_addr.sin_addr), ntohs (server_addr.sin_port));
+#endif
 
  return true;
 }

@@ -1,4 +1,6 @@
 #include <DHTclient.hh>
+#include <sys/types.h>
+#include <errno.h>
 
 // lookup {{{
 // ----------------------------------------------- 
@@ -70,6 +72,7 @@ bool DHTclient::server_request (uint32_t key) {
 
  switch (ret) {
   case -1: 
+   if (ENOTCONN == errno) log (M_DEBUG, "DHTclient", "Error connecting to host");
    return false;
 
   case 4:
@@ -89,7 +92,7 @@ int DHTclient::server_receive () {
   int ret = recvfrom (server_fd, &reply, 4, MSG_WAITALL, (struct sockaddr*)&server_addr, &sl);
 
 #ifdef _DEBUG
- //printf("Recieved %i\n", ntohl (reply));
+ log (M_DEBUG, "DHTclient", "Recieved %i\n", ntohl (reply));
 #endif 
 
   switch (ret) {

@@ -11,7 +11,7 @@ INCLUDE += -I $(LIBDIR)/unittest++/
 CXXFLAGS := -g -Wall $(INCLUDE) -std=gnu++98 -fopenmp #-D_DEBUG
 LDFLAGS := -L $(LIBDIR) -L $(LIBDIR2) -lUnitTest++ -lm -lpthread -lmrr
 
-SOURCES := DHTserver.cc DHTclient.cc DHTserver_test.cc DHTclient_test.cc integration.cc main.cc 
+SOURCES := cache.cc cache_test.cc main.cc 
 OBJECTS := $(patsubst %.cc, %.o, $(SOURCES))
 
 %.o : %.cc 

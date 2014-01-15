@@ -56,7 +56,7 @@ class DHTserver {
   struct sockaddr_in server_addr; 
 
   pthread_t tserver;
-  map<int, int> table;
+  map<int, int> table; //! O (log n)
   bool thread_continue; //! there is not race condition
 };
 
