@@ -23,12 +23,10 @@
 #include <math.h>
 #include <map>
 #include <hash.hh>
+#include <macros.h>  //! Some macros
 
 using std::map;
 
-#ifndef MRR_IP_LENGTH
-#define MRR_IP_LENGTH 64 
-#endif
 // }}}
 // DHTserver class definition {{{
 class DHTserver {
@@ -43,7 +41,7 @@ class DHTserver {
   bool set_interface (const char*);
   bool listen ();
   bool close ();
-  bool report (const char*, int);
+  bool report (const char*, const char*);
 
  protected:
   bool server_request (int key);
@@ -56,7 +54,7 @@ class DHTserver {
   struct sockaddr_in server_addr; 
 
   pthread_t tserver;
-  map<int, int> table;
+  map<uint32_t, uint32_t> table; //! O (log n)
   bool thread_continue; //! there is not race condition
 };
 
