@@ -36,6 +36,7 @@ TEST (INTEGRATION) {
 #pragma omp section
   {
    omp_set_lock (&lock2);       //! Wait till the other thread finish
+   //UNITTEST_TIME_CONSTRAINT (2000);
    DHTclient client (ADDRESS, PORT);
 
    client.bind ();
@@ -51,7 +52,5 @@ TEST (INTEGRATION) {
    client.close();
    omp_unset_lock (&lock);
   }
-  // I even got a headache writing this tests, but I had real fun, due to that stress I 
-  // had a argument with my girlfriend hehe 
  }
 }

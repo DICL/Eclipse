@@ -1,0 +1,246 @@
+head	1.5;
+access;
+symbols;
+locks; strict;
+comment	@% @;
+
+
+1.5
+date	2013.07.30.07.59.28;	author bsnam;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2013.07.25.23.51.30;	author bsnam;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2013.07.24.13.24.27;	author bsnam;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2012.07.24.04.56.00;	author bsnam;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2012.07.12.06.28.02;	author bsnam;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@\section{Introduction}
+
+Distributed and parallel query processing middleware systems have been used for
+decades to solve large and complicated scientific problems as substantial
+performance gains can be achieved by exploiting data and computation
+parallelism.  MapReduce framework has recently gained tremendous popularity as
+a key distributed and parallel query processing framework due to its
+scalability and easy programming model~\cite{}. However, MapReduce framework is
+not designed to leverage the large amount of memory space available in the
+back-end distributed servers since its target applications are mostly
+performing one time data analysis.  Unlike the web data processing applications
+scientific datasets are often reused by multiple jobs and semantic caching
+plays an important role in improving the system throughput and job response
+time.  Another design decision that we have to make concerens is the data skew
+challenge in MapReduce framework. In~\cite{IBRAHIM10, KWON10, LIN09} it has
+been reported that some map tasks (stragglers) take significantly longer than
+the average execution time of other map tasks. In order to mitigate the
+stragglers problem, MapReduce framework runs some backup tasks to alleviate the
+problem, however the back-up tasks do not help when the input datasets are not
+well balanced. 
+  
+In this work, we present a distributed and parallel query processing middleware
+framework - {\em Orthrus} which takes into account the large memory space in
+back-end servers and makes scheduling decisions based on the cached data
+objects in the memory instead of data file location. Orthrus is a two layer
+architecture as it deploys a layer of distributed semantic caches on top of a
+distributed file system layer. In order to balance the system load and to
+improve data reuse rate, the front-end scheduler of Orthrus needs to estimate
+the cached contents in distributed semantic cache layer for data reuse, and
+assign equal amout of jobs to each server for load balancing.  A challenge in
+estimating the remote cache contents in distributed query processing framework
+is that the front-end scheduler should exchange large amount of information
+about remote caches as the cached objects in each server change very fast as
+they process jobs. Capturing a global snapshot of remote servers' cache
+contents is certainly a very expensive operation especially in a large scale
+system. Another challenge in designing cache-aware query scheduling policies is
+that the scheduling algorithm must be light-weight so that it doesn't
+bottleneck the front-end scheduler. 
+
+In this poster presentation, we present the two layer architecture of
+our distributed and parallel query processing framework, its scheduling
+algorithms, data migration policies, and preliminary results of performance 
+evaluation.
+
+@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@d3 41
+a43 48
+Distributed and parallel query processing middleware systems have been used to
+solve large and complicated scientific problems because substantial performance
+gains can be achieved by exploiting data and computation parallelism.  UniDQP
+(UNIST Distributed Query Processing Framework) is a distributed query
+processing middleware system that addresses efficient storage, retrieval, and
+processing of very large scientific datasets. 
+
+
+UniDQP consists of a set of front-end schedulers to which users can submit
+queries and a set of back-end application servers that processes the submitted
+queries.  One of the features that distinguishes UniDQP with other traditional
+distributed query processing middleware systems is its scheduler fairly
+accurately predicts cached contents in remote back-end application servers with
+light-weight {\em spatial clustering algorithms} and use such information to
+schedule query execution.  Most of the distributed query processing middleware
+systems for data/computation intensive scientific applications have focused
+solely on load balancing issues, but ignored the large amount of memory space
+available in the back-end application servers. UniDQP employs a large amount of
+memory space in the back-end application servers as semantic buffer caches to
+store intermediate query results for future reuse.
+
+A challenge in remote-cache-aware query scheduling in distributed query
+processing framework is that the front-end scheduler should have large amount
+of information about remote caches in backend servers. Capturing a global
+snapshot of remote servers' cache contents is certainly an expensive operation
+in distributed systems.  Another challenge in designing cache-aware query
+scheduling policies is that the scheduling algorithm must be light-weight so
+that it doesn't aggravate the front-end scheduler bottleneck.  Traditional
+scheduling policies such as round-robin and load-based scheduling policies
+ignore the cached contents in remote back-end servers, thus the cached data are
+seldom used. The spatial-cluster-based scheduling policies of UniDQP
+take into account both spatial locality of remote cached data and 
+load balancing in order to
+improve system throughput as well as to decrease query response time.  
+
+In this paper, we propose a new spatial clustering algorithm - {\em BM-DEMA}
+and present how UniDQP was integrated into {\em NeuroTrace} - a biomedical image
+visualization and analysis tool for neuroscience datasets. 
+NeuroTrace accesses very large-scale optical and electron microscope images to
+reconstruct complex neural circuits of the mammalian nervous system.  
+As the size of datasets generated by modern electron microscopes increases from
+terabytes to petabytes, it becomes challenging to access such large datasets at
+interactive rates especially when multiple users submit concurrent queries to
+the systems. In order to support neuroscientists with more scalable and
+interactive tools, we ported the NueroTrace to run on top of the UniDQP and
+compared the resulting system with its previous single machine configuration.
+
+\cite{NAM12c}
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d50 1
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d3 7
+a9 4
+Distributed and parallel query processing middleware systems have been used
+to solve large and complicated scientific problems because substantial
+performance gains can be achieved by exploiting data and computation
+parallelism.
+d11 12
+a22 14
+UniDQP (UNIST Distributed Query Processing Framework) is a distributed query
+processing middleware system that addresses efficient storage, retrieval, and
+processing of very large scientific datasets. UniDQP consists of a set of
+front-end schedulers to which users can submit queries and a set of back-end
+application servers that processes the submitted queries.  One of the features
+that distinguishes UniDQP with other traditional distributed query processing
+middleware systems is its scheduler fairly accurately predicts cached contents
+in remote back-end application servers and use such information to schedule
+query execution. Most of the distributed query processing middleware systems
+for data/computation intensive scientific applications have focused solely on
+load balancing issues, but ignored the large amount of memory space available
+in the back-end application servers. UniDQP employs a large amount of memory
+space in the back-end application servers as semantic buffer caches to store
+intermediate query results for future reuse.
+d30 19
+a48 18
+that it doesn't aggravate the front-end scheduler bottleneck.
+Traditional scheduling policies such as round-robin and load-based scheduling
+policies ignore the cached contents in remote back-end servers, thus the
+cached data are seldom used. The scheduling policies implemented in UniDQP
+take into account both load balancing and the reuse of cached data in order
+to improve system throughput as well as to decrease query response time.  
+
+In this work, we discuss how the dynamic spatial clustering algorithms of
+UniDQP was integrated into NeuroTrace - a biomedical image visualization and
+analysis tool for neuroscience datasets. NeuroTrace accesses very large-scale
+optical and electron microscope images to reconstruct complex neural circuits
+of the mammalian nervous system.  As the size of datasets generated by modern
+electron microscopes increases from terabytes to petabytes, it becomes
+challenging to access such large datasets at interactive rates especially when
+multiple users submit concurrent queries to the systems. In order to support
+neuroscientists with more scalable and interactive tools, we ported the
+NueroTrace to run on top of the UniDQP and compared the resulting system with
+its previous single machine configuration.
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d3 44
+a46 1
+1. motivation
+a47 30
+2. what we discuss in this poster.
+
+In many scientific disciplines, computational scientists and engineers generate
+and analyze enormous amounts of datasets to better understand complex physical
+phenomena.  Efficient storage, retrieval, and processing of such large
+scientific datasets are now major challenges that need to be addressed for
+scientific analysis applications. Distributed and parallel query
+processing systems have been used to solve large and complicated
+scientific problems as its parallelism enabled substantial gain in performance.
+
+For maximum parallelism, \emph{load balancing} must be achieved so that all
+users' tasks are partitioned and evenly distributed across parallel servers and
+keep the servers busy all of the time.  However, load balancing in modern
+heterogeneous cluster systems is not an easy task; even if the number of
+tasks is well balanced, it does not imply that the system throughput is
+maximized.  On the other hand, for computationally expensive queries,
+\emph{cache-hit ratio} also plays an important role in reducing the query
+response time.  However, traditional scheduling policies such as round-robin
+ignores the cache-hit ratio in distributed servers, and the data in the caches
+is rarely reused.  Therefore, a query scheduling policy should take into
+account both load balancing and the reuse of cache contents.  For example, if a
+query scheduler knows the workload and the cache content of each server, the
+scheduler can maximize the parallelism and the cache-hit ratio.
+
+
+A challenge of a cache-aware scheduling policy is that the scheduling
+server needs to know the content of each cache, which causes
+significant communication overhead between the scheduler and the application
+servers.  The scheduling algorithm also needs to be lightweight
+so that it doesn't cause bottleneck at the front-end scheduler.
+@

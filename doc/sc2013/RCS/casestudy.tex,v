@@ -1,0 +1,31 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@% @;
+
+
+1.1
+date	2012.07.12.06.28.12;	author bsnam;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@
+\subsection{Case Study: Biomedical Image Processing Application}
+
+one paragraph about prof. Jeong's application
+
+FIGURE: captured client image
+
+
+@

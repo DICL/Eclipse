@@ -53,5 +53,23 @@ SUITE (CACHE_TEST) {
    }
   }
  }
+
+ TEST_FIXTURE (fix_cache_test, lru) { 
+   victim->set_maxsize (3);
+   victim->set_policy (CACHE_LRU);
+   victim->insert (0, "Hello");
+   victim->insert (1, "Hola");
+   victim->insert (2, "Allo");
+   victim->insert (3, "Annyeong");
+   CHECK_THROW (victim->lookup (0), std::out_of_range);
+
+   victim->insert (4, "Seno");
+
+   CHECK("Hello",    victim->lookup (0));
+   CHECK("Hola",     victim->lookup (1));
+   CHECK("Allo",     victim->lookup (2));
+   CHECK("Annyeong", victim->lookup (3));
+   CHECK("Seno",     victim->lookup (4));
+ }
 }
 // -----------------------------------------------------

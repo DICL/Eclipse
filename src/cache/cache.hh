@@ -3,7 +3,6 @@
 //   - Fix size
 //   - Thread Reentrant support
 //   - Different discarding policies, such as: LRU, locality distance
-//   - Elegant 
 //
 // -------------------------------------------- * * * -- Vicente Bolea
 //

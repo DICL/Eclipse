@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 // DHTserver::report {{{
+// :TODO: resolving name to ip
 // ----------------------------------------------- 
 bool DHTserver::report (const char * key, const char * server) {
  table [h(key, strlen (key))] = inet_addr (server); 
