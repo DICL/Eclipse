@@ -152,7 +152,9 @@ void signal_listener()
 		{
 			if(strncmp(read_buf, "whoareyou", 9) == 0)
 			{
-				write(masterfd, "slave", BUF_SIZE);
+				memset(write_buf, 0, BUF_SIZE);
+				strcpy(write_buf, "slave");
+				write(masterfd, write_buf, BUF_SIZE);
 			}
 			else if(strncmp(read_buf, "close", 5) == 0)
 			{
@@ -310,6 +312,7 @@ void signal_listener()
 
 				keystr.append(" ");
 				keystr.append(key);
+				memset(write_buf, 0, BUF_SIZE);
 				strcpy(write_buf, keystr.c_str());
 
 				// send message to the master node
@@ -329,7 +332,7 @@ void signal_listener()
 					sleep(1);
 				}
 				// sleeps for 0.0001 second. change this if necessary
-				usleep(100);
+				//usleep(100);
 			}
 
 			// check if all tasks in the job are finished
@@ -366,7 +369,9 @@ void signal_listener()
 					cout<<" completed successfully"<<endl;
 
 					// send terminate message
-					write(running_tasks[i]->get_writefd(), "terminate", BUF_SIZE);
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, "terminate");
+					write(running_tasks[i]->get_writefd(), write_buf, BUF_SIZE);
 
 					// mark the task as completed
 					running_tasks[i]->set_status(COMPLETED);
@@ -395,7 +400,9 @@ void signal_listener()
 					}
 					
 					// send message to the task
-					write(running_tasks[i]->get_writefd(), message.str().c_str(), BUF_SIZE);
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, message.str().c_str());
+					write(running_tasks[i]->get_writefd(), write_buf, BUF_SIZE);
 				}
 				else if(strncmp(read_buf, "key", 3) == 0)
 				{
@@ -428,7 +435,9 @@ void signal_listener()
 					ss<<running_tasks[i]->get_taskid();
 					msg.append(ss.str());
 
-					write(masterfd, msg.c_str(), BUF_SIZE);
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, msg.c_str());
+					write(masterfd, write_buf, BUF_SIZE);
 
 					// clear all to things related to this task
 					running_tasks[i]->get_job()->finish_task(running_tasks[i]);
@@ -455,7 +464,7 @@ void signal_listener()
 		}
 
 		// sleeps for 0.0001 seconds. change this if necessary
-		usleep(100);
+		//usleep(100);
 	}
 	if(close(masterfd)<0)
 		cout<<"[slave]Close failed"<<endl;

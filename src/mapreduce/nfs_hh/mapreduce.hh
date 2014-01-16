@@ -30,18 +30,18 @@ void set_reducer(void (*red_func) (string key));
 bool is_nextvalue(); // return true if there is next value
 bool is_nextrecord(); // return true if there is next value
 string get_nextvalue(); // returns values in reduce function
+bool get_nextinput(); // process to next input for map role
+string get_nextrecord(); // return true when successful, false when out of input record
+bool get_nextkey(string* value); // return true when successful, false when out of key value pair
 void add_inputpath(string path);
 void set_outputpath(string path);
 char** get_argv(void); // get user argv excepting passed pipe fd
 void write_keyvalue(string key, string value);
 void write_output(string record); // function used in reduce function
-bool get_nextinput(); // process to next input for map role
 
 int openoutfile(string path); // open a task/job result file
 int writeoutfile(int fd, string data); // write to the task/job result file
 int closeoutfile(int fd); // close task/job result file
-bool get_nextrecord(string* record); // return true when successful, false when out of input record
-bool get_nextkey(string* value); // return true when successful, false when out of key value pair
 int get_argc(void); // get user argc excepting passed pipe fd
 void report_key(int index);
 int connect_to_server(char *host, unsigned short port);
@@ -193,7 +193,9 @@ void init_mapreduce(int argc, char** argv)
 			if(strncmp(read_buf, "whoareyou", 9) == 0)
 			{
 				// respond to "whoareyou"
-				write(masterfd, "job", BUF_SIZE);
+				memset(write_buf, 0, BUF_SIZE);
+				strcpy(write_buf, "job");
+				write(masterfd, write_bufh, BUF_SIZE);
 
 				// blocking read of job id
 				while(1)
@@ -208,7 +210,7 @@ void init_mapreduce(int argc, char** argv)
 					else if(readbytes < 0)
 					{
 						// sleep for 0.0001 second. change this if necessary
-						usleep(100);
+						//usleep(100);
 					}
 					else // reply arived
 					{
@@ -283,7 +285,9 @@ void init_mapreduce(int argc, char** argv)
 		argcount = argc - 3;
 
 		// request the task configuration
-		write(pipefd[1], "requestconf", BUF_SIZE);
+		memset(write_buf, 0, BUF_SIZE);
+		strcpy(write_buf, "requestconf");
+		write(pipefd[1], write_buf, BUF_SIZE);
 
 		// blocking read until the arrival of 'taskconf' message from master
 		while(1)
@@ -297,7 +301,7 @@ void init_mapreduce(int argc, char** argv)
 			else if(readbytes < 0)
 			{
 				// sleep for 0.0001 second. change this if necessary
-				usleep(100);
+				//usleep(100);
 			}
 			else
 			{
@@ -427,6 +431,7 @@ void summ_mapreduce()
 			}
 
 			write_string.append(ss.str());
+			memset(write_buf, 0, BUF_SIZE);
 			strcpy(write_buf, write_string.c_str());
 			write(masterfd, write_buf, BUF_SIZE);
 		}
@@ -443,7 +448,7 @@ void summ_mapreduce()
 			else if(readbytes < 0)
 			{
 				// sleeps for 0.0001 seconds. change this if necessary
-				usleep(100);
+				//usleep(100);
 				continue;
 			}
 			else
@@ -527,6 +532,7 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 					reported_keys.insert(key);
 
 					// send 'key' meesage to the slave node
+					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, keystr.c_str());
 					while(write(pipefd[1], write_buf, BUF_SIZE)< 0)
 					{
@@ -545,13 +551,15 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 					}
 
 					// sleeps for 0.0001 seconds. change this if necessary
-					usleep(100);
+					//usleep(100);
 				}
 			}
 		}
 
 		// send complete message
-		write(pipefd[1], "complete", BUF_SIZE);
+		memset(write_buf, 0, BUF_SIZE);
+		strcpy(write_buf, "complete");
+		write(pipefd[1], write_buf, BUF_SIZE);
 		
 		// blocking read until the 'terminate' message
 		while(1)
@@ -561,8 +569,6 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 			{
 				// TODO: Terminate the task properly
 				input.close();
-				close(pipefd[0]);
-				close(pipefd[1]);
 				exit(0);
 			}
 			else if(readbytes > 0)
@@ -573,8 +579,6 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 
 					// clear task
 					input.close();
-					close(pipefd[0]);
-					close(pipefd[1]);
 					// terminate successfully
 					exit(0);
 				}
@@ -583,7 +587,7 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 			}
 
 			// sleeps for 0.0001 seconds. change this if necessary
-			usleep(100);
+			//usleep(100);
 		}
 	}
 	else // reduce task
@@ -607,7 +611,9 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 		}
 
 		// send complete message
-		write(pipefd[1], "complete", BUF_SIZE);
+		memset(write_buf, 0, BUF_SIZE);
+		strcpy(write_buf, "complete");
+		write(pipefd[1], write_buf, BUF_SIZE);
 
 		// blocking read until 'terminate' message arrive
 		while(1)
@@ -617,9 +623,7 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 			{
 				// TODO: Terminate the task properly
 				input.close();
-				close(pipefd[0]);
-				close(pipefd[1]);
-cout<<"the reduce task is gone"<<endl;
+				cout<<"the reduce task is gone"<<endl;
 				exit(0);
 			}
 			else if(readbytes > 0)
@@ -630,8 +634,6 @@ cout<<"the reduce task is gone"<<endl;
 
 					// clear task
 					input.close();
-					close(pipefd[0]);
-					close(pipefd[1]);
 					// terminate successfully
 					exit(0);
 				}
@@ -640,7 +642,7 @@ cout<<"the reduce task is gone"<<endl;
 			}
 
 			// sleeps for 0.0001 seconds. change this if necessary
-			usleep(100);
+			//usleep(100);
 		}
 	}
 }
@@ -738,6 +740,7 @@ void write_keyvalue(string key, string value)
 			reported_keys.insert(key);
 
 			// send 'key' meesage to the slave node
+			memset(write_buf, 0, BUF_SIZE);
 			strcpy(write_buf, keystr.c_str());
 			while(write(pipefd[1], write_buf, BUF_SIZE)< 0)
 			{
@@ -756,7 +759,7 @@ void write_keyvalue(string key, string value)
 			}
 
 			// sleeps for 0.0001 seconds. change this if necessary
-			usleep(100);
+			//usleep(100);
 		}
 
 		// path of the key file
@@ -964,9 +967,10 @@ int writeoutfile(int fd, string data)
 
 	// critical section
 	{
+		data.append("\n");
+		memset(write_buf, 0, BUF_SIZE);
 		strcpy(write_buf, data.c_str());
 		write(fd, write_buf, strlen(data.c_str()));
-		write(fd, "\n", 1);
 	}
 
 	// relase file lock

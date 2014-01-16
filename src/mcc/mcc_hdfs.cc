@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 	strcpy(argvalue[argc+4], "-L");
 
 	argvalue[argc+5] = new char[strlen(HDFS_LIB)+1];
-	strcpy(argvalue[argc+5], HDFS_PATH);
+	strcpy(argvalue[argc+5], HDFS_LIB);
 
 	argvalue[argc+6] = new char[3];
 	strcpy(argvalue[argc+6], "-L");

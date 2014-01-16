@@ -4,7 +4,7 @@
 #define MR_PATH "/home/youngmoon01/mr_storage/"
 #define HDMR_PATH "/user/youngmoon01/mr_storage/"
 #define LIB_PATH "/home/youngmoon01/MRR/src/"
-#define BUF_SIZE 512
+#define BUF_SIZE 1024
 
 #define HDFS_PATH "/home/youngmoon01/hadoop-2.2.0/include/"
 #define JAVA_LIB "/home/youngmoon01/jdk1.7.0_17/jre/lib/amd64/server/"
