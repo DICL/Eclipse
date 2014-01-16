@@ -208,6 +208,7 @@ void* signal_listener(void* args)
 {
 	int serverfd = *((int*)args);
 	int readbytes = 0;
+	char tmp_buf[BUF_SIZE];
 	while(1)
 	{
 		// listen to the matser node
@@ -226,7 +227,9 @@ void* signal_listener(void* args)
 			if(strncmp(read_buf, "whoareyou", 9) == 0)
 			{
 				// respond to "whoareyou"
-				write(serverfd, "client", BUF_SIZE);
+				memset(tmp_buf, 0, BUF_SIZE);
+				strcpy(tmp_buf, "client");
+				write(serverfd, tmp_buf, BUF_SIZE);
 
 				// request to master
 				write(serverfd, write_buf, BUF_SIZE);
@@ -251,7 +254,7 @@ void* signal_listener(void* args)
 		}
 
 		// sleeps for 0.0001 seconds. change this if necessary
-		usleep(100);
+		//usleep(100);
 	}
 	close(serverfd);
 

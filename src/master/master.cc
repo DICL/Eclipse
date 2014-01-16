@@ -129,14 +129,18 @@ int main(int argc, char** argv)
 			cout<<"[master]Accepting failed"<<endl;
 
 			// sleep 0.0001 seconds. change this if necessary
-			usleep(100);
+			//usleep(100);
 			continue;
 		}
 		else
 		{
 			// check if the accepted node is slave or client
-			write(fd, "whoareyou", BUF_SIZE);
+			memset(write_buf, 0, BUF_SIZE);
+			strcpy(write_buf, "whoareyou");
+			write(fd, write_buf, BUF_SIZE);
+
 			read(fd, read_buf, BUF_SIZE);
+
 			if(strncmp(read_buf, "slave", 5) == 0) // slave connected
 			{
 				// add connected slave to the slaves
@@ -184,7 +188,7 @@ int main(int argc, char** argv)
 				cout<<"[master]\tDebugging needed on this problem"<<endl;
 			}
 			// sleeps for 0.0001 seconds. change this if necessary
-			usleep(100);
+			//usleep(100);
 		}
 	}
 
@@ -252,7 +256,9 @@ void* signal_listener(void* args)
 			fcntl(tmpfd, F_SETFL, O_NONBLOCK); // set socket to be non-blocking socket to avoid deadlock
 
 			// send "whoareyou" message to connected node
-			write(tmpfd, "whoareyou", BUF_SIZE);
+			memset(write_buf, 0, BUF_SIZE);
+			strcpy(write_buf, "whoareyou");
+			write(tmpfd, write_buf, BUF_SIZE);
 
 			// blocking read to check identification of connected node
 			while(1) // break after reply received or connection abnormally closed
@@ -270,7 +276,7 @@ void* signal_listener(void* args)
 				else if(readbytes < 0)
 				{
 					// sleep for 0.0001 second. change this if necessary
-					usleep(100);
+					//usleep(100);
 					continue;
 				}
 				else // reply arrived
@@ -278,7 +284,7 @@ void* signal_listener(void* args)
 					break;
 				}
 				// sleep for 0.0001 second.  change this if necessdary
-				usleep(100);
+				//usleep(100);
 			}
 			if(strncmp(read_buf, "client", 6) == 0) // if connected node is a client
 			{
@@ -293,7 +299,9 @@ void* signal_listener(void* args)
 				cout<<"[master]Unexpected connection from slave: "<<endl;
 				cout<<"[master]Closing connection to the slave..."<<endl;
 				// check this code
-				write(tmpfd, "close", BUF_SIZE);
+				memset(write_buf, 0, BUF_SIZE);
+				strcpy(write_buf, "close");
+				write(tmpfd, write_buf, BUF_SIZE);
 				close(tmpfd);
 			}
 			else if(strncmp(read_buf, "job", 3) == 0) // if connected node is a job
@@ -303,7 +311,9 @@ void* signal_listener(void* args)
 				{
 					cout<<"[master]Cannot accept any more job request due to maximum job connection limit"<<endl;
 					cout<<"[master]\tClosing connection from the job..."<<endl;
-					write(tmpfd, "nospace", BUF_SIZE);
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, "nospace");
+					write(tmpfd, write_buf, BUF_SIZE);
 					close(tmpfd);
 					break;
 				}
@@ -312,8 +322,9 @@ void* signal_listener(void* args)
 				stringstream jobidss;
 				jobidss<<"jobid ";
 				jobidss<<jobidclock;
-				strcpy(read_buf, jobidss.str().c_str());
-				write(tmpfd, read_buf, BUF_SIZE);
+				memset(write_buf, 0, BUF_SIZE);
+				strcpy(write_buf, jobidss.str().c_str());
+				write(tmpfd, write_buf, BUF_SIZE);
 
 				cout<<"[master]Job "<<jobidclock<<" arrived"<<endl;
 				jobs.push_back(new master_job(jobidclock, tmpfd));
@@ -413,7 +424,9 @@ void* signal_listener(void* args)
 					// stop all slave
 					for(int j=0;(unsigned)j<slaves.size();j++)
 					{
-						write(slaves[j]->getfd(), "close", BUF_SIZE);
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, "close");
+						write(slaves[j]->getfd(), write_buf, BUF_SIZE);
 
 						// blocking read from slave
 						while(true) // until the slave is closed
@@ -429,12 +442,14 @@ void* signal_listener(void* args)
 							else if(readbytes < 0)
 							{
 								// sleeps for 0.0001 seconds. change this if necessary
-								usleep(100);
+								//usleep(100);
 								continue;
 							}
 							else // message arrived before closed
 							{
-								write(slaves[j]->getfd(),"ignored",BUF_SIZE);
+								memset(write_buf, 0, BUF_SIZE);
+								strcpy(write_buf, "ignored");
+								write(slaves[j]->getfd(), write_buf, BUF_SIZE);
 							}
 						}
 						cout<<"[master]Connection from a slave closed"<<endl;
@@ -447,7 +462,9 @@ void* signal_listener(void* args)
 						if(currfd==clients[j]->getfd()) // except the client who requested the stop
 							continue;
 
-						write(clients[j]->getfd(), "close", BUF_SIZE);
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, "close");
+						write(clients[j]->getfd(), write_buf, BUF_SIZE);
 
 						// blocking read from client
 						while(true) // until the client is closed
@@ -463,18 +480,22 @@ void* signal_listener(void* args)
 							else if(readbytes < 0)
 							{
 								// sleeps for 0.0001 seconds. change this if necessary
-								usleep(100);
+								//usleep(100);
 								continue;
 							}
 							else // message arrived before closed
 							{
-								write(clients[j]->getfd(),"ignored",BUF_SIZE);
+								memset(write_buf, 0, BUF_SIZE);
+								strcpy(write_buf, "ignored");
+								write(clients[j]->getfd(), write_buf, BUF_SIZE);
 							}
 						}
 					}
 					cout<<"[master]All clients closed"<<endl;
 
-					write(clients[i]->getfd(), "result: stopping successful", BUF_SIZE);
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, "result: stopping successful");
+					write(clients[i]->getfd(), write_buf, BUF_SIZE);
 				}
 				else if(strncmp(read_buf, "numslave", 8) == 0) // "numslave" signal arrived
 				{
@@ -524,7 +545,9 @@ void* signal_listener(void* args)
 				else // undefined signal
 				{
 					cout<<"[master]Undefined signal from client: "<<read_buf<<endl;
-					write(clients[i]->getfd(), "result: error. the request is unknown", BUF_SIZE);
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, "result: error. the request is unknown");
+					write(clients[i]->getfd(), write_buf, BUF_SIZE);
 				}
 			}
 		}
@@ -548,7 +571,9 @@ void* signal_listener(void* args)
 					cout<<"[master]Job "<<jobs[i]->getjobid()<<" successfully completed"<<endl;
 
 					// clear up the completed job
-					write(jobs[i]->getjobfd(), "terminate", BUF_SIZE);
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, "terminate");
+					write(jobs[i]->getjobfd(), write_buf, BUF_SIZE);
 
 					// delete the job from the vector jobs
 					delete jobs[i];
@@ -642,7 +667,9 @@ void* signal_listener(void* args)
 				if(jobs[i]->get_stage() == MAP_STAGE) // if map stage is finished
 				{
 					// send message to the job to inform that map phase is completed
-					write(jobs[i]->getjobfd(), "mapcomplete", BUF_SIZE);
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, "mapcomplete");
+					write(jobs[i]->getjobfd(), write_buf, BUF_SIZE);
 
 					cout<<"[master]Number of keys generated from map phase: "<<jobs[i]->get_numkey()<<endl;
 					// fork reduce tasks
@@ -657,7 +684,9 @@ void* signal_listener(void* args)
 				else if(jobs[i]->get_stage() == REDUCE_STAGE) // if reduce stage is finished
 				{
 					// send message to the job to complete the job
-					write(jobs[i]->getjobfd(), "complete", BUF_SIZE);
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, "complete");
+					write(jobs[i]->getjobfd(), write_buf, BUF_SIZE);
 					cout<<"[master]Job "<<jobs[i]->getjobid()<<" completed successfully"<<endl;
 
 					jobs[i]->set_stage(COMPLETED_STAGE);
@@ -722,13 +751,14 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 					}
 if(ss.str().length()>=BUF_SIZE)
 cout<<"[master]Debugging: the argument string exceeds the limited length"<<endl;
+					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, ss.str().c_str());
 					write(slaves[j]->getfd(), write_buf, BUF_SIZE);
 
 					// forward waiting task to slave slot
 					jobs[i]->schedule_task(thetask, slaves[j]);
 					// sleeps for 0.0001 seconds. change this if necessary
-					usleep(100);
+					//usleep(100);
 				}
 			}
 		}
@@ -738,7 +768,7 @@ cout<<"[master]Debugging: the argument string exceeds the limited length"<<endl;
 			break;
 
 		// sleeps for 0.0001 seconds. change this if necessary
-		usleep(100);
+		//usleep(100);
 	}
 
 	// close master socket

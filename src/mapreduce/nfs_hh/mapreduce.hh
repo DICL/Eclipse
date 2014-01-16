@@ -25,10 +25,14 @@ using namespace std;
 // user functions
 void init_mapreduce(int argc, char** argv); // initialize mapreduce configure
 void summ_mapreduce(); // summarize mapreduce configure
-void set_mapper(void (*map_func) (string record));
+void set_mapper(void (*map_func)());
 void set_reducer(void (*red_func) (string key));
 bool is_nextvalue(); // return true if there is next value
+bool is_nextrecord(); // return true if there is next value
 string get_nextvalue(); // returns values in reduce function
+bool get_nextinput(); // process to next input for map role
+string get_nextrecord(); // return true when successful, false when out of input record
+bool get_nextkey(string* value); // return true when successful, false when out of key value pair
 void add_inputpath(string path);
 void set_outputpath(string path);
 char** get_argv(void); // get user argv excepting passed pipe fd
@@ -38,8 +42,6 @@ void write_output(string record); // function used in reduce function
 int openoutfile(string path); // open a task/job result file
 int writeoutfile(int fd, string data); // write to the task/job result file
 int closeoutfile(int fd); // close task/job result file
-bool get_record(string* record); // return true when successful, false when out of input record
-bool get_key(string* value); // return true when successful, false when out of key value pair
 int get_argc(void); // get user argc excepting passed pipe fd
 void report_key(int index);
 int connect_to_server(char *host, unsigned short port);
@@ -76,14 +78,16 @@ int taskid;
 int pipefd[2]; // pipe fd when the role is map task or reduce task
 
 // variables for map task
-void (*mapfunction) (string record); // map function pointer
+void (*mapfunction) (); // map function pointer
 set<string> reported_keys;
 set<string> unreported_keys;
 
 // variables for reduce task
 void (*reducefunction) (string key); // reduce function pointer
 string nextvalue;
+string nextrecord;
 bool is_nextval = false;
+bool is_nextrec = false;
 
 void init_mapreduce(int argc, char** argv)
 {
@@ -189,7 +193,9 @@ void init_mapreduce(int argc, char** argv)
 			if(strncmp(read_buf, "whoareyou", 9) == 0)
 			{
 				// respond to "whoareyou"
-				write(masterfd, "job", BUF_SIZE);
+				memset(write_buf, 0, BUF_SIZE);
+				strcpy(write_buf, "job");
+				write(masterfd, write_bufh, BUF_SIZE);
 
 				// blocking read of job id
 				while(1)
@@ -204,7 +210,7 @@ void init_mapreduce(int argc, char** argv)
 					else if(readbytes < 0)
 					{
 						// sleep for 0.0001 second. change this if necessary
-						usleep(100);
+						//usleep(100);
 					}
 					else // reply arived
 					{
@@ -279,7 +285,9 @@ void init_mapreduce(int argc, char** argv)
 		argcount = argc - 3;
 
 		// request the task configuration
-		write(pipefd[1], "requestconf", BUF_SIZE);
+		memset(write_buf, 0, BUF_SIZE);
+		strcpy(write_buf, "requestconf");
+		write(pipefd[1], write_buf, BUF_SIZE);
 
 		// blocking read until the arrival of 'taskconf' message from master
 		while(1)
@@ -293,7 +301,7 @@ void init_mapreduce(int argc, char** argv)
 			else if(readbytes < 0)
 			{
 				// sleep for 0.0001 second. change this if necessary
-				usleep(100);
+				//usleep(100);
 			}
 			else
 			{
@@ -423,6 +431,7 @@ void summ_mapreduce()
 			}
 
 			write_string.append(ss.str());
+			memset(write_buf, 0, BUF_SIZE);
 			strcpy(write_buf, write_string.c_str());
 			write(masterfd, write_buf, BUF_SIZE);
 		}
@@ -439,7 +448,7 @@ void summ_mapreduce()
 			else if(readbytes < 0)
 			{
 				// sleeps for 0.0001 seconds. change this if necessary
-				usleep(100);
+				//usleep(100);
 				continue;
 			}
 			else
@@ -503,14 +512,13 @@ void summ_mapreduce()
 		}
 
 		// run the mapfunction until input all inputs are processed
-		string record;
 		
 		if(isset_mapper)
 		{
-			while(get_record(&record))
+			while(get_nextinput())
 			{
 				inside_map = true;
-				(*mapfunction)(record);
+				(*mapfunction)();
 				inside_map = false;
 
 				// report generated keys to slave node
@@ -519,10 +527,12 @@ void summ_mapreduce()
 					string key = *unreported_keys.begin();
 					string keystr = "key ";
 					keystr.append(key);
+cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 					unreported_keys.erase(*unreported_keys.begin());
 					reported_keys.insert(key);
 
 					// send 'key' meesage to the slave node
+					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, keystr.c_str());
 					while(write(pipefd[1], write_buf, BUF_SIZE)< 0)
 					{
@@ -532,7 +542,7 @@ void summ_mapreduce()
 						{
 							cout<<"[mapreduce]due to the EAGAIN"<<endl;
 						}
-						else if(err ==  EFAULT)
+						else if(err == EFAULT)
 						{
 							cout<<"[mapreduce]due to the EFAULT"<<endl;
 						}
@@ -541,13 +551,15 @@ void summ_mapreduce()
 					}
 
 					// sleeps for 0.0001 seconds. change this if necessary
-					usleep(100);
+					//usleep(100);
 				}
 			}
 		}
 
 		// send complete message
-		write(pipefd[1], "complete", BUF_SIZE);
+		memset(write_buf, 0, BUF_SIZE);
+		strcpy(write_buf, "complete");
+		write(pipefd[1], write_buf, BUF_SIZE);
 		
 		// blocking read until the 'terminate' message
 		while(1)
@@ -557,8 +569,6 @@ void summ_mapreduce()
 			{
 				// TODO: Terminate the task properly
 				input.close();
-				close(pipefd[0]);
-				close(pipefd[1]);
 				exit(0);
 			}
 			else if(readbytes > 0)
@@ -569,8 +579,6 @@ void summ_mapreduce()
 
 					// clear task
 					input.close();
-					close(pipefd[0]);
-					close(pipefd[1]);
 					// terminate successfully
 					exit(0);
 				}
@@ -579,7 +587,7 @@ void summ_mapreduce()
 			}
 
 			// sleeps for 0.0001 seconds. change this if necessary
-			usleep(100);
+			//usleep(100);
 		}
 	}
 	else // reduce task
@@ -594,7 +602,7 @@ void summ_mapreduce()
 		if(isset_reducer)
 		{
 			string key;
-			while(get_key(&key))
+			while(get_nextkey(&key))
 			{
 				inside_reduce = true;
 				(*reducefunction)(key);
@@ -603,7 +611,9 @@ void summ_mapreduce()
 		}
 
 		// send complete message
-		write(pipefd[1], "complete", BUF_SIZE);
+		memset(write_buf, 0, BUF_SIZE);
+		strcpy(write_buf, "complete");
+		write(pipefd[1], write_buf, BUF_SIZE);
 
 		// blocking read until 'terminate' message arrive
 		while(1)
@@ -613,9 +623,7 @@ void summ_mapreduce()
 			{
 				// TODO: Terminate the task properly
 				input.close();
-				close(pipefd[0]);
-				close(pipefd[1]);
-cout<<"the reduce task is gone"<<endl;
+				cout<<"the reduce task is gone"<<endl;
 				exit(0);
 			}
 			else if(readbytes > 0)
@@ -626,8 +634,6 @@ cout<<"the reduce task is gone"<<endl;
 
 					// clear task
 					input.close();
-					close(pipefd[0]);
-					close(pipefd[1]);
 					// terminate successfully
 					exit(0);
 				}
@@ -636,7 +642,7 @@ cout<<"the reduce task is gone"<<endl;
 			}
 
 			// sleeps for 0.0001 seconds. change this if necessary
-			usleep(100);
+			//usleep(100);
 		}
 	}
 }
@@ -650,7 +656,7 @@ char** get_argv(void)
 {
 	return argvalues;
 }
-void set_mapper(void (*map_func) (string record))
+void set_mapper(void (*map_func)())
 {
 	isset_mapper = true;
 	mapfunction = map_func;
@@ -724,6 +730,36 @@ void write_keyvalue(string key, string value)
 			&& unreported_keys.find(key) == unreported_keys.end())
 		{
 			unreported_keys.insert(key);
+
+			// send 'key' message to the slave node
+			string key = *unreported_keys.begin();
+			string keystr = "key ";
+			keystr.append(key);
+			cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
+			unreported_keys.erase(*unreported_keys.begin());
+			reported_keys.insert(key);
+
+			// send 'key' meesage to the slave node
+			memset(write_buf, 0, BUF_SIZE);
+			strcpy(write_buf, keystr.c_str());
+			while(write(pipefd[1], write_buf, BUF_SIZE)< 0)
+			{
+				cout<<"[mapreduce]write to slave failed"<<endl;
+				int err = errno;
+				if(err == EAGAIN)
+				{
+					cout<<"[mapreduce]due to the EAGAIN"<<endl;
+				}
+				else if(err == EFAULT)
+				{
+					cout<<"[mapreduce]due to the EFAULT"<<endl;
+				}
+				// sleeps for 1 second. change this if necessary
+				sleep(1);
+			}
+
+			// sleeps for 0.0001 seconds. change this if necessary
+			//usleep(100);
 		}
 
 		// path of the key file
@@ -751,33 +787,69 @@ void write_keyvalue(string key, string value)
 	}
 }
 
-bool get_record(string* record) // internal function for the map
+bool get_nextinput() // internal function to process next input file
 {
-	getline(input, *record);
-
-	while(input.eof() || !input.is_open()) // process input data until get record
+	if(inputpaths.size() == 0) // no more input
 	{
-		if(inputpaths.size() == 0) // no more record
-		{
-			input.close();
-			return false;
-		}
-
-		// open another input data
+		input.close();
+		return false;
+	}
+	else
+	{
+		// open another input file
 		string apath = MR_PATH;
 		apath.append(inputpaths.back());
 		input.close();
 		input.open(apath.c_str());
 		inputpaths.pop_back();
 
-		getline(input, *record);
-	}
+		// pre-process first record
+		getline(input, nextrecord);
+		
+		if(input.eof())
+			is_nextrec = false;
+		else
+			is_nextrec = true;
 
-	// got record successfully
-	return true;
+		return true;
+	}
 }
 
-bool get_key(string* key) // internal function for the reduce
+string get_nextrecord() // a user function for the map
+{
+	if(inside_map)
+	{
+		string ret = nextrecord;
+		getline(input, nextrecord);
+
+		if(input.eof())
+			is_nextrec = false;
+		else
+			is_nextrec = true;
+
+		return ret;
+	}
+	else
+	{
+		cout<<"[mapreduce]Warning: the get_nextrecord() function is being used outside the map function"<<endl;
+		return "";
+	}
+
+}
+
+bool is_nextrecord()
+{
+	if(inside_map)
+	{
+		return is_nextrec;
+	}
+	else
+	{
+		cout<<"[mapreduce]Warning: the is_nextrecord() function is being used outside the map function"<<endl;
+	}
+}
+
+bool get_nextkey(string* key) // internal function for the reduce
 {
 	if(inputpaths.size() == 0) // no more key
 	{
@@ -895,9 +967,10 @@ int writeoutfile(int fd, string data)
 
 	// critical section
 	{
+		data.append("\n");
+		memset(write_buf, 0, BUF_SIZE);
 		strcpy(write_buf, data.c_str());
 		write(fd, write_buf, strlen(data.c_str()));
-		write(fd, "\n", 1);
 	}
 
 	// relase file lock
