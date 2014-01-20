@@ -24,7 +24,7 @@
 #define CACHE_PULL        0x10
 
 #ifndef CACHE_DEFAULT_SIZE
-#define CACHE_DEFAULT_SIZE (2 << 20)              //! 1 MiB
+#define CACHE_DEFAULT_SIZE (1 << 20)              //! 1 MiB
 #endif
 
 #include <stdint.h>
@@ -32,6 +32,7 @@
 #include <stddef.h>
 #include <map>
 #include <hash.h>
+#include <pthread.h>
 
 using std::map;
 
@@ -62,6 +63,10 @@ class Cache {
   size_t get_size ()          { return this->_map.size; }
   int set_policy (int p)      { policies = p; return p; }
 
+  bool bind ();
+  void run ();
+  void close ();
+
   bool lookup (int, char*, size_t*);
   bool insert (int, char*, size_t);
 
@@ -70,11 +75,22 @@ class Cache {
   void discard_lru ();
   void discard_spatial ();
 
+  void* tfunc_server (void*);
+  void* tfunc_client (void*);
+
  protected:
-  map<uint64_t, Chunk*> map_time;              //! int to string
-  map<uint64_t, Chunk*> map_spatial;           //! int to string
+  /********* Cache stuffs **********/
+  map<uint64_t, Chunk*> mTime, mSpatial;
+  queue<Chunk*> qLeft, qRight, qLru;
+
   size_t _size;
   uint8_t policies;
+
+  int server_fd;
+  struct sockaddr_in client_addr, server_addr;
+  pthread_t tclient, tserver;
+ 
+  bool tclient_continue, tserver_continue;
 };
 #endif /* end of include guard: CACHE_XU5J91EC */
 // }}}
