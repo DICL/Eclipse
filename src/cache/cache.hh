@@ -30,38 +30,24 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <stddef.h>
-#include <map>
 #include <hash.h>
 #include <pthread.h>
+#include <SETcache.hh>
 
-using std::map;
-
-// }}}
-// Cache class {{{
-// -------------------------------------------- * * * -- Vicente Bolea
-struct Chunk {
- char * str;
- size_t size;
- uint64_t time;
- uint64_t point;
-};
 // }}}
 // Cache class {{{
 // -------------------------------------------- * * * -- Vicente Bolea
 //
 class Cache {
  public:
-  Cache (size_t s) { this->_size = s; }
-  Cache (size_t s, uint8_t p = 0) { 
-   this->_size = s; 
-   this->policies = p; 
-  }
-  Cache () { this->_size = _DEFAULT_SIZE; }
+  Cache (size_t s);
+  Cache (size_t s, uint8_t p = 0);
   ~Cache ();
 
   void set_maxsize (size_t s) { this->_size = s; }
   size_t get_size ()          { return this->_map.size; }
   int set_policy (int p)      { policies = p; return p; }
+  void set_network (int, int, const char*, const char**);
 
   bool bind ();
   void run ();
@@ -71,23 +57,22 @@ class Cache {
   bool insert (int, char*, size_t);
 
  protected:
-  void discard ();
-  void discard_lru ();
-  void discard_spatial ();
-
   void* tfunc_server (void*);
   void* tfunc_client (void*);
 
  protected:
-  /********* Cache stuffs **********/
-  map<uint64_t, Chunk*> mTime, mSpatial;
-  queue<Chunk*> qLeft, qRight, qLru;
-
-  size_t _size;
   uint8_t policies;
+  SETcache* cache;
 
-  int server_fd;
+  char ** network_ip;
+  int _nservers;
+  char local_ip [INET_ADDRSTRLEN];
+  int local_no;
+  int server_fd, port_dht;
+  int sock_scheduler, sock_left, sock_right, sock_server;  
   struct sockaddr_in client_addr, server_addr;
+  struct sockaddr_in *network_addr;
+
   pthread_t tclient, tserver;
  
   bool tclient_continue, tserver_continue;

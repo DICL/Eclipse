@@ -17,7 +17,10 @@ DHT::~DHT () {
 
 void DHT::set_network (int port, int n, const char* ifa, const char ** in) {
  assert (in != NULL);
- assert (ifa != NULL);
+
+ if (ifa == NULL) {
+  ifa = const_cast<const char*> (strdup ("eth0"));
+ }
 
  this->port = port;
  _nservers = n;

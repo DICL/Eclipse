@@ -1,6 +1,30 @@
 #include <cache.hh>
 
-// Cache::bind {{{
+// Constructors {{{
+// ----------------------------------------------- 
+Cache::Cache () { this->_size = _DEFAULT_SIZE; }
+
+Cache::Cache (size_t s, uint8_t p = 0) { 
+ this->cache = new SETcache (s);
+ this->_size = s; 
+ this->policies = p; 
+}
+
+Cache::~Cache () {
+ ::close (sock_server); 
+ ::close (sock_scheduler); 
+ ::close (sock_left);
+ ::close (sock_right);
+
+ for (int i = 0; i < _nservers; i++)
+  delete network_ip [i];
+
+ delete network_ip;
+ delete network_addr;
+ delete cache;
+}
+// }}}
+// bind {{{
 // ----------------------------------------------- 
 bool Cache::bind () {
  int one = 1;
@@ -20,13 +44,51 @@ bool Cache::bind () {
   log (M_ERR, "CACHEserver", "bind function");
 
 #ifdef _DEBUG
- log (M_INFO, "CACHEserverserver", "UDP server setted up [%s:%i]", 
+ log (M_INFO, "CACHEserver", "UDP server setted up [%s:%i]", 
    inet_ntoa (server_addr.sin_addr), ntohs (server_addr.sin_port));
 #endif
 
  return true;
 }
 // }}}
+// set_network {{{
+// ----------------------------------------------- 
+void Cache::set_network (int port, int n, const char* ifa, const char ** in) {
+ assert (in != NULL);
+
+ if (ifa == NULL) {
+  ifa = const_cast<const char*> (strdup ("eth0"));
+ }
+
+ this->port = port;
+ _nservers = n;
+ network_ip = new char* [_nservers];  
+ network_addr = new struct sockaddr_in [_nservers];
+
+ strcpy (local_ip, get_ip (ifa));
+ sock = socket (PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+ for (int i = 0; i < _nservers; i++) {
+  network_ip [i] = new char [32];
+  strcpy (network_ip[i], in[i]);
+ }
+
+ //! Get local index
+ local_no = 0;
+ while (local_no < _nservers) {
+  if (strncmp (network_ip [local_no], local_ip, 32) == 0) break;
+  local_no++;
+ }
+
+ //! Fill address vector
+ for (int i = 0; i < _nservers; i++) {
+  network_addr [i] .sin_family      = AF_INET;
+  network_addr [i] .sin_port        = htons (this->port);
+  network_addr [i] .sin_addr.s_addr = inet_addr (network_ip [i]);
+  bzero (&(network_addr [i].sin_zero), 8);
+ }
+}
+//}}}
 // run {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
@@ -46,89 +108,65 @@ void Cache::close () {
 // lookup {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-bool Cache::lookup (int key, char* output, size_t* s) {
- try {
-  Chunk* out = this->_map [key]; 
-
- } catch (std::out_of_range& e) {
-  return false;
- }
-
- memcpy (output, out->str, out->size);
- *s = out->second;
-
- return false;
-}
+//bool Cache::lookup (int key, char* output, size_t* s) {
+// try {
+//  Chunk* out = this->_map [key]; 
+//
+// } catch (std::out_of_range& e) {
+//  return false;
+// }
+//
+// memcpy (output, out->str, out->size);
+// *s = out->second;
+//
+// return false;
+//}
 // }}}
 // insert {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 bool Cache::insert (int key, char* output, size_t s) {
- char * tmp = new char (s);
- memcpy (tmp, output, s);
- this->_map [key] = PAIR (output, s);
+ diskPage dp (key);
+ memcpy (dp.chunk, output, s);
+ bool ret = cache.match (dp);
 
- return true;
-}
-// }}}
-// discard{{{
-//                                -- Vicente Bolea
-// ----------------------------------------------- 
-void Cache::discard () {
- if        (policies & CACHE_LRU) {
-  discard_lru ();
+ // Code to ask DHT :TODO:
+ if (ret == false) {
+  int victim = DHTclient_i.lookup (output);
+  if (victim != _this->local_no) {
+   //Do some routine to get that chunk
 
- } else if (policies & CACHE_SPATIAL) {
-  discard_spatial ();
+  }
  }
+
+ return ret;
 }
 // }}}
-// Cache::tfunc_server {{{
+// tfunc_server {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 void* Cache::tfunc_server (void* argv) {
  Cache* _this = (Cache*) argv;
  socklen_t sa = sizeof (_this->server_addr);
  //================================================
-  
-
-
- //================================================
  do {
-  struct sockaddr_in client_addr;
-  int ret = recvfrom (_this->server_fd, &input, 4, MSG_DONTWAIT, (struct sockaddr*)&client_addr, &sa); 
+  diskPage dp;
+  if (fd_is_ready (sock_server)) {
 
-  if (ret == -1 && errno == EAGAIN) continue;                        //! No data received
+   int ret = recvfrom (sock_server, &dp, sizeof (diskPage), 0, (sockaddr*)addr, &s);
+   if (ret != sizeof (diskPage) && ret != -1)
+    log (M_WARN, local_ip, "[THREAD_FUNC_NEIGHBOR] Strange diskpage received");
 
-  switch (ret) {
-   case -1: log (M_DEBUG, "CACHEserver", "Error from recvfrom");      break; //! Error handle log
-   case 0:  log (M_INFO, "CACHEserver", "Shutdown message received"); break; //! Handle shutdown
-   default:                                                          //! Handle normal situation
-            try {
-             server_number = htonl (_this->table.at (ntohl(input)));
+   if (ret == -1) { continue; }
 
-            } catch (std::out_of_range& e) {  // Not cached what to do ?
-             server_number = htonl (CACHEserver_NOT_FOUND); 
-#ifdef _DEBUG
-             log (M_DEBUG, "CACHEserver", "Key not found");
-#endif
-            }
-
-#ifdef _DEBUG
-            log (M_DEBUG, "CACHEserver", "petition %u recieved -> %u", ntohl(input), ntohl (server_number));
-#endif
-
-            break; 
+   if (cache.is_valid (dp)) shiftedQuery++;
   }
-
-  
-
  } while (_this->tserver_continue == true);
 
  pthread_exit (NULL); 
 }
 // }}}
-// Cache::tfunc_client {{{
+// tfunc_client {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 void* Cache::tfunc_client (void* argv) {
@@ -136,7 +174,19 @@ void* Cache::tfunc_client (void* argv) {
  socklen_t sa = sizeof (_this->server_addr);
  //================================================
  do {
+  if (!cache.queue_lower.empty ()) {
 
+   diskPage DP = cache.get_low ();
+   sendto (sock_left, &DP, sizeof (diskPage), 0, (sockaddr*)addr_left, s);
+   SentShiftedQuery++;
+  }
+
+  if (!cache.queue_upper.empty ()) {
+
+   diskPage DP = cache.get_upp ();
+   sendto (sock_right, &DP, sizeof (diskPage), 0, (sockaddr*)addr_right, s); 
+   SentShiftedQuery++;
+  }
  } while (_this->tclient_continue == true);
 
  pthread_exit (NULL); 

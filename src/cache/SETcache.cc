@@ -173,8 +173,8 @@ bool SETcache::is_valid (diskPage& dp) {
 }
 
 void SETcache::pop_farthest () {
- //! In case we excede Delete the last page
- //! New policy, delete the farnest element :TRICKY:
+ //! In case we exceed Delete the last page
+ //! New policy, delete the darkest element :TRICKY:
  //! Complexity O(1)
  if ((int)cache->size () > this->_max) {
   set<diskPage>::iterator first = cache->begin (); //! 0(1)
