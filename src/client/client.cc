@@ -20,6 +20,7 @@ char write_buf[BUF_SIZE];
 char master_address[BUF_SIZE];
 int port = -1;
 int masterfd = -1;
+int master_readbytes = 0;
 bool master_is_set = false;
 
 int main(int argc, char** argv)
@@ -212,8 +213,12 @@ void* signal_listener(void* args)
 	while(1)
 	{
 		// listen to the matser node
-		memset(read_buf, 0, BUF_SIZE);
-		readbytes = read(serverfd, read_buf, BUF_SIZE); // non-blocking read
+
+		// set the read buffer
+		if(master_readbytes == 0)
+			memset(read_buf, 0, BUF_SIZE);
+
+		readbytes = read(serverfd, read_buf+master_readbytes, BUF_CUT-master_readbytes%BUF_CUT); // non-blocking read
 		if(readbytes == 0) // connection closed from master
 		{
 			cout<<"Connection from master is abnormally closed"<<endl;
@@ -221,18 +226,28 @@ void* signal_listener(void* args)
 			exit(0);
 		}
 		else if(readbytes < 0) // no signal arrived
+		{
 			continue;
+		}
+		else if(read_buf[master_readbytes+readbytes-1] != 0
+			|| (master_readbytes+readbytes)%BUF_CUT != 0)
+		{
+			master_readbytes = master_readbytes + readbytes;
+		}
 		else // a signal arrived from master
 		{
+			// update the readbytes
+			master_readbytes = 0;
+
 			if(strncmp(read_buf, "whoareyou", 9) == 0)
 			{
 				// respond to "whoareyou"
 				memset(tmp_buf, 0, BUF_SIZE);
 				strcpy(tmp_buf, "client");
-				write(serverfd, tmp_buf, BUF_SIZE);
+				write(serverfd, tmp_buf, BUF_CUT*(strlen(tmp_buf)/BUF_CUT+1));
 
 				// request to master
-				write(serverfd, write_buf, BUF_SIZE);
+				write(serverfd, write_buf, BUF_CUT*(strlen(write_buf)/BUF_CUT+1));
 			}
 			else if(strncmp(read_buf, "close", 5) == 0)
 			{
@@ -254,7 +269,7 @@ void* signal_listener(void* args)
 		}
 
 		// sleeps for 0.0001 seconds. change this if necessary
-		//usleep(100);
+		// usleep(100);
 	}
 	close(serverfd);
 

@@ -2,6 +2,7 @@
 #define _MASTER_JOB_
 
 #include <iostream>
+#include <mapreduce/definitions.hh>
 #include <string>
 #include <vector>
 #include <set>
@@ -18,6 +19,8 @@ private:
 	int argcount;
 	int nummap;
 	int numreduce;
+	int readbytes;
+	char read_buf[BUF_SIZE];
 	char** argvalues; // contains program name
 	job_stage stage;
 	vector<string> inputpaths;
@@ -66,6 +69,10 @@ public:
 	string pop_key();
 	set<string>::iterator get_keybegin();
 	set<string>::iterator get_keyend();
+	int get_readbytes();
+	void set_readbytes(int abytes);
+	char* get_read_buf();
+	
 };
 
 master_job::master_job()
@@ -342,6 +349,21 @@ set<string>::iterator master_job::get_keyend()
 	return keys.end();
 }
 
+int master_job::get_readbytes()
+{
+	return this->readbytes;
+}
+
+void master_job::set_readbytes(int abytes)
+{
+	this->readbytes = abytes;
+}
+
+char* master_job::get_read_buf()
+{
+	return this->read_buf;
+}
+
 
 // member functions of master_task class
 
@@ -443,6 +465,5 @@ void master_task::set_taskrole(mr_role arole)
 {
 	this->role = arole;
 }
-
 
 #endif

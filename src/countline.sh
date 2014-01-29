@@ -3,7 +3,7 @@ wc -l \
 Makefile \
 countline.sh \
 run.sh \
-killslaves.sh \
+killall.sh \
 setup.conf \
 \
 client/client.cc \

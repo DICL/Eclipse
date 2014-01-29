@@ -15,6 +15,8 @@ class slave_task
 private:
 	int taskid;
 	int pid;
+	int readbytes;
+	char read_buf[BUF_SIZE];
 	mr_role role; // MAP or REDUCE
 	task_status status;
 	int pipefds[2]; // 0 for read, 1 for write
@@ -51,6 +53,9 @@ public:
 	void add_inputpath(string apath);
 	string get_inputpath(int index);
 	int get_numinputpaths();
+	int get_readbytes();
+	void set_readbytes(int abytes);
+	char* get_read_buf();
 };
 
 #endif
