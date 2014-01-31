@@ -1,6 +1,9 @@
 #include <SETcache.hh>
 #include <err.h>
 
+// Join {{{
+//                                -- Vicente Bolea
+// ----------------------------------------------- 
 void join (uint64_t item) {
 
  uint64_t token1_A, token2_A, token1_B;
@@ -26,10 +29,10 @@ void join (uint64_t item) {
  tableA.close();
  tableB.close();
 }
-
-/*
- *
- */
+//}}}
+// Constructor {{{
+//                                -- Vicente Bolea
+// ----------------------------------------------- 
 SETcache::SETcache (int _size, char* p) {
  this->cache = new set<diskPage, bool (*) (const diskPage&, const diskPage&)> (diskPage::less_than);
  this->cache_time = new set<diskPage, bool (*) (const diskPage&, const diskPage&)> (diskPage::less_than_lru);
@@ -38,15 +41,21 @@ SETcache::SETcache (int _size, char* p) {
 
  if (p != NULL) setDataFile (p);
 
- pthread_mutex_init (&mutex_match, NULL );
- pthread_mutex_init (&mutex_queue_low, NULL );
- pthread_mutex_init (&mutex_queue_upp, NULL );
+ pthread_mutex_init (&mutex_match,     NULL);
+ pthread_mutex_init (&mutex_queue_low, NULL);
+ pthread_mutex_init (&mutex_queue_upp, NULL);
 }
-
+//}}}
+// setDataFile {{{
+//                                -- Vicente Bolea
+// ----------------------------------------------- 
 void SETcache::setDataFile (char* p) { 
  strncpy (this->path, p, 256);
 }
-
+//}}}
+// operator<< {{{
+//                                -- Vicente Bolea
+// ----------------------------------------------- 
 ostream& operator<< (ostream& out, SETcache& in) {
  set<diskPage>::iterator it; 
  out << "Size: [" << in.cache->size() << "]" << endl;
@@ -68,10 +77,10 @@ ostream& operator<< (ostream& out, SETcache& in) {
  out << "---------------------------" << endl;
  return out;
 }
-
-/*
- *
- */
+//}}}
+// match {{{
+//                                -- Vicente Bolea
+// ----------------------------------------------- 
 bool SETcache::match (Query& q) {
 // if (policy & UPDATE) update (q.low_b, q.upp_b);
 
@@ -115,7 +124,10 @@ bool SETcache::match (Query& q) {
   return false;
  }
 }
-
+//}}}
+// get_low {{{
+//                                -- Vicente Bolea
+// ----------------------------------------------- 
 diskPage SETcache::get_low () {
 
  diskPage out = queue_lower.front ();
@@ -124,7 +136,10 @@ diskPage SETcache::get_low () {
  pthread_mutex_unlock (&mutex_queue_low);
  return out;
 }
-
+//}}}
+// get_upp {{{
+//                                -- Vicente Bolea
+// ----------------------------------------------- 
 diskPage SETcache::get_upp () {
 
  diskPage out = queue_upper.front ();
@@ -133,7 +148,10 @@ diskPage SETcache::get_upp () {
  pthread_mutex_unlock (&mutex_queue_upp);
  return out;
 }
-
+//}}}
+// is_valid {{{
+//                                -- Vicente Bolea
+// ----------------------------------------------- 
 bool SETcache::is_valid (diskPage& dp) {
  //uint64_t item (dp.index);
  uint64_t max_dist;
@@ -171,7 +189,10 @@ bool SETcache::is_valid (diskPage& dp) {
 
  return false;
 }
-
+//}}}
+// pop_farthest {{{
+//                                -- Vicente Bolea
+// ----------------------------------------------- 
 void SETcache::pop_farthest () {
  //! In case we exceed Delete the last page
  //! New policy, delete the darkest element :TRICKY:
@@ -239,7 +260,10 @@ void SETcache::pop_farthest () {
   }
  }
 }
-
+// }}}
+// update {{{
+//                                -- Vicente Bolea
+// ----------------------------------------------- 
 void SETcache::update (double low, double upp) {
  set<diskPage>::iterator low_i;
  set<diskPage>::iterator upp_i;
@@ -264,7 +288,6 @@ void SETcache::update (double low, double upp) {
   pthread_mutex_lock (&mutex_match);
   cache->erase (cache->begin (), low_i);
   pthread_mutex_unlock (&mutex_match);
-
  }  
 
  pthread_mutex_lock (&mutex_match);
@@ -308,3 +331,60 @@ diskPage SETcache::get_diskPage (uint64_t idx) {
   return a;
  }
 }
+
+//}}}
+// insert {{{
+//                                -- Vicente Bolea
+// ----------------------------------------------- 
+bool SETcache::insert (diskPage& dp) {
+ //diskPage dp (idx);  
+ diskPage key (idx);  
+
+ auto it = cache->find (dp);
+ bool found_same = (it != cache->end());
+ 
+ if (count < _max) {
+  if (found_same) {
+   pthread_mutex_lock (&mutex_match);
+   std::move (it, it, cache_time->begin());
+   pthread_mutex_unlock (&mutex_match);
+
+  } else {
+   pthread_mutex_lock (&mutex_match);
+   cache->insert (dp);
+   cache_time->insert (dp);
+   pthread_mutex_unlock (&mutex_match);
+  }
+ //! If the cache is full
+ } else {  
+  if (found_same) {
+   pthread_mutex_lock (&mutex_match);
+   cache_time->erase (key);
+   cache_time->erase (dp);
+   pthread_mutex_unlock (&mutex_match);
+   // No need to update cache
+   
+  } else {
+   pthread_mutex_lock (&mutex_match);
+   cache->insert (dp);
+   cache_time->insert (dp);
+   pthread_mutex_unlock (&mutex_match);
+   pop_farthest ();
+  }
+ } 
+ return true;
+}
+//}}}
+// lookup {{{
+//                                -- Vicente Bolea
+// ----------------------------------------------- 
+diskPage SETcache::lookup (uint64_t idx) throw (std::out_of_range) {
+ diskPage a (idx);
+ auto victim = cache->find (a);
+ if (victim != cache->end ())  //! If it is found O(log n)
+  return *victim;
+
+ else 
+  throw std::out_of_range();
+}
+//}}}

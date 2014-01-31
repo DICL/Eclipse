@@ -8,7 +8,12 @@
 #ifndef __DHTSERVER_HH__
 #define __DHTSERVER_HH__
 // 
+#include <macros.h>  //! Some macros
+#include <utils.hh>  //! Where the hash function is
+#include <hash.hh>
+
 #include <string.h>
+#include <unistd.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -21,9 +26,6 @@
 #include <time.h>
 #include <math.h>
 
-#include <macros.h>  //! Some macros
-#include <utils.hh>  //! Where the hash function is
-#include <hash.hh>
 
 // }}}
 // DHTclient class definition {{{

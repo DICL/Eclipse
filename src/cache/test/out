@@ -1,0 +1,188 @@
+g++ -c -g -Wall -I ./../ -I ./../../common -I ../../../lib/unittest++/ -std=gnu++11 -fopenmp  ../cache.cc
+../cache.cc: In member function ‘bool Cache::insert(int, char*, size_t)’:
+../cache.cc:135:29: error: no matching function for call to ‘SETcache::match(diskPage&)’
+  bool ret = cache->match (dp);
+                             ^
+../cache.cc:135:29: note: candidate is:
+In file included from ./../cache.hh:30:0,
+                 from ../cache.cc:1:
+./../SETcache.hh:52:8: note: bool SETcache::match(Query&)
+   bool match (Query&);
+        ^
+./../SETcache.hh:52:8: note:   no known conversion for argument 1 from ‘diskPage’ to ‘Query&’
+../cache.cc:139:16: error: ‘DHTclient_i’ was not declared in this scope
+   int victim = DHTclient_i.lookup (output);
+                ^
+../cache.cc:140:17: error: ‘_this’ was not declared in this scope
+   if (victim != _this->local_no) {
+                 ^
+../cache.cc:141:32: error: ‘request’ was not declared in this scope
+    request (key, output, victim);
+                                ^
+../cache.cc: At global scope:
+../cache.cc:151:31: error: no ‘bool Cache::request(Header&)’ member function declared in class ‘Cache’
+ bool Cache::request (Header& h) {
+                               ^
+../cache.cc: In static member function ‘static void* Cache::tfunc_server(void*)’:
+../cache.cc:176:32: error: ‘class Cache’ has no member named ‘barrier_stop’
+  pthread_barrier_wait (&_this->barrier_stop);
+                                ^
+In file included from ../cache.cc:1:0:
+./../cache.hh:94:60: error: invalid use of member ‘Cache::sock_server’ in static member function
+   int sock_request, sock_scheduler, sock_left, sock_right, sock_server;  
+                                                            ^
+../cache.cc:180:20: error: from this location
+   if (fd_is_ready (sock_server)) {
+                    ^
+In file included from ../cache.cc:1:0:
+./../cache.hh:94:60: error: invalid use of member ‘Cache::sock_server’ in static member function
+   int sock_request, sock_scheduler, sock_left, sock_right, sock_server;  
+                                                            ^
+../cache.cc:182:24: error: from this location
+    int ret = recvfrom (sock_server, &dp, sizeof (diskPage), 0, (sockaddr*)server_addr, &s);
+                        ^
+In file included from ../cache.cc:1:0:
+./../cache.hh:89:35: error: invalid use of member ‘Cache::server_addr’ in static member function
+   struct sockaddr_in client_addr, server_addr;
+                                   ^
+../cache.cc:182:75: error: from this location
+    int ret = recvfrom (sock_server, &dp, sizeof (diskPage), 0, (sockaddr*)server_addr, &s);
+                                                                           ^
+../cache.cc:182:89: error: ‘s’ was not declared in this scope
+    int ret = recvfrom (sock_server, &dp, sizeof (diskPage), 0, (sockaddr*)server_addr, &s);
+                                                                                         ^
+In file included from ../cache.cc:1:0:
+./../cache.hh:99:58: error: invalid use of member ‘Cache::log_warn’ in static member function
+   std::function<void(const char*)> log_error, log_debug, log_warn;
+                                                          ^
+../cache.cc:184:5: error: from this location
+     log_warn ("[THREAD_FUNC_NEIGHBOR] Strange diskpage received");
+     ^
+In file included from ../cache.cc:1:0:
+./../cache.hh:85:13: error: invalid use of member ‘Cache::cache’ in static member function
+   SETcache* cache;
+             ^
+../cache.cc:188:8: error: from this location
+    if (cache.is_valid (dp)) shiftedQuery++;
+        ^
+../cache.cc:188:29: error: ‘shiftedQuery’ was not declared in this scope
+    if (cache.is_valid (dp)) shiftedQuery++;
+                             ^
+../cache.cc:175:12: warning: unused variable ‘sa’ [-Wunused-variable]
+  socklen_t sa = sizeof (_this->server_addr);
+            ^
+../cache.cc: At global scope:
+../cache.cc:198:7: error: redefinition of ‘static void* Cache::tfunc_server(void*)’
+ void* Cache::tfunc_server (void* argv) {
+       ^
+../cache.cc:173:7: error: ‘static void* Cache::tfunc_server(void*)’ previously defined here
+ void* Cache::tfunc_server (void* argv) {
+       ^
+../cache.cc: In static member function ‘static void* Cache::tfunc_client(void*)’:
+../cache.cc:258:2: error: ‘left_idx’ was not declared in this scope
+  left_idx  = (local_no == 0) ? _size: local_no - 1;
+  ^
+In file included from ../cache.cc:1:0:
+./../cache.hh:91:7: error: invalid use of member ‘Cache::local_no’ in static member function
+   int local_no;
+       ^
+../cache.cc:258:15: error: from this location
+  left_idx  = (local_no == 0) ? _size: local_no - 1;
+               ^
+In file included from ../cache.cc:1:0:
+./../cache.hh:91:7: error: invalid use of member ‘Cache::local_no’ in static member function
+   int local_no;
+       ^
+../cache.cc:258:39: error: from this location
+  left_idx  = (local_no == 0) ? _size: local_no - 1;
+                                       ^
+../cache.cc:259:2: error: ‘right_idx’ was not declared in this scope
+  right_idx = (local_no == _size) ? 0: local_no + 1;
+  ^
+In file included from ../cache.cc:1:0:
+./../cache.hh:91:7: error: invalid use of member ‘Cache::local_no’ in static member function
+   int local_no;
+       ^
+../cache.cc:259:15: error: from this location
+  right_idx = (local_no == _size) ? 0: local_no + 1;
+               ^
+In file included from ../cache.cc:1:0:
+./../cache.hh:91:7: error: invalid use of member ‘Cache::local_no’ in static member function
+   int local_no;
+       ^
+../cache.cc:259:39: error: from this location
+  right_idx = (local_no == _size) ? 0: local_no + 1;
+                                       ^
+../cache.cc:261:30: error: expected initializer before ‘*’ token
+  struct sockaddr_in addr_left*  = &network [left_idx];
+                              ^
+../cache.cc:262:31: error: expected initializer before ‘*’ token
+  struct sockaddr_in addr_right* = &network [right_idx];
+                               ^
+../cache.cc:263:32: error: ‘class Cache’ has no member named ‘barrier_stop’
+  pthread_barrier_wait (&_this->barrier_stop);
+                                ^
+In file included from ../cache.cc:1:0:
+./../cache.hh:85:13: error: invalid use of member ‘Cache::cache’ in static member function
+   SETcache* cache;
+             ^
+../cache.cc:267:8: error: from this location
+   if (!cache.queue_lower.empty ()) {
+        ^
+In file included from ../cache.cc:1:0:
+./../cache.hh:85:13: error: invalid use of member ‘Cache::cache’ in static member function
+   SETcache* cache;
+             ^
+../cache.cc:269:19: error: from this location
+    diskPage& DP = cache.get_low ();
+                   ^
+In file included from ../cache.cc:1:0:
+./../cache.hh:94:37: error: invalid use of member ‘Cache::sock_left’ in static member function
+   int sock_request, sock_scheduler, sock_left, sock_right, sock_server;  
+                                     ^
+../cache.cc:270:12: error: from this location
+    sendto (sock_left, &DP, sizeof (diskPage), 0, (sockaddr*)addr_left, s);
+            ^
+../cache.cc:270:61: error: ‘addr_left’ was not declared in this scope
+    sendto (sock_left, &DP, sizeof (diskPage), 0, (sockaddr*)addr_left, s);
+                                                             ^
+../cache.cc:270:72: error: ‘s’ was not declared in this scope
+    sendto (sock_left, &DP, sizeof (diskPage), 0, (sockaddr*)addr_left, s);
+                                                                        ^
+../cache.cc:271:4: error: ‘SentShiftedQuery’ was not declared in this scope
+    SentShiftedQuery++;
+    ^
+In file included from ../cache.cc:1:0:
+./../cache.hh:85:13: error: invalid use of member ‘Cache::cache’ in static member function
+   SETcache* cache;
+             ^
+../cache.cc:274:8: error: from this location
+   if (!cache.queue_upper.empty ()) {
+        ^
+In file included from ../cache.cc:1:0:
+./../cache.hh:85:13: error: invalid use of member ‘Cache::cache’ in static member function
+   SETcache* cache;
+             ^
+../cache.cc:276:19: error: from this location
+    diskPage& DP = cache.get_upp ();
+                   ^
+In file included from ../cache.cc:1:0:
+./../cache.hh:94:48: error: invalid use of member ‘Cache::sock_right’ in static member function
+   int sock_request, sock_scheduler, sock_left, sock_right, sock_server;  
+                                                ^
+../cache.cc:277:12: error: from this location
+    sendto (sock_right, &DP, sizeof (diskPage), 0, (sockaddr*)addr_right, s); 
+            ^
+../cache.cc:277:62: error: ‘addr_right’ was not declared in this scope
+    sendto (sock_right, &DP, sizeof (diskPage), 0, (sockaddr*)addr_right, s); 
+                                                              ^
+../cache.cc:277:74: error: ‘s’ was not declared in this scope
+    sendto (sock_right, &DP, sizeof (diskPage), 0, (sockaddr*)addr_right, s); 
+                                                                          ^
+../cache.cc:278:4: error: ‘SentShiftedQuery’ was not declared in this scope
+    SentShiftedQuery++;
+    ^
+../cache.cc:255:12: warning: unused variable ‘sa’ [-Wunused-variable]
+  socklen_t sa = sizeof (_this->server_addr);
+            ^
+make: *** [cache.o] Error 1

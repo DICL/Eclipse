@@ -1,11 +1,14 @@
+// Preprocessor {{{
 #ifndef __SETCACHE_HH_
 #define __SETCACHE_HH_
 
-#include "packets.hh"
+#include <packets.hh>
+
 #include <set>
 #include <queue>
 #include <fstream>
 #include <string>
+#include <stdexcept>
 
 using std::set;
 using std::queue;
@@ -16,6 +19,7 @@ using std::endl;
 using std::cout;
 using std::ios;
 using std::ios_base;
+// }}}
 
 enum policy {
  NOTHING  = 0x0,
@@ -51,14 +55,16 @@ class SETcache {
   bool is_valid (diskPage&);
   void update (double low, double upp);
   diskPage get_diskPage (uint64_t);
-
-  queue<diskPage> queue_lower;
-  queue<diskPage> queue_upper;
+  diskPage lookup (uint64_t) throw (std::out_of_range);
+  bool insert (diskPage&);
 
   diskPage get_low ();
   diskPage get_upp ();
 
   friend ostream& operator<< (ostream&, SETcache&);
+
+  queue<diskPage> queue_lower;
+  queue<diskPage> queue_upper;
 };
 
 #endif
