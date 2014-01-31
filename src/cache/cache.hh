@@ -28,6 +28,7 @@
 #endif
 
 #include <SETcache.hh>
+#include <DHTclient.hh>
 #include <hash.hh>
 
 #include <pthread.h>
@@ -60,44 +61,49 @@ using std::vector;
 class Cache {
  public:
   Cache ();
-  Cache (size_t s, uint8_t);
+  Cache (size_t s, uint8_t = 0);
   ~Cache ();
 
   //size_t get_size ()          { return this->cache.get_size (); }
-  //void set_maxsize (size_t s) { this->cache. = s; }
+  void set_maxsize (size_t s) { 
+    this->cache = new SETcache (s); 
+  }
   int set_policy (int p)      { policies = p; return p; }
-  void set_network (int, int, const char*, const char**);
+  void set_network (int, int, const char*, const char**, const char*);
 
   bool bind ();
   void run ();
   void close ();
 
-  std::tuple<char*, size_t> lookup (int) throw (std::out_of_range);
-  bool insert (int, char*, size_t);
+  std::tuple<char*, size_t> lookup (const char*) throw (std::out_of_range);
+  bool insert (const char*, const char*, size_t = 0);
 
  protected: //! Thread functions
-  static void* tfunc_server (void*);
-  static void* tfunc_server_request (void*);
-  static void* tfunc_client (void*);
-  bool request (Header&);
+  static void* tfunc_migration_server (void*);
+  static void* tfunc_migration_client (void*);
+  static void* tfunc_request (void*);
+  bool request (const char*);
 
  protected:
+  DHTclient* DHT_client;
   uint8_t policies;
   SETcache* cache;
-
-  in_addr_t local_ip;
-  vector<struct sockaddr_in> network;
-  struct sockaddr_in client_addr, server_addr;
-
-  int local_no;
   size_t _size;
-  int server_fd, port_dht, port_server;
-  int sock_request, sock_scheduler, sock_left, sock_right, sock_server;  
 
-  pthread_t tclient, tserver, tserver_request;
+  uint8_t local_no;
+  in_addr_t local_ip;
+  char local_ip_str [INET_ADDRSTRLEN];
+  vector<struct sockaddr_in> network;
+  struct sockaddr_in Arequest, Amigration_server;
+  int Prequest, Pmigration;
+  int Srequest, Smigration_server, Smigration_client;
+
+  pthread_t tmigration_client, tmigration_server, trequest;
   pthread_barrier_t barrier_start;
   bool tclient_continue, tserver_continue, tserver_request_continue;
-  std::function<void(const char*)> log_error, log_debug, log_warn;
+  const int number_threads = 3;
+
+  std::unordered_map<const char*, uint64_t> stats;
 };
 #endif /* end of include guard: CACHE_XU5J91EC */
 // }}}

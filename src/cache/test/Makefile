@@ -1,4 +1,5 @@
 vpath %.cc ../
+vpath %.cc ../../DHT/
 
 #CXX := colorgcc -lstdc++
 CXX := g++
@@ -6,12 +7,13 @@ LIBDIR  ?= ../../../lib
 LIBDIR2 := ../../common
 INCLUDE := -I ./../
 INCLUDE += -I ./../../common
+INCLUDE += -I ./../../DHT
 INCLUDE += -I $(LIBDIR)/unittest++/
 
 CXXFLAGS := -g -Wall $(INCLUDE) -std=gnu++11 -fopenmp #-D_DEBUG
 LDFLAGS := -L $(LIBDIR) -L $(LIBDIR2) -lUnitTest++ -lm -lpthread -lmrr
 
-SOURCES := cache.cc cache_test.cc main.cc ds_test.cc
+SOURCES := cache.cc cache_test.cc main.cc SETcache.cc DHTclient.cc
 OBJECTS := $(patsubst %.cc, %.o, $(SOURCES))
 
 %.o : %.cc 

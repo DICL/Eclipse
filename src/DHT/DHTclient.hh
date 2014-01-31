@@ -8,10 +8,11 @@
 #ifndef __DHTSERVER_HH__
 #define __DHTSERVER_HH__
 // 
-#include <macros.h>  //! Some macros
+#include <DHTmacros.h>  //! Some macros
 #include <utils.hh>  //! Where the hash function is
 #include <hash.hh>
 
+#include <unordered_map>
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
@@ -33,7 +34,7 @@
 class DHTclient {
  public:
   DHTclient (const char * ip, int port) {
-   strncpy (this->ip, ip, DHT_IP_LENGTH);
+   strncpy (this->ip, ip, INET_ADDRSTRLEN);
    this->port = port;
   }
 
@@ -49,7 +50,7 @@ class DHTclient {
   int server_receive ();
 
  protected:
-  char ip [DHT_IP_LENGTH];
+  char ip [INET_ADDRSTRLEN];
   int port;
   int server_fd, client_fd;
   struct sockaddr_in server_addr; 

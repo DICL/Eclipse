@@ -1,4 +1,5 @@
 #include <SETcache.hh>
+#include <algorithm>
 #include <err.h>
 
 // Join {{{
@@ -338,15 +339,16 @@ diskPage SETcache::get_diskPage (uint64_t idx) {
 // ----------------------------------------------- 
 bool SETcache::insert (diskPage& dp) {
  //diskPage dp (idx);  
- diskPage key (idx);  
+ //diskPage key (idx);  
 
  auto it = cache->find (dp);
  bool found_same = (it != cache->end());
  
- if (count < _max) {
+ if (count < (size_t) _max) {
   if (found_same) {
    pthread_mutex_lock (&mutex_match);
-   std::move (it, it, cache_time->begin());
+   cache_time->insert (*it);  // :TODO:
+   //std::swap (it, cache_time->begin());
    pthread_mutex_unlock (&mutex_match);
 
   } else {
@@ -359,7 +361,7 @@ bool SETcache::insert (diskPage& dp) {
  } else {  
   if (found_same) {
    pthread_mutex_lock (&mutex_match);
-   cache_time->erase (key);
+   cache_time->erase (dp);
    cache_time->erase (dp);
    pthread_mutex_unlock (&mutex_match);
    // No need to update cache
@@ -385,6 +387,6 @@ diskPage SETcache::lookup (uint64_t idx) throw (std::out_of_range) {
   return *victim;
 
  else 
-  throw std::out_of_range();
+  throw std::out_of_range ("Not found");
 }
 //}}}
