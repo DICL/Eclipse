@@ -128,10 +128,14 @@ Cache& Cache::bind () {
 // ----------------------------------------------- 
 Cache& Cache::run () {
  assert (status == STATUS_READY);
- auto tfms = [](void *i) { ((Cache*)i)->migration_server (); pthread_exit (NULL);};
- pthread_create (&tmigration_server, NULL, (void* (*)(void*)) &tfms, this);
- pthread_create (&tmigration_client, NULL, tfunc_migration_client, this);
- pthread_create (&trequest,          NULL, tfunc_request, this);
+
+ auto tfms = [](void *i) -> void* { ((Cache*)i)->migration_server (); pthread_exit (NULL);};
+ auto tfmc = [](void *i) -> void* { ((Cache*)i)->migration_client (); pthread_exit (NULL);};
+ auto tfr  = [](void *i) -> void* { ((Cache*)i)->request          (); pthread_exit (NULL);};
+
+ pthread_create (&tmigration_server, NULL, (void* (*)(void*)) tfms, this);
+ pthread_create (&tmigration_client, NULL, (void* (*)(void*)) tfmc, this);
+ pthread_create (&trequest,          NULL, (void* (*)(void*)) tfr , this);
  status = STATUS_RUNNING;
  return *this;
 }
@@ -143,24 +147,6 @@ Cache& Cache::close () {
  pthread_join (trequest, NULL);
  status = STATUS_CLOSED;
  return *this;
-}
-// ----------------------------------------------- 
-void* Cache::tfunc_migration_server (void* argv) {
- Cache* _this = (Cache*) argv;
- _this->migration_server ();
- pthread_exit (NULL); 
-}
-// ----------------------------------------------- 
-void* Cache::tfunc_migration_client (void* argv) {
- Cache* _this = (Cache*) argv;
- _this->migration_client ();
- pthread_exit (NULL); 
-}
-// ----------------------------------------------- 
-void* Cache::tfunc_request (void* argv) {
- Cache* _this = (Cache*) argv;
- _this->request ();
- pthread_exit (NULL); 
 }
 // }}}
 // lookup {{{

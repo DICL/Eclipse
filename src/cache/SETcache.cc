@@ -234,28 +234,30 @@ void SETcache::pop_farthest () {
     }
    }
    //! Otherwise pop the oldest element :LRU:
-  } else ((policy & LRU) == LRU) {
-
-   set<diskPage>::iterator oldest = cache_time->begin();
-   uint64_t oldest_time = (*oldest).time;
-   uint64_t oldest_item = (*oldest).point;
-
-   //! Depends of the position
-   if (oldest_item < ema) {
-    pthread_mutex_lock (&mutex_queue_low);
-    queue_lower.push (*oldest);
-    pthread_mutex_unlock (&mutex_queue_low);
-
-   } else {
-    pthread_mutex_lock (&mutex_queue_upp);
-    queue_upper.push (*oldest);
-    pthread_mutex_unlock (&mutex_queue_upp);
-
-   }
-   pthread_mutex_lock (&mutex_match);
-   cache_time->erase (oldest_time);
-   cache->erase (oldest_item);
-   pthread_mutex_unlock (&mutex_match);
+//  } else ((policy & LRU) == LRU) {
+//
+//   set<diskPage>::iterator oldest = cache_time->begin();
+//   uint64_t oldest_time = (*oldest).time;
+//   uint64_t oldest_item = (*oldest).point;
+//
+//   //! Depends of the position
+//   if (oldest_item < ema) {
+//    pthread_mutex_lock (&mutex_queue_low);
+//    queue_lower.push (*oldest);
+//    pthread_mutex_unlock (&mutex_queue_low);
+//
+//   } else {
+//    pthread_mutex_lock (&mutex_queue_upp);
+//    queue_upper.push (*oldest);
+//    pthread_mutex_unlock (&mutex_queue_upp);
+//
+//   }
+//   pthread_mutex_lock (&mutex_match);
+//   cache_time->erase (oldest_time);
+//   cache->erase (oldest_item);
+//   pthread_mutex_unlock (&mutex_match);
+//  }
+// }
   }
  }
 }

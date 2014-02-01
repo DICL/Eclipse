@@ -93,9 +93,6 @@ class Cache {
 
  //--------------THREAD FUNCTION--------------------------------//
  protected: 
-  static void* tfunc_migration_server (void*);
-  static void* tfunc_migration_client (void*);
-  static void* tfunc_request (void*);
   void migration_server ();
   void migration_client ();
   void request ();
