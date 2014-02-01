@@ -25,7 +25,7 @@ enum policy {
  NOTHING  = 0x0,
  UPDATE   = 0x1,
  LRU      = 0x2,
- BOUNDARY = 0x4,
+ SPATIAL  = 0x4,
  JOIN     = 0x8
 };
 

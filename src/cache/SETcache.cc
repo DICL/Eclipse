@@ -83,7 +83,7 @@ ostream& operator<< (ostream& out, SETcache& in) {
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 bool SETcache::match (Query& q) {
-// if (policy & UPDATE) update (q.low_b, q.upp_b);
+ if ((policy & UPDATE) == UPDATE) update (q.low_b, q.upp_b);
 
  this->boundary_low = q.low_b;
  this->boundary_upp = q.upp_b;
@@ -113,7 +113,7 @@ bool SETcache::match (Query& q) {
   file.read (a.chunk, DPSIZE);
   file.close (); 
 
-  if (policy & JOIN) join (10000);
+  if ((policy & JOIN) == JOIN) join (10000);
 
   //! Inserting [ O(logn) ]
   pthread_mutex_lock (&mutex_match);
@@ -206,58 +206,56 @@ void SETcache::pop_farthest () {
   uint64_t highest = (*last).point;
 
   //! If the victim belongs to the boundary of the node
-  if (boundary_low < lowest || highest < boundary_upp) {
+  if ((policy & SPATIAL) == SPATIAL) {
+   if (boundary_low < lowest || highest < boundary_upp) {
+    //! POP the leftend element
+    if (((uint64_t)ema - lowest) > ((uint64_t)highest - ema)) {
 
-   //! POP the leftend element
-   if (((uint64_t)ema - lowest) > ((uint64_t)highest - ema)) {
+     pthread_mutex_lock (&mutex_queue_low);
+     queue_lower.push (*first);
+     pthread_mutex_unlock (&mutex_queue_low);
 
+     pthread_mutex_lock (&mutex_match);
+     cache->erase (*first);
+     cache_time->erase (*first);
+     pthread_mutex_unlock (&mutex_match);
+
+     //! Pop the rightend element
+    } else if ((uint64_t)highest > ema) { 
+
+     pthread_mutex_lock (&mutex_queue_upp);
+     queue_upper.push (*last);
+     pthread_mutex_unlock (&mutex_queue_upp);
+
+     pthread_mutex_lock (&mutex_match);
+     cache->erase (*last);
+     cache_time->erase (*last);
+     pthread_mutex_unlock (&mutex_match);
+    }
+   }
+   //! Otherwise pop the oldest element :LRU:
+  } else ((policy & LRU) == LRU) {
+
+   set<diskPage>::iterator oldest = cache_time->begin();
+   uint64_t oldest_time = (*oldest).time;
+   uint64_t oldest_item = (*oldest).point;
+
+   //! Depends of the position
+   if (oldest_item < ema) {
     pthread_mutex_lock (&mutex_queue_low);
-    queue_lower.push (*first);
+    queue_lower.push (*oldest);
     pthread_mutex_unlock (&mutex_queue_low);
 
-    pthread_mutex_lock (&mutex_match);
-    cache->erase (*first);
-    cache_time->erase (*first);
-    pthread_mutex_unlock (&mutex_match);
-
-    //! Pop the rightend element
-   } else if ((uint64_t)highest > ema) { 
-
+   } else {
     pthread_mutex_lock (&mutex_queue_upp);
-    queue_upper.push (*last);
+    queue_upper.push (*oldest);
     pthread_mutex_unlock (&mutex_queue_upp);
 
-    pthread_mutex_lock (&mutex_match);
-    cache->erase (*last);
-    cache_time->erase (*last);
-    pthread_mutex_unlock (&mutex_match);
    }
-
-   //! Otherwise pop the oldest element :LRU:
- // } else {
- //  set<diskPage>::iterator oldest = cache_time->begin();
- //  uint64_t oldest_time = (*oldest).time;
- //  uint64_t oldest_item = (*oldest).point;
-
- //  //! Depends of the position
- //  if (oldest_item < ema) {
- //   pthread_mutex_lock (&mutex_queue_low);
- //   queue_lower.push (*oldest);
- //   pthread_mutex_unlock (&mutex_queue_low);
-
- //  } else {
- //   pthread_mutex_lock (&mutex_queue_upp);
- //   queue_upper.push (*oldest);
- //   pthread_mutex_unlock (&mutex_queue_upp);
-
- //  }
- //  pthread_mutex_lock (&mutex_match);
-
- //  cache_time->erase (oldest_time);
- //  cache->erase (oldest_item);
-
- //  pthread_mutex_unlock (&mutex_match);
- // }
+   pthread_mutex_lock (&mutex_match);
+   cache_time->erase (oldest_time);
+   cache->erase (oldest_item);
+   pthread_mutex_unlock (&mutex_match);
   }
  }
 }
@@ -343,7 +341,7 @@ bool SETcache::insert (diskPage& dp) {
 
  auto it = cache->find (dp);
  bool found_same = (it != cache->end());
- 
+
  if (count < (size_t) _max) {
   if (found_same) {
    pthread_mutex_lock (&mutex_match);
@@ -357,7 +355,7 @@ bool SETcache::insert (diskPage& dp) {
    cache_time->insert (dp);
    pthread_mutex_unlock (&mutex_match);
   }
- //! If the cache is full
+  //! If the cache is full
  } else {  
   if (found_same) {
    pthread_mutex_lock (&mutex_match);
@@ -365,7 +363,7 @@ bool SETcache::insert (diskPage& dp) {
    cache_time->erase (dp);
    pthread_mutex_unlock (&mutex_match);
    // No need to update cache
-   
+
   } else {
    pthread_mutex_lock (&mutex_match);
    cache->insert (dp);

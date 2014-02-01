@@ -23,24 +23,57 @@ SUITE (CACHE_TEST) {
 
  // ----------------------------------------------------
  TEST_FIXTURE (fix_cache, normal) { 
-   victim->set_maxsize (4);
-   victim->set_policy (CACHE_LRU);
-   
-   victim->insert ("0", "Hello");
-   victim->insert ("1", "Hola");
-   victim->insert ("2", "Allo");
-   victim->insert ("3", "Annyeong");
-   victim->insert ("4", "Seno");
+  (*victim).set_size (4) 
+   .set_policy (CACHE_LRU) 
+   .set_port (9000)
+   .set_iface ("eth0")
+   .set_host ("localhost")
+   .set_network ({"127.0.0.1", "127.0.0.2"})
+   .bind() .run ();
 
-   CHECK_EQUAL("Hello",    std::get<0> (victim->lookup ("0")));
-   CHECK_EQUAL("Hola",     std::get<0> (victim->lookup ("1")));
-   CHECK_EQUAL("Allo",     std::get<0> (victim->lookup ("2")));
-   CHECK_EQUAL("Annyeong", std::get<0> (victim->lookup ("3")));
-   CHECK_EQUAL("Seno",     std::get<0> (victim->lookup ("4")));
+  victim->insert ("0", "Hello");
+  victim->insert ("1", "Hola");
+  victim->insert ("2", "Allo");
+  victim->insert ("3", "Annyeong");
+  victim->insert ("4", "Seno");
+
+  CHECK_EQUAL("Hello",    std::get<0> (victim->lookup ("0")));
+  CHECK_EQUAL("Hola",     std::get<0> (victim->lookup ("1")));
+  CHECK_EQUAL("Allo",     std::get<0> (victim->lookup ("2")));
+  CHECK_EQUAL("Annyeong", std::get<0> (victim->lookup ("3")));
+  CHECK_EQUAL("Seno",     std::get<0> (victim->lookup ("4")));
+   
+  victim->close();
  }
 
+ // ----------------------------------------------------
+ TEST_FIXTURE (fix_cache, lru) { 
+  (*victim)
+   .set_size (3) 
+   .set_policy (CACHE_LRU) 
+   .set_port (9000)
+   .set_iface ("eth0")
+   .set_host ("localhost")
+   .set_network ({"127.0.0.1", "127.0.0.2"})
+   .bind() .run ();
+
+  victim->insert ("0", "Hello");
+  victim->insert ("1", "Hola");
+  victim->insert ("2", "Allo");
+  victim->insert ("3", "Annyeong");
+  CHECK_THROW (victim->lookup ("0"), std::out_of_range);
+
+  victim->insert ("4", "Seno");
+
+  CHECK_EQUAL ("Hello",    std::get<0> (victim->lookup ("0")));
+  CHECK_EQUAL ("Hola",     std::get<0> (victim->lookup ("1")));
+  CHECK_EQUAL ("Allo",     std::get<0> (victim->lookup ("2")));
+  CHECK_EQUAL ("Annyeong", std::get<0> (victim->lookup ("3")));
+  CHECK_EQUAL ("Seno",     std::get<0> (victim->lookup ("4")));
+ }
+
+ // ----------------------------------------------------
  TEST(parallel) { 
-  const char * network [2] = {"127.0.0.1", "127.0.0.2"};
   omp_lock_t lock, lock2;
   omp_init_lock (&lock);
   omp_init_lock (&lock2);
@@ -52,9 +85,14 @@ SUITE (CACHE_TEST) {
 #pragma omp section
    {
     //First Node
-    Cache cache (2);
-    cache.set_network (9000, 2, "eth0", network, "localhost");
-    cache.set_policy (CACHE_LRU);
+    Cache cache = Cache ()
+     .set_size (4) 
+     .set_policy (CACHE_LRU) 
+     .set_port (9000)
+     .set_iface ("eth0")
+     .set_host ("localhost")
+     .set_network ({"127.0.0.1", "127.0.0.2"});
+
     cache.bind ();
     cache.run ();
 
@@ -69,10 +107,14 @@ SUITE (CACHE_TEST) {
 #pragma omp section
    {
     //First Node
-    Cache cache (2);
-    cache.set_network (9000, 2, "eth0", network, "localhost");
-    cache.set_policy (CACHE_LRU);
-    cache.bind ();
+    Cache cache = Cache ()
+     .set_size (4) 
+     .set_policy (CACHE_LRU) 
+     .set_port (9000) // 9001 9002 9003
+     .set_iface ("eth0")
+     .set_host ("localhost")
+     .set_network ({"127.0.0.1", "127.0.0.2"})
+     .bind ();
     cache.run ();
 
     omp_set_lock (&lock2);       //! Wait till the other thread finish
@@ -81,24 +123,6 @@ SUITE (CACHE_TEST) {
     cache.close ();
    }
   }
- }
-
- TEST_FIXTURE (fix_cache, lru) { 
-  victim->set_maxsize (3);
-  victim->set_policy (CACHE_LRU);
-  victim->insert ("0", "Hello");
-  victim->insert ("1", "Hola");
-  victim->insert ("2", "Allo");
-  victim->insert ("3", "Annyeong");
-  CHECK_THROW (victim->lookup ("0"), std::out_of_range);
-
-  victim->insert ("4", "Seno");
-
-  CHECK_EQUAL ("Hello",    std::get<0> (victim->lookup ("0")));
-  CHECK_EQUAL ("Hola",     std::get<0> (victim->lookup ("1")));
-  CHECK_EQUAL ("Allo",     std::get<0> (victim->lookup ("2")));
-  CHECK_EQUAL ("Annyeong", std::get<0> (victim->lookup ("3")));
-  CHECK_EQUAL ("Seno",     std::get<0> (victim->lookup ("4")));
  }
 }
 // -----------------------------------------------------

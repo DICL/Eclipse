@@ -23,6 +23,20 @@
 #define CACHE_PUSH        0x8
 #define CACHE_PULL        0x10
 
+#define STATUS_VIRGIN     0x0
+#define STATUS_LOADED     0x1
+#define STATUS_READY      0x2
+#define STATUS_RUNNING    0x3
+#define STATUS_CLOSED     0x4
+
+#define SETTED_IFACE      0x1     // 0 0 0 0 0 1
+#define SETTED_HOST       0x2     // 0 0 0 0 1 0
+#define SETTED_NETWORK    0x4     // 0 0 0 1 0 0 
+#define SETTED_PORT       0x8     // 0 0 1 0 0 0 
+#define SETTED_SIZE       0x10    // 0 1 0 0 0 0 
+#define SETTED_POLICY     0x20    // 1 0 0 0 0 0 
+#define SETTED_ALL       (0x40-1) // 1 1 1 1 1 1 
+
 #ifndef CACHE_DEFAULT_SIZE
 #define CACHE_DEFAULT_SIZE (1 << 20)              //! 1 MiB
 #endif
@@ -61,43 +75,47 @@ using std::vector;
 class Cache {
  public:
   Cache ();
-  Cache (size_t s, uint8_t = 0);
   ~Cache ();
 
-  //size_t get_size ()          { return this->cache.get_size (); }
-  void set_maxsize (size_t s) { 
-    this->cache = new SETcache (s); 
-  }
-  int set_policy (int p)      { policies = p; return p; }
-  void set_network (int, int, const char*, const char**, const char*);
+  Cache& set_size    (size_t); 
+  Cache& set_policy  (int);     
+  Cache& set_port    (int);  
+  Cache& set_iface   (const char*);
+  Cache& set_host    (const char*);
+  Cache& set_network (std::vector<const char*>);
 
-  bool bind ();
-  void run ();
-  void close ();
+  Cache& bind ();
+  Cache& run ();
+  Cache& close ();
 
   std::tuple<char*, size_t> lookup (const char*) throw (std::out_of_range);
   bool insert (const char*, const char*, size_t = 0);
 
- protected: //! Thread functions
+ //--------------THREAD FUNCTION--------------------------------//
+ protected: 
   static void* tfunc_migration_server (void*);
   static void* tfunc_migration_client (void*);
   static void* tfunc_request (void*);
+  void migration_server ();
+  void migration_client ();
+  void request ();
   bool request (const char*);
 
  protected:
+  int status, setted, policies;
   DHTclient* DHT_client;
-  uint8_t policies;
   SETcache* cache;
   size_t _size;
 
-  uint8_t local_no;
-  in_addr_t local_ip;
-  char local_ip_str [INET_ADDRSTRLEN];
+  //--------------NETWORKING MEMBERS-----------------------------//
+  uint16_t local_no; in_addr_t local_ip; char local_ip_str [INET_ADDRSTRLEN];
+  char host [INET_ADDRSTRLEN];
   vector<struct sockaddr_in> network;
   struct sockaddr_in Arequest, Amigration_server;
   int Prequest, Pmigration;
   int Srequest, Smigration_server, Smigration_client;
 
+  //----------------THREADS THINGS-------------------------------//
   pthread_t tmigration_client, tmigration_server, trequest;
   pthread_barrier_t barrier_start;
   bool tclient_continue, tserver_continue, tserver_request_continue;
