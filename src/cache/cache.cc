@@ -153,7 +153,11 @@ Cache& Cache::close () {
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 std::tuple<char*, size_t> Cache::lookup (const char* key) throw (std::out_of_range) {
- diskPage dp = cache->lookup (h (key, strlen (key)));
+ try { 
+  diskPage dp = cache->lookup (h (key, strlen (key)));
+ } catch (std::out_of_range& e) {
+  request (key);  
+ }
  return std::make_tuple (dp.chunk, DPSIZE);
 }
 // }}}
@@ -166,13 +170,13 @@ bool Cache::insert (const char* key, const char* output, size_t s) {
  memcpy (dp.chunk, output, DPSIZE);
  bool ret = cache->insert (dp);
 
- // Code to ask DHT :TODO:
- if (ret == false) {
-  int victim = DHT_client->lookup (output);
-  if (victim != local_no) {
-   request (key);
-  }
- }
+ //// Code to ask DHT :TODO:
+ //if (ret == false) {
+ // int victim = DHT_client->lookup (output);
+ // if (victim != local_no) {
+ //  request (key);
+ // }
+ //}
 
  return ret;
 }

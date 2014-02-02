@@ -338,8 +338,7 @@ diskPage SETcache::get_diskPage (uint64_t idx) {
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 bool SETcache::insert (diskPage& dp) {
- //diskPage dp (idx);  
- //diskPage key (idx);  
+ dp.time = this->count++;
 
  auto it = cache->find (dp);
  bool found_same = (it != cache->end());
@@ -347,6 +346,7 @@ bool SETcache::insert (diskPage& dp) {
  if (count < (size_t) _max) {
   if (found_same) {
    pthread_mutex_lock (&mutex_match);
+   cache_time->remove (*it);
    cache_time->insert (*it);  // :TODO:
    //std::swap (it, cache_time->begin());
    pthread_mutex_unlock (&mutex_match);

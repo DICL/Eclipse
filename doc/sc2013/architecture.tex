@@ -31,13 +31,13 @@ and a collection of back-end caching servers organized in a two layers peer-to-p
 
 \subsubsection{Inner layer}
 It consists in a set of not mutable static segments which represents the range of the dataset corresponding
-to each back-end server. This layer is visible from every back-end servers throught its hashing lookup table.
+to each back-end server. This layer is visible from every back-end servers through its hashing lookup table.
 
 \subsubsection{Outer layer}
-Analogously, we propose a non-static layer divided in mutables boundaries which 
+Analogously, we propose a non-static layer divided in mutable boundaries which 
 represents the current status of the cached data. This layer is not completely visible, where
 in contrast to the inner layer, each back-end node only knows its boundary and neighbors.
-Those boundaries are in a continous movement due to our spacial algorithm.
+Those boundaries are in a continuous movement due to our spacial algorithm.
 
 %is not static and its continuously changing, also a back-end
 %server only knows about its own boundaries.

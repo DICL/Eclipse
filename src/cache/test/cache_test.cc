@@ -91,10 +91,8 @@ SUITE (CACHE_TEST) {
      .set_port (9000)
      .set_iface ("eth0")
      .set_host ("localhost")
-     .set_network ({"127.0.0.1", "127.0.0.2"});
-
-    cache.bind ();
-    cache.run ();
+     .set_network ({"127.0.0.1", "127.0.0.2"})
+     .bind (); .run ();
 
     omp_unset_lock (&lock2);       //! Wait till the other thread finish
 
@@ -114,8 +112,7 @@ SUITE (CACHE_TEST) {
      .set_iface ("eth0")
      .set_host ("localhost")
      .set_network ({"127.0.0.1", "127.0.0.2"})
-     .bind ();
-    cache.run ();
+     .bind (); .run ();
 
     omp_set_lock (&lock2);       //! Wait till the other thread finish
     CHECK (cache.insert ("10", "test1") == true);  //! It test if the dp was migrated
