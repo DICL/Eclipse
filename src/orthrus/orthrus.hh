@@ -7,7 +7,7 @@
 // -------------------------------------------- * * * -- Vicente Bolea
 //
 // @usage: 
-//  Cache my_cache (10);
+//  Orthrus my_cache (10);
 //  my_cache.insert (01039595813, "Vicente's number");
 //  cout << "Vicente's phone number" << cache.lookup (01039595813) << endl;
 //
@@ -41,7 +41,7 @@
 #define CACHE_DEFAULT_SIZE (1 << 20)              //! 1 MiB
 #endif
 
-#include <SETcache.hh>
+#include <Orthrus.hh>
 #include <DHTclient.hh>
 #include <hash.hh>
 
@@ -69,44 +69,55 @@
 using std::vector;
 
 // }}}
-// Cache class {{{
+class Partition_entry {
+ public:
+  Partition_entry ();
+  virtual ~Partition_entry ();
+
+ private:
+  size_t key, length;
+  uint8_t* address;
+};
+// Orthrus class {{{
 // -------------------------------------------- * * * -- Vicente Bolea
 //
-class Cache {
+class Orthrus {
  public:
-  Cache ();
-  ~Cache ();
+  Orthrus ();
+  ~Orthrus ();
 
-  Cache& set_size    (size_t); 
-  Cache& set_policy  (int);     
-  Cache& set_port    (int);  
-  Cache& set_iface   (const char*);
-  Cache& set_host    (const char*);
-  Cache& set_network (std::vector<const char*>);
+  Orthrus& set_size    (size_t); 
+  Orthrus& set_policy  (int);     
+  Orthrus& set_port    (int);  
+  Orthrus& set_iface   (const char*);
+  Orthrus& set_host    (const char*);
+  Orthrus& set_network (std::vector<const char*>);
 
-  Cache& bind ();
-  Cache& run ();
-  Cache& close ();
+  Orthrus& bind ();
+  Orthrus& run ();
+  Orthrus& close ();
 
-  std::tuple<char*, size_t> lookup (const char*) throw (std::out_of_range);
-  bool insert (const char*, const char*, size_t = 0);
+  std::tuple<char*, size_t> lookup (std::string) throw (std::out_of_range);
+  bool insert (std::string, std::string);
 
- //--------------THREAD FUNCTION--------------------------------//
+  void print_cache ();
+
+  //--------------THREAD FUNCTION--------------------------------//
  protected: 
   void migration_server ();
   void migration_client ();
-  void request ();
+  void request_listener ();
   bool request (const char*);
 
  protected:
   int status, setted, policies;
-  DHTclient* DHT_client;
-  SETcache* cache;
   size_t _size;
+  DHTclient* DHT_client;
+  Local_cache* cache;
 
   //--------------NETWORKING MEMBERS-----------------------------//
-  uint16_t local_no; in_addr_t local_ip; char local_ip_str [INET_ADDRSTRLEN];
-  char host [INET_ADDRSTRLEN];
+  uint16_t local_no; in_addr_t local_ip;
+  char host [INET_ADDRSTRLEN], local_ip_str [INET_ADDRSTRLEN];
   vector<struct sockaddr_in> network;
   struct sockaddr_in Arequest, Amigration_server;
   int Prequest, Pmigration;

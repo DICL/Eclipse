@@ -17,9 +17,8 @@ extern char* program_invocation_short_name;
 
 using std::string;
 using std::ostream;
-using std::exception;
 
-class Exception: public exception {
+class Exception: public std::runtime_error {
  protected:
   char message [256]; // enought for log message 
 
@@ -42,7 +41,7 @@ class Exception: public exception {
 
   ~Exception() throw() {}
 
-  const char* what () const throw() {
+  const char* what () const throw() override {
    return message;
   }
 

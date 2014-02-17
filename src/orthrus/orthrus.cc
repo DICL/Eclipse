@@ -1,12 +1,13 @@
-#include <cache.hh>
+#include <orthrus.hh>
 #include <assert.h>
 #include <string.h>
 #include <algorithm>
 #include <functional>
+#include <sys/utsname.h>
 
 // Constructors {{{
 // ----------------------------------------------- 
-Cache::Cache () : _size (CACHE_DEFAULT_SIZE) { 
+Orthrus::Orthrus () : _size (CACHE_DEFAULT_SIZE) { 
  tserver_continue = true; 
  tclient_continue = true; 
  tserver_request_continue = true;
@@ -15,45 +16,43 @@ Cache::Cache () : _size (CACHE_DEFAULT_SIZE) {
  setted = 0;
 }
 
-Cache::~Cache () {
- this->close();
+Orthrus::~Orthrus () {
+ if (status != STATUS_CLOSED) this->close();
  pthread_barrier_destroy (&barrier_start);
- vector<int> sockets {Srequest, Smigration_server, Smigration_client};
- for_each (sockets.begin (), sockets.end(), ::close); 
  delete cache;
  delete DHT_client;
 }
 // }}}
 // Setters {{{
 // ----------------------------------------------- 
-Cache& Cache::set_size    (size_t s)    {
+Orthrus& Orthrus::set_size    (size_t s)    {
  _size = s;
  setted |= SETTED_SIZE; 
  return *this; 
 }
-Cache& Cache::set_policy  (int p)       {
+Orthrus& Orthrus::set_policy  (int p)       {
  policies = p;
  setted |= SETTED_POLICY; 
  return *this; 
 }
-Cache& Cache::set_port    (int port)    { 
+Orthrus& Orthrus::set_port    (int port)    { 
  Pmigration = port; 
  Prequest = port + 1; 
  setted |= SETTED_PORT; 
  return *this; 
 }
-Cache& Cache::set_iface   (const char* ifa) {
+Orthrus& Orthrus::set_iface   (const char* ifa) {
  strncpy (local_ip_str, get_ip (ifa), INET_ADDRSTRLEN);
  local_ip = inet_addr (local_ip_str);
  setted |= SETTED_IFACE; 
  return *this; 
 }
-Cache& Cache::set_host    (const char* host_) {
+Orthrus& Orthrus::set_host    (const char* host_) {
  strncpy (host, host_, INET_ADDRSTRLEN);
  setted |= SETTED_HOST; 
  return *this; 
 }
-Cache& Cache::set_network (std::vector<const char*> in) {
+Orthrus& Orthrus::set_network (std::vector<const char*> in) {
  assert ((setted & SETTED_PORT) == SETTED_PORT);
  assert ((setted & SETTED_IFACE) == SETTED_IFACE);
 
@@ -77,7 +76,7 @@ Cache& Cache::set_network (std::vector<const char*> in) {
 // }}}
 // bind {{{
 // ----------------------------------------------- 
-Cache& Cache::bind () {
+Orthrus& Orthrus::bind () {
  assert (setted == SETTED_ALL);
  int one = 1;
 
@@ -110,7 +109,7 @@ Cache& Cache::bind () {
   log (M_ERR, local_ip_str, "bind function");
 
  DHT_client = new DHTclient (host, Pmigration + 3);
- cache = new SETcache (_size);
+ cache = new Orthrus (_size);
 
 #ifdef _DEBUG
  log (M_INFO, local_ip_str, "MRR distributed cached setted\n"
@@ -126,25 +125,29 @@ Cache& Cache::bind () {
 // }}}
 // Thread functions {{{
 // ----------------------------------------------- 
-Cache& Cache::run () {
+Orthrus& Orthrus::run () {
  assert (status == STATUS_READY);
 
- auto tfms = [](void *i) -> void* { ((Cache*)i)->migration_server (); pthread_exit (NULL);};
- auto tfmc = [](void *i) -> void* { ((Cache*)i)->migration_client (); pthread_exit (NULL);};
- auto tfr  = [](void *i) -> void* { ((Cache*)i)->request          (); pthread_exit (NULL);};
-
- pthread_create (&tmigration_server, NULL, (void* (*)(void*)) tfms, this);
- pthread_create (&tmigration_client, NULL, (void* (*)(void*)) tfmc, this);
- pthread_create (&trequest,          NULL, (void* (*)(void*)) tfr , this);
+ pthread_create (&tmigration_server, NULL, [](void *i) -> void* { 
+  ((Orthrus*)i)->migration_server (); pthread_exit (NULL);
+ }, this);
+ pthread_create (&tmigration_client, NULL, [](void *i) -> void* {
+  ((Orthrus*)i)->migration_client (); pthread_exit (NULL);
+ }, this);
+ pthread_create (&trequest,          NULL, [](void *i) -> void* { 
+  ((Orthrus*)i)->request_listener (); pthread_exit (NULL);
+ }, this);
  status = STATUS_RUNNING;
  return *this;
 }
 // ----------------------------------------------- 
-Cache& Cache::close () {
+Orthrus& Orthrus::close () {
  tclient_continue = tserver_continue = tserver_request_continue = false;
  pthread_join (tmigration_server, NULL);
  pthread_join (tmigration_client, NULL);
  pthread_join (trequest, NULL);
+ vector<int> sockets {Srequest, Smigration_server, Smigration_client};
+ for_each (sockets.begin (), sockets.end(), ::close); 
  status = STATUS_CLOSED;
  return *this;
 }
@@ -152,22 +155,25 @@ Cache& Cache::close () {
 // lookup {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-std::tuple<char*, size_t> Cache::lookup (const char* key) throw (std::out_of_range) {
+std::tuple<char*, size_t> Orthrus::lookup (std::string key) throw (std::out_of_range) {
+ diskPage dp;
+ std::hash<std::string> pt_hash; 
  try { 
-  diskPage dp = cache->lookup (h (key, strlen (key)));
+  dp = cache->lookup (pt_hash (key));
  } catch (std::out_of_range& e) {
-  request (key);  
+  request (key.c_str());  
  }
- return std::make_tuple (dp.chunk, DPSIZE);
+ return std::make_tuple ((dp.chunk), 10000);
 }
 // }}}
 // insert {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-bool Cache::insert (const char* key, const char* output, size_t s) {
- if (s == 0) s = strlen (output);
- diskPage dp (h (key, strlen (key)));
- memcpy (dp.chunk, output, DPSIZE);
+bool Orthrus::insert (std::string key, std::string val) {
+ std::hash<std::string> pt_hash; 
+ size_t index = pt_hash (key);
+ diskPage dp (index);
+ memcpy (dp.chunk, val.c_str(), DPSIZE);
  bool ret = cache->insert (dp);
 
  //// Code to ask DHT :TODO:
@@ -184,7 +190,7 @@ bool Cache::insert (const char* key, const char* output, size_t s) {
 // Request {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-bool Cache::request (const char * key) {
+bool Orthrus::request (const char * key) {
  assert (key != NULL);
 
  socklen_t s = sizeof (struct sockaddr);
@@ -201,7 +207,7 @@ bool Cache::request (const char * key) {
 // Migration_server {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-void Cache::migration_server () {
+void Orthrus::migration_server () {
  socklen_t sa = sizeof (Amigration_server);
  pthread_barrier_wait (&barrier_start);
  //================================================
@@ -222,7 +228,7 @@ void Cache::migration_server () {
 // Migration_client {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-void Cache::migration_client () {
+void Orthrus::migration_client () {
  socklen_t sa = sizeof (Amigration_server);
  size_t _size = network.size();
  int sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -252,10 +258,10 @@ void Cache::migration_client () {
  } while (tclient_continue == true);
 }
 // }}}
-// Request {{{
+// Request_listener {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-void Cache::request () {
+void Orthrus::request_listener () {
  socklen_t s = sizeof (Arequest);
  pthread_barrier_wait (&barrier_start);
  //================================================
@@ -279,5 +285,46 @@ void Cache::request () {
    }
   }
  } while (tserver_continue == true);
+}
+// }}}
+// print cache {{{
+//
+// It assume that the string is at maximum of 32 bits,
+// also assume that the binary has maximum 32 bits width 
+void bin_to_str (int binary, char* str, size_t size) {
+ if (size != 32 && size != 16 && size != 8) return;
+ size_t i;
+ for (i = 2; i <= size - 2; i++)
+  str [size-i] = (binary & (1<<(i-2))) ? '1': '0';
+ str [0] = '0';
+ str [1] = 'b';
+ str [size - 1] = '\0';
+}
+void Orthrus::print_cache () {
+ const char * msg = 
+ "--------------------------------------------------\n"
+ " +++++++ Orthrus debug info                         \n"
+ "--------------------------------------------------\n"
+ " + Status:         | %16s                         \n"
+ " + Policy:         | %16s                         \n"
+ " + Opts. setted:   | %16s                         \n"
+ " + Size:           | %16d disk pages              \n"
+ " + Memory usage:   | %16d KiB                     \n"
+ " + Local IP:       | %16s                         \n"
+ " + Local index:    | %16d                         \n"
+ " + Host IP:        | %16s                         \n"
+ " + Architecture:   | %16s                         \n"
+ " + Version:        | %16s                         \n"
+ "--------------------------------------------------\n";
+
+ char bset[16], bpol [16], bstat [16];
+ struct utsname info;
+ uname (&info);
+ bin_to_str (status, bstat, 16);
+ bin_to_str (policies, bpol, 16);
+ bin_to_str (setted, bset, 16);
+ 
+ printf (msg, bstat, bpol, bset, _size, _size * 8, 
+         local_ip_str, local_no, host, info.machine, info.release);
 }
 // }}}

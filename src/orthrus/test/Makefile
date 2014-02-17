@@ -10,10 +10,10 @@ INCLUDE += -I ./../../common
 INCLUDE += -I ./../../DHT
 INCLUDE += -I $(LIBDIR)/unittest++/
 
-CXXFLAGS := -g -Wall -Wextra $(INCLUDE) -std=gnu++11 -fopenmp #-D_DEBUG
+CXXFLAGS := -ggdb3 -Wall -Wextra $(INCLUDE) -std=gnu++11 -fopenmp #-D_DEBUG
 LDFLAGS := -L $(LIBDIR) -L $(LIBDIR2) -lUnitTest++ -lm -lpthread -lmrr
 
-SOURCES := cache.cc cache_test.cc main.cc SETcache.cc DHTclient.cc
+SOURCES := local_cache.cc local_cache_test.cc main.cc orthrus.cc orthrus_test.cc DHTclient.cc
 OBJECTS := $(patsubst %.cc, %.o, $(SOURCES))
 
 %.o : %.cc 

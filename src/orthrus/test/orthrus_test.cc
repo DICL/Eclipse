@@ -1,14 +1,14 @@
 #include <omp.h>
-#include <cache.hh>
+#include <orthrus.hh>
 #include <UnitTest++.h>
 //
 // --------UNIT TEST AUTOMATICALLY GENERATED------------
 //
 struct fix_cache {
- Cache* victim;
+ Orthrus* victim;
 
  fix_cache () {
-  victim = new Cache ();
+  victim = new Orthrus ();
  }
  ~fix_cache () {
   delete victim;
@@ -92,7 +92,7 @@ SUITE (CACHE_TEST) {
      .set_iface ("eth0")
      .set_host ("localhost")
      .set_network ({"127.0.0.1", "127.0.0.2"})
-     .bind (); .run ();
+     .bind () .run ();
 
     omp_unset_lock (&lock2);       //! Wait till the other thread finish
 
@@ -112,7 +112,7 @@ SUITE (CACHE_TEST) {
      .set_iface ("eth0")
      .set_host ("localhost")
      .set_network ({"127.0.0.1", "127.0.0.2"})
-     .bind (); .run ();
+     .bind () .run ();
 
     omp_set_lock (&lock2);       //! Wait till the other thread finish
     CHECK (cache.insert ("10", "test1") == true);  //! It test if the dp was migrated
