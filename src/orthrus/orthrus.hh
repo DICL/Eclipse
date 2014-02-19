@@ -69,15 +69,15 @@
 using std::vector;
 
 // }}}
-class Partition_entry {
- public:
-  Partition_entry ();
-  virtual ~Partition_entry ();
-
- private:
-  size_t key, length;
-  uint8_t* address;
-};
+//class Partition_entry {
+// public:
+//  Partition_entry ();
+//  virtual ~Partition_entry ();
+//
+// private:
+//  size_t key, length;
+//  uint8_t* address;
+//};
 // Orthrus class {{{
 // -------------------------------------------- * * * -- Vicente Bolea
 //

@@ -3,6 +3,7 @@
 #define __SETCACHE_HH_
 
 #include <packets.hh>
+#include <diskpage.hh>
 
 #include <set>
 #include <queue>
@@ -23,55 +24,45 @@ using std::make_pair;
 using std::pair;
 // }}}
 
-enum policy {
- NOTHING  = 0x0,
- UPDATE   = 0x1,
- LRU      = 0x2,
- SPATIAL  = 0x4,
- JOIN     = 0x8
-};
-
-class disk_page_t {
- public:
-  disk_page_t ();
-  ~disk_page_t ();
-  disk_page_t (const disk_page_t& that) {
-   memcpy (this->data, that.data, DPSIZE);
-  }
-  disk_page_t& operator (const disk_page_t& that) {
-   memcpy (this->data, that.data, DPSIZE);
-   return *this;
-  }
-  char data [DPSIZE];
-};
+namespace orthrus {
+ enum {
+  NOTHING  = 0x0,
+  UPDATE   = 0x1,
+  LRU      = 0x2,
+  SPATIAL  = 0x4,
+  JOIN     = 0x8
+ };
+}
 
 class Local_cache {
  protected:
-  std::map<uint64_t, std::pair<uint64_t, disk_page_t> > cache;
-  int _max, policy;
-  uint64_t count;
-  double boundary_low, boundary_upp, ema;
-  pthread_mutex_t mutex_cache, mutex_queue_low, mutex_queue_upp;
+  typedef MAP map<uint64_t, std::pair<uint64_t, disk_page_t> >;
+  MAP map_spatial, map_lru;
+  int policy;
+  size_t max_size, current_size, count;
+  uint64_t double boundary_low, boundary_upp, ema;
+  pthread_mutex_t mutex_map_spatial, mutex_map_lru;
+  pthread_mutex_t mutex_queue_low, mutex_queue_upp;
 
   void pop_farthest ();
 
  public:
-  Local_cache (int);
-  ~Local_cache () { delete cache; delete cache_time;}
+  Local_cache (size_t);
+  ~Local_cache () { delete map_spatial; delete map_lru; }
+
   void set_policy (int);
 
-  bool insert (diskPage&);
-  diskPage lookup (uint64_t) throw (std::out_of_range);
+  bool insert (disk_page_t&);
+  disk_page_t lookup (uint64_t) throw (std::out_of_range);
 
-  bool is_valid (diskPage&);
+  bool is_disk_page_belonging (disk_page_t&);
   void update (double low, double upp);
-  diskPage get_diskPage (uint64_t);
 
-  diskPage get_low ();
-  diskPage get_upp ();
+  disk_page_t get_low ();
+  disk_page_t get_upp ();
 
-  queue<diskPage> queue_lower;
-  queue<diskPage> queue_upper;
+  queue<disk_page_t> queue_lower;
+  queue<disk_page_t> queue_upper;
 };
 
 #endif
