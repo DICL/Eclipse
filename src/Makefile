@@ -1,23 +1,100 @@
+DHT_OBJ = $(MR_HOME)/DHT/DHTserver.o
+DHT_OBJ += $(MR_HOME)/DHT/DHTclient.o
+MR_DEF = $(MR_HOME)/mapreduce/definitions.hh
+MASTER_DEP = $(MR_HOME)/master/master_job.hh 
+MASTER_DEP += $(MR_HOME)/master/master_task.hh 
+MASTER_DEP += $(MR_HOME)/master/connslave.hh 
+MASTER_DEP += $(MR_HOME)/master/connclient.hh
+SLAVE_DEP = $(MR_HOME)/slave/slave_job.hh
+SLAVE_DEP += $(MR_HOME)/slave/slave_task.hh
+DHT_FLAG = -I $(MR_HOME)/DHT/
+DHT_FLAG += -I $(MR_HOME)/common/ 
+DHT_FLAG += $(DHT_OBJ)
+DHT_FLAG += -L $(MR_HOME)/common/
+DHT_FLAG += -lmrr
+
+
 all:
-	echo Type ether: [make nfs] or [make hdfs]
+	echo Type ether: [make nfs], [make hdfs], [make dht] [make clean]
 
-nfs: $(MR_HOME)/bin/master $(MR_HOME)/bin/slave $(MR_HOME)/bin/client $(MR_HOME)/mcc/mcc_nfs.cc $(MR_HOME)/mcc/mcc_nfs.hh $(MR_HOME)/mapreduce/nfs_hh/mapreduce.hh 
-	g++ $(MR_HOME)/mcc/mcc_nfs.cc -o $(MR_HOME)/bin/mcc  -lpthread -I $(MR_HOME) -Wall
+dht: $(MR_HOME)/make_version/master_dht $(MR_HOME)/make_version/slave_dht $(MR_HOME)/bin/client $(MR_HOME)/make_version/mcc_dht $(MR_HOME)/bin/fd_core $(MR_HOME)/common/hash.o
 
-hdfs: $(MR_HOME)/bin/master $(MR_HOME)/bin/slave $(MR_HOME)/bin/client $(MR_HOME)/mcc/mcc_hdfs.cc $(MR_HOME)/mcc/mcc_hdfs.hh $(MR_HOME)/mapreduce/hdfs_hh/mapreduce.hh
-	g++ $(MR_HOME)/mcc/mcc_hdfs.cc -o $(MR_HOME)/bin/mcc -lpthread -I $(MR_HOME) -Wall
+nfs: $(MR_HOME)/make_version/master_nfs_hdfs $(MR_HOME)/make_version/slave_nfs_hdfs $(MR_HOME)/bin/client $(MR_HOME)/make_version/mcc_nfs $(MR_HOME)/common/hash.o
 
-$(MR_HOME)/bin/master: $(MR_HOME)/master/master.cc $(MR_HOME)/master/master.hh $(MR_HOME)/mapreduce/definitions.hh $(MR_HOME)/master/master_job.hh $(MR_HOME)/master/master_task.hh $(MR_HOME)/master/connslave.hh $(MR_HOME)/master/connclient.hh
-	g++ $(MR_HOME)/master/master.cc -o $(MR_HOME)/bin/master -lpthread -I $(MR_HOME) -Wall
+hdfs: $(MR_HOME)/make_version/master_nfs_hdfs $(MR_HOME)/make_version/slave_nfs_hdfs $(MR_HOME)/bin/client $(MR_HOME)/make_version/mcc_hdfs $(MR_HOME)/common/hash.o
 
-$(MR_HOME)/bin/slave: $(MR_HOME)/slave/slave.cc $(MR_HOME)/slave/slave.hh $(MR_HOME)/mapreduce/definitions.hh $(MR_HOME)/slave/slave_job.hh $(MR_HOME)/slave/slave_task.hh
-	g++ $(MR_HOME)/slave/slave.cc -o $(MR_HOME)/bin/slave -lpthread -I $(MR_HOME) -Wall
 
-$(MR_HOME)/bin/client: $(MR_HOME)/client/client.cc $(MR_HOME)/client/client.hh $(MR_HOME)/mapreduce/definitions.hh
-	g++ $(MR_HOME)/client/client.cc -o $(MR_HOME)/bin/client -lpthread -I $(MR_HOME) -Wall
+$(MR_HOME)/make_version/master_dht: $(MR_HOME)/master/dht/master.cc $(MR_HOME)/master/dht/master.hh $(MR_DEF) $(MASTER_DEP) $(DHT_OBJ) $(MR_HOME)/make_version/master
+	g++ $(MR_HOME)/master/dht/master.cc -o $(MR_HOME)/bin/master -I $(MR_HOME) $(DHT_FLAG) -lpthread -Wall
+	touch $(MR_HOME)/make_version/master
+	touch $(MR_HOME)/make_version/master_dht
+
+$(MR_HOME)/make_version/master_nfs_hdfs: $(MR_HOME)/master/master.cc $(MR_HOME)/master/master.hh $(MR_DEF) $(MASTER_DEP) $(MR_HOME)/make_version/master
+	g++ $(MR_HOME)/master/master.cc -o $(MR_HOME)/bin/master -I $(MR_HOME) -lpthread -Wall
+	touch $(MR_HOME)/make_version/master
+	touch $(MR_HOME)/make_version/master_nfs_hdfs
+
+
+$(MR_HOME)/make_version/slave_dht: $(MR_HOME)/slave/dht/slave.cc $(MR_HOME)/slave/dht/slave.hh $(MR_DEF) $(DHT_OBJ) $(SLAVE_DEP) $(MR_HOME)/make_version/slave
+	g++ $(MR_HOME)/slave/dht/slave.cc -o $(MR_HOME)/bin/slave -I $(MR_HOME) $(DHT_FLAG) -lpthread -Wall
+	touch $(MR_HOME)/make_version/slave
+	touch $(MR_HOME)/make_version/slave_dht
+
+$(MR_HOME)/make_version/slave_nfs_hdfs: $(MR_HOME)/slave/slave.cc $(MR_HOME)/slave/slave.hh $(MR_DEF) $(SLAVE_DEP) $(MR_HOME)/make_version/slave
+	g++ $(MR_HOME)/slave/slave.cc -o $(MR_HOME)/bin/slave -I $(MR_HOME) -lpthread -Wall
+	touch $(MR_HOME)/make_version/slave
+	touch $(MR_HOME)/make_version/slave_nfs_hdfs
+
+
+$(MR_HOME)/bin/client: $(MR_HOME)/client/client.cc $(MR_HOME)/client/client.hh $(MR_DEF)
+	g++ $(MR_HOME)/client/client.cc -o $(MR_HOME)/bin/client -I $(MR_HOME) -lpthread -Wall
+
+
+$(MR_HOME)/make_version/mcc_nfs: $(MR_HOME)/mcc/nfs/mcc.cc $(MR_HOME)/mcc/nfs/mcc.hh $(MR_HOME)/mapreduce/nfs/mapreduce.hh $(MR_HOME)/make_version/mcc
+	g++ $(MR_HOME)/mcc/nfs/mcc.cc -o $(MR_HOME)/bin/mcc -I $(MR_HOME) -Wall
+	touch $(MR_HOME)/make_version/mcc
+	touch $(MR_HOME)/make_version/mcc_nfs
+
+$(MR_HOME)/make_version/mcc_hdfs: $(MR_HOME)/mcc/hdfs/mcc.cc $(MR_HOME)/mcc/hdfs/mcc.hh $(MR_HOME)/mapreduce/hdfs/mapreduce.hh $(MR_HOME)/make_version/mcc
+	g++ $(MR_HOME)/mcc/hdfs/mcc.cc -o $(MR_HOME)/bin/mcc -I $(MR_HOME) -Wall
+	touch $(MR_HOME)/make_version/mcc
+	touch $(MR_HOME)/make_version/mcc_hdfs
+
+$(MR_HOME)/make_version/mcc_dht: $(MR_HOME)/mcc/dht/mcc.cc $(MR_HOME)/mcc/dht/mcc.hh $(MR_HOME)/mapreduce/dht/mapreduce.hh $(MR_HOME)/make_version/mcc
+	g++ $(MR_HOME)/mcc/dht/mcc.cc -o $(MR_HOME)/bin/mcc -I $(MR_HOME) -Wall
+	touch $(MR_HOME)/make_version/mcc
+	touch $(MR_HOME)/make_version/mcc_dht
+
+
+$(MR_HOME)/DHT/DHTserver.o: $(MR_HOME)/DHT/DHTserver.cc $(MR_HOME)/DHT/DHTserver.hh
+	g++ -c $(MR_HOME)/DHT/DHTserver.cc -o $(MR_HOME)/DHT/DHTserver.o -I $(MR_HOME)/DHT/ -I $(MR_HOME)/common/ -Wall
+
+$(MR_HOME)/DHT/DHTclient.o: $(MR_HOME)/DHT/DHTclient.cc $(MR_HOME)/DHT/DHTclient.hh
+	g++ -c $(MR_HOME)/DHT/DHTclient.cc -o $(MR_HOME)/DHT/DHTclient.o -I $(MR_HOME)/DHT/ -I $(MR_HOME)/common/ -Wall
+
+
+$(MR_HOME)/make_version/master:
+	touch $(MR_HOME)/make_version/master
+
+$(MR_HOME)/make_version/mcc:
+	touch $(MR_HOME)/make_version/mcc
+
+$(MR_HOME)/make_version/slave:
+	touch $(MR_HOME)/make_version/slave
+
+
+$(MR_HOME)/bin/fd_core: $(MR_HOME)/file_distributor/fd_core.cc
+	g++ $(MR_HOME)/file_distributor/fd_core.cc -o $(MR_HOME)/bin/fd_core -I $(MR_HOME)/ $(MR_HOME)/common/hash.o -Wall
+
+$(MR_HOME)/common/hash.o:
+	g++ -c $(MR_HOME)/common/hash.cc -o $(MR_HOME)/common/hash.o
 
 clean:
 	rm -f $(MR_HOME)/bin/master
 	rm -f $(MR_HOME)/bin/slave
 	rm -f $(MR_HOME)/bin/client
 	rm -f $(MR_HOME)/bin/mcc
+	rm -f $(MR_HOME)/DHT/DHTserver.o
+	rm -f $(MR_HOME)/DHT/DHTclient.o
+	rm -f $(MR_HOME)/make_version/*
+	rm -f $(MR_HOME)/bin/fd_core

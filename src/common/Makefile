@@ -11,7 +11,7 @@ all: $(objects)
 	@-rm libmrr.a
 	@$(AR) -cr libmrr.a $(objects)
 	@echo -ne "\e[33mDONE\e[0m\n"
-	@-rm $(objects)
+	#@-rm $(objects)
 
 $(objects) : $(sources)
 

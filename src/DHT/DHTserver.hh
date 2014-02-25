@@ -4,8 +4,8 @@
 // :TODO: UDP Sockets may be more suitable ?
 //
 // Preprocessor {{{
-#ifndef __DHTCLIENT_HH__
-#define __DHTCLIENT_HH__
+#ifndef __DHTSERVER_HH__
+#define __DHTSERVER_HH__
 
 #include <string.h>
 #include <utils.hh>  //! Where the hash function is

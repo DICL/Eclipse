@@ -62,6 +62,7 @@ char** argvalues = NULL;
 
 // variables for job role
 int port = -1;
+int dhtport = -1;
 int masterfd = -1;
 int jobid;
 int nummap = 0;
@@ -142,6 +143,11 @@ void init_mapreduce(int argc, char** argv)
 			{
 				conf>>token;
 				port = atoi(token.c_str());
+			}
+			else if(token == "dhtport")
+			{
+				conf>>token;
+				dhtport = atoi(token.c_str());
 			}
 			else if(token == "max_job")
 			{

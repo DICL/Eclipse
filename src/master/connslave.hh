@@ -11,8 +11,6 @@ private:
 	int fd;
 	int maxtask;
 	vector<master_task*> running_tasks;
-	char read_buf[BUF_SIZE];
-	int readbytes;
 
 public:
 	connslave(int fd);
@@ -25,22 +23,17 @@ public:
 	master_task* getrunningtask(int index);
 	void add_runningtask(master_task* atask);
 	void remove_runningtask(master_task* atask);
-	int get_readbytes();
-	void set_readbytes(int abytes);
-	char* get_read_buf();
 };
 
 connslave::connslave(int fd)
 {
 	this->maxtask = 0;
-	this->readbytes = 0;
 	this->fd = fd;
 }
 
 connslave::connslave(int maxtask, int fd)
 {
 	this->maxtask = maxtask;
-	this->readbytes = 0;
 	this->fd = fd;
 }
 connslave::~connslave()
@@ -97,21 +90,6 @@ void connslave::remove_runningtask(master_task* atask)
 			break;
 		}
 	}
-}
-
-int connslave::get_readbytes()
-{
-	return this->readbytes;
-}
-
-void connslave::set_readbytes(int abytes)
-{
-	this->readbytes = abytes;
-}
-
-char* connslave::get_read_buf()
-{
-	return this->read_buf;
 }
 
 #endif

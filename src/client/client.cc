@@ -19,8 +19,8 @@ char read_buf[BUF_SIZE];
 char write_buf[BUF_SIZE];
 char master_address[BUF_SIZE];
 int port = -1;
+int dhtport = -1;
 int masterfd = -1;
-int master_readbytes = 0;
 bool master_is_set = false;
 
 int main(int argc, char** argv)
@@ -44,15 +44,15 @@ int main(int argc, char** argv)
 	conf>>token;
 	while(!conf.eof())
 	{
-		if(token == "backlog")
-		{
-			// ignore and just pass through this case
-			conf>>token;
-		}
-		else if(token == "port")
+		if(token == "port")
 		{
 			conf>>token;
 			port = atoi(token.c_str());
+		}
+		else if(token == "dhtport")
+		{
+			conf>>token;
+			dhtport = atoi(token.c_str());
 		}
 		else if(token == "max_job")
 		{
@@ -112,6 +112,8 @@ int main(int argc, char** argv)
 	else if(strncmp(argv[1], "help", 4) == 0)
 	{
 		// TODO: lists request and their usage
+
+		exit(0);
 	}
 	/*
 	else if(strncmp(argv[1], "submit", 6) == 0) // submit a job
@@ -212,13 +214,7 @@ void* signal_listener(void* args)
 	char tmp_buf[BUF_SIZE];
 	while(1)
 	{
-		// listen to the matser node
-
-		// set the read buffer
-		if(master_readbytes == 0)
-			memset(read_buf, 0, BUF_SIZE);
-
-		readbytes = read(serverfd, read_buf+master_readbytes, BUF_CUT-master_readbytes%BUF_CUT); // non-blocking read
+		readbytes = nbread(serverfd, read_buf);
 		if(readbytes == 0) // connection closed from master
 		{
 			cout<<"Connection from master is abnormally closed"<<endl;
@@ -229,25 +225,17 @@ void* signal_listener(void* args)
 		{
 			continue;
 		}
-		else if(read_buf[master_readbytes+readbytes-1] != 0
-			|| (master_readbytes+readbytes)%BUF_CUT != 0)
-		{
-			master_readbytes = master_readbytes + readbytes;
-		}
 		else // a signal arrived from master
 		{
-			// update the readbytes
-			master_readbytes = 0;
-
 			if(strncmp(read_buf, "whoareyou", 9) == 0)
 			{
 				// respond to "whoareyou"
 				memset(tmp_buf, 0, BUF_SIZE);
 				strcpy(tmp_buf, "client");
-				write(serverfd, tmp_buf, BUF_CUT*(strlen(tmp_buf)/BUF_CUT+1));
+				nbwrite(serverfd, tmp_buf);
 
 				// request to master
-				write(serverfd, write_buf, BUF_CUT*(strlen(write_buf)/BUF_CUT+1));
+				nbwrite(serverfd, write_buf);
 			}
 			else if(strncmp(read_buf, "close", 5) == 0)
 			{

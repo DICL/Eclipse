@@ -23,7 +23,7 @@ char read_buf[BUF_SIZE];
 char write_buf[BUF_SIZE];
 
 int port = -1;
-int master_readbytes = 0;
+int dhtport = -1;
 int masterfd = -1;
 bool master_is_set = false;
 char master_address[BUF_SIZE];
@@ -42,10 +42,10 @@ int main(int argc, char** argv)
 	conf>>token;
 	while(!conf.eof())
 	{
-		if(token == "backlog")
+		if(token == "dhtport")
 		{
-			// ignore and just pass through this case
 			conf>>token;
+			dhtport = atoi(token.c_str());
 		}
 		else if(token == "port")
 		{
@@ -139,9 +139,7 @@ void signal_listener()
 	while(1)
 	{
 		// check signal arrived from master
-		if(master_readbytes == 0)
-			memset(read_buf, 0, BUF_SIZE);
-		readbytes = read(masterfd, read_buf+master_readbytes, BUF_CUT-master_readbytes%BUF_CUT);
+		readbytes = nbread(masterfd, read_buf);
 		if(readbytes == 0) //connection closed from master
 		{
 			cout<<"[slave]Connection from master is abnormally closed"<<endl;
@@ -154,21 +152,13 @@ void signal_listener()
 		{
 			// do nothing
 		}
-		else if(read_buf[master_readbytes+readbytes-1] != 0
-			|| (master_readbytes+readbytes)%BUF_CUT != 0)
-		{
-			master_readbytes = master_readbytes+readbytes;
-		}
 		else // signal arrived from master
 		{
-			// update master readbytes
-			master_readbytes = 0;
-
 			if(strncmp(read_buf, "whoareyou", 9) == 0)
 			{
 				memset(write_buf, 0, BUF_SIZE);
 				strcpy(write_buf, "slave");
-				write(masterfd, write_buf, BUF_CUT*(strlen(write_buf)/BUF_CUT+1));
+				nbwrite(masterfd, write_buf);
 			}
 			else if(strncmp(read_buf, "close", 5) == 0)
 			{
@@ -331,25 +321,7 @@ void signal_listener()
 				strcpy(write_buf, keystr.c_str());
 
 				// send message to the master node
-				while(write(masterfd, write_buf, BUF_CUT*(strlen(write_buf)/BUF_CUT+1))<0)
-				{
-					// sleeps for 0.0001 seconds. change this if necessary
-					cout<<"[slave]write to master failed"<<endl;
-					int err = errno;
-					if(err == EAGAIN)
-					{
-						cout<<"[slave]due to EAEGIN"<<endl;
-					}
-					else if(err == EFAULT)
-					{
-						cout<<"[slave]due to EFAULT"<<endl;
-					}
-
-					// sleeps for 1 second to wait until buffer is available
-					sleep(1);
-				}
-				// sleeps for 0.0001 second. change this if necessary
-				// usleep(100);
+				nbwrite(masterfd, write_buf);
 			}
 
 			// check if all tasks in the job are finished
@@ -367,13 +339,7 @@ void signal_listener()
 		// check message from tasks through pipe
 		for(int i=0;(unsigned)i<running_tasks.size();i++)
 		{
-			// set the read buffer
-			if(running_tasks[i]->get_readbytes() == 0)
-				memset(running_tasks[i]->get_read_buf(), 0, BUF_SIZE);
-
-			readbytes = read(running_tasks[i]->get_readfd(),
-				running_tasks[i]->get_read_buf()+running_tasks[i]->get_readbytes(),
-				BUF_CUT - running_tasks[i]->get_readbytes()%BUF_CUT);
+			readbytes = nbread(running_tasks[i]->get_readfd(), read_buf);
 			if(readbytes == 0)
 			{
 				// ignore this case as default
@@ -382,17 +348,9 @@ void signal_listener()
 			{
 				continue;
 			}
-			else if(running_tasks[i]->get_read_buf()[running_tasks[i]->get_readbytes()+readbytes-1] != 0
-				|| (running_tasks[i]->get_readbytes()+readbytes)%BUF_CUT != 0)
-			{
-				running_tasks[i]->set_readbytes(running_tasks[i]->get_readbytes()+readbytes);
-			}
 			else
 			{
-				// update the readbytes
-				running_tasks[i]->set_readbytes(0);
-
-				if(strncmp(running_tasks[i]->get_read_buf(), "complete", 8) == 0)
+				if(strncmp(read_buf, "complete", 8) == 0)
 				{
 					cout<<"[slave]Task with taskid "<<running_tasks[i]->get_taskid();
 					cout<<" and job id "<<running_tasks[i]->get_job()->get_jobid();
@@ -401,12 +359,12 @@ void signal_listener()
 					// send terminate message
 					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, "terminate");
-					write(running_tasks[i]->get_writefd(), write_buf, BUF_CUT*(strlen(write_buf)/BUF_CUT+1));
+					nbwrite(running_tasks[i]->get_writefd(), write_buf);
 
 					// mark the task as completed
 					running_tasks[i]->set_status(COMPLETED);
 				}
-				else if(strncmp(running_tasks[i]->get_read_buf(), "requestconf", 11) == 0)
+				else if(strncmp(read_buf, "requestconf", 11) == 0)
 				{
 					// parse all task configure
 					stringstream message;
@@ -432,19 +390,19 @@ void signal_listener()
 					// send message to the task
 					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, message.str().c_str());
-					write(running_tasks[i]->get_writefd(), write_buf, BUF_CUT*(strlen(write_buf)/BUF_CUT+1));
+					nbwrite(running_tasks[i]->get_writefd(), write_buf);
 				}
-				else if(strncmp(running_tasks[i]->get_read_buf(), "key", 3) == 0)
+				else if(strncmp(read_buf, "key", 3) == 0)
 				{
 					char* token;
-					token = strtok(running_tasks[i]->get_read_buf(), " "); // token <- key
+					token = strtok(read_buf, " "); // token <- key
 					token = strtok(NULL, " "); // token <- key value
 					running_tasks[i]->get_job()->add_key(token);
 				}
 				else
 				{
 					cout<<"[slave]Undefined message protocol from task"<<endl;
-					cout<<"       Message: "<<running_tasks[i]->get_read_buf()<<endl;
+					cout<<"       Message: "<<read_buf<<endl;
 				}
 			}
 		}
@@ -467,7 +425,7 @@ void signal_listener()
 
 					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, msg.c_str());
-					write(masterfd, write_buf, BUF_CUT*(strlen(write_buf)/BUF_CUT+1));
+					nbwrite(masterfd, write_buf);
 
 					// clear all to things related to this task
 					running_tasks[i]->get_job()->finish_task(running_tasks[i]);

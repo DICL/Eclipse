@@ -185,7 +185,6 @@ slave_task::slave_task()
 	this->argvalues = NULL;
 	this-> job = NULL;
 	this->pid = 0;
-	this->readbytes = 0;
 }
 
 slave_task::slave_task(int id)
@@ -199,7 +198,6 @@ slave_task::slave_task(int id)
 	this->argvalues = NULL;
 	this-> job = NULL;
 	this->pid = 0;
-	this->readbytes = 0;
 }
 
 slave_task::~slave_task()
@@ -328,21 +326,6 @@ string slave_task::get_inputpath(int index)
 int slave_task::get_numinputpaths()
 {
 	return this->inputpaths.size();
-}
-
-int slave_task::get_readbytes()
-{
-	return this->readbytes;
-}
-
-void slave_task::set_readbytes(int abytes)
-{
-	this->readbytes = abytes;
-}
-
-char* slave_task::get_read_buf()
-{
-	return this->read_buf;
 }
 
 #endif

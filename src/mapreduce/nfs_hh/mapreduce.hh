@@ -57,6 +57,7 @@ char** argvalues = NULL;
 
 // variables for job role
 int port = -1;
+int dhtport = -1;
 int masterfd = -1;
 int jobid;
 int nummap = 0;
@@ -125,7 +126,7 @@ void init_mapreduce(int argc, char** argv)
 		{
 			if(token == "backlog")
 			{
-				// ignore and just pass throught this case
+				// ignore and just pass through this case
 				conf>>token;
 			}
 			else if(token == "port")
@@ -133,14 +134,19 @@ void init_mapreduce(int argc, char** argv)
 				conf>>token;
 				port = atoi(token.c_str());
 			}
+			else if(token == "dhtport")
+			{
+				conf>>token;
+				dhtport = atoi(token.c_str());
+			}
 			else if(token == "max_job")
 			{
-				// ignore and just pass throught this case
+				// ignore and just pass through this case
 				conf>>token;
 			}
 			else if(token == "num_slave")
 			{
-				// ignore and just pass throught this case
+				// ignore and just pass through this case
 				conf>>token;
 			}
 			else if(token == "master_address")

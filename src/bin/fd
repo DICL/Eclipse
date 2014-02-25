@@ -1,0 +1,33 @@
+#!/bin/sh
+
+# remove the existing file list
+rm -f $MR_PATH/inputlist.conf
+
+# make new file list
+for file in `ls $MR_PATH`
+do
+	if [[ $file == *".txt" ]]
+	then
+		echo $file >> $MR_PATH/inputlist.conf
+	fi
+done
+
+# remove existing distribution table
+rm -f $MR_PATH/dist.sh
+
+# make new distribution table
+$MR_HOME/bin/fd_core inputlist.conf dist.sh
+
+# distribute the file according to the distribution table
+sh $MR_PATH/dist.sh
+
+
+
+
+
+
+
+
+
+
+#awk '{print "mv",$1,$2}' sample.txt | sh
