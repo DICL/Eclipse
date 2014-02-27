@@ -303,7 +303,7 @@ void bin_to_str (int binary, char* str, size_t size) {
 void Orthrus::print_cache () {
  const char * msg = 
  "--------------------------------------------------\n"
- " +++++++ Orthrus debug info                         \n"
+ " +++++++ Orthrus debug info                       \n"
  "--------------------------------------------------\n"
  " + Status:         | %16s                         \n"
  " + Policy:         | %16s                         \n"

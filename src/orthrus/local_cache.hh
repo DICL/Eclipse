@@ -36,10 +36,10 @@ namespace orthrus {
 
 class Local_cache {
  protected:
-  typedef MAP map<uint64_t, std::pair<uint64_t, disk_page_t> >;
+  typedef map<uint64_t, std::pair<uint64_t, disk_page_t> > MAP;
   MAP map_spatial, map_lru;
   int policy;
-  size_t max_size, current_size, count;
+  size_t size_max_bytes, size_current_bytes, count;
   uint64_t double boundary_low, boundary_upp, ema;
   pthread_mutex_t mutex_map_spatial, mutex_map_lru;
   pthread_mutex_t mutex_queue_low, mutex_queue_upp;
@@ -48,14 +48,14 @@ class Local_cache {
 
  public:
   Local_cache (size_t);
-  ~Local_cache () { delete map_spatial; delete map_lru; }
-
+  ~Local_cache ();
   void set_policy (int);
 
   bool insert (disk_page_t&);
   disk_page_t lookup (uint64_t) throw (std::out_of_range);
 
   bool is_disk_page_belonging (disk_page_t&);
+  uint64_t get_local_center ();
   void update (double low, double upp);
 
   disk_page_t get_low ();

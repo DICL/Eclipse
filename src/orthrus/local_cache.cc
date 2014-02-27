@@ -10,14 +10,19 @@ using namespace orthrus;
 Local_map_spatial::Local_map_spatial (int _size) {
  map_spatial = new MAP ();
  map_lru     = new MAP ();
- max_size = _size;
- current_size = 0;
+ size_max_bytes = _size;
+ size_current_bytes = 0;
  policy = NOTHING;
 
  pthread_mutex_init (&mutex_map_spatial, NULL);
  pthread_mutex_init (&mutex_map_lru, NULL);
  pthread_mutex_init (&mutex_queue_low, NULL);
  pthread_mutex_init (&mutex_queue_upp, NULL);
+}
+//
+Local_map_spatial::~Local_cache () { 
+ delete map_spatial; 
+ delete map_lru; 
 }
 //}}}
 // insert {{{
@@ -26,7 +31,7 @@ Local_map_spatial::Local_map_spatial (int _size) {
 bool Local_map_spatial::insert (uint64_t idx, disk_page_t& dp) {
  auto it = map_spatial->find (idx);
  bool found_same       = (it != map_spatial->end());
- bool does_new_dp_fits = ((current_size + dp.get_size()) > max_size);
+ bool does_new_dp_fits = ((size_current_bytes + dp.get_size()) > size_max_bytes);
  dp.time = this->count++;
 
  if (does_new_dp_fits) { //! If its not full
@@ -40,11 +45,12 @@ bool Local_map_spatial::insert (uint64_t idx, disk_page_t& dp) {
    pthread_mutex_lock (&mutex_map_spatial);
    map_spatial->insert (std::make_pair (idx, dp));
    pthread_mutex_unlock (&mutex_map_spatial);
+
    pthread_mutex_lock (&mutex_map_lru);
    map_lru->insert (std::make_pair (idx, dp));
    pthread_mutex_unlock (&mutex_map_lru);
   }
- } else {                     //! If its full
+ } else {                //! If its full
   if (found_same) {
    pthread_mutex_lock (&mutex_map_spatial);
    map_lru->erase (map_lru->rbegin());
@@ -78,14 +84,26 @@ disk_page_t Local_map_spatial::lookup (uint64_t idx) throw (std::out_of_range) {
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 bool Local_map_spatial::is_disk_page_belonging (disk_page_t& dp) {
- uint64_t lowest   = (*map->begin()).point;
- uint64_t highest  = (*map->rbegin()).point;
- uint64_t oldest   = (*map_lru->begin()).time;
- uint64_t max_dist = (ema-lowest > highes-ema) ? ema-lowest : highest-ema; 
+ uint64_t lowest   = (*map->begin()).get_index ();
+ uint64_t highest  = (*map->rbegin()).get_index ();
+ uint64_t max_dist = std::max (ema-lowest, highest-ema);
+ //uint64_t oldest   = (*map_lru->begin()).get_time ();
 
- return (dp.time < oldest || max_dist > (dp.point - ema)) true : false;
+ return dp.time < oldest || max_dist > (dp.get_index () - ema);
 }
 //}}}
+// get_local_center{{{
+//                                -- Vicente Bolea
+// ----------------------------------------------- 
+uint32_t get_local_center () {
+ uint32_t counter = 0, total = 0;
+ for (auto& dp : map_spatial) {
+  total += dp.get_index () * dp.get_size ();
+  counter++;
+ } 
+ return total / counter;
+}
+// }}}
 // pop_farthest {{{
 // In case we exceed Delete the last page
 // New policy, delete the darkest element :TRICKY:
@@ -93,9 +111,9 @@ bool Local_map_spatial::is_disk_page_belonging (disk_page_t& dp) {
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 void Local_map_spatial::pop_farthest () {
- if (map_spatial->size () > this->max_size) { // :FIXME:
-  auto first = map_spatial->begin (); //! 0(1)
-  auto last  = map_spatial->rbegin (); //! O(1)
+ if (map_spatial->size () > size_max_bytes) { //! :FIXME:
+  auto first = map_spatial->begin ();         //! 0(1)
+  auto last  = map_spatial->rbegin ();        //! O(1)
 
   uint64_t lowest  = (*first).point;
   uint64_t highest = (*last).point;
@@ -103,9 +121,7 @@ void Local_map_spatial::pop_farthest () {
   //! If the victim belongs to the boundary of the node
   if (policy & SPATIAL) {
    if (boundary_low < lowest || highest < boundary_upp) {
-    //! POP the leftend element
-    if ((ema - lowest) > (highest - ema)) {
-
+    if ((ema - lowest) > (highest - ema)) { //! POP the leftest element
      pthread_mutex_lock (&mutex_queue_low);
      queue_lower.push (*first);
      pthread_mutex_unlock (&mutex_queue_low);
@@ -115,9 +131,7 @@ void Local_map_spatial::pop_farthest () {
      map_lru->erase (*first);
      pthread_mutex_unlock (&mutex_map_spatial);
 
-     //! Pop the rightend element
-    } else if (highest > ema) { 
-
+    } else if (highest > ema) { //! Pop the rightest element
      pthread_mutex_lock (&mutex_queue_upp);
      queue_upper.push (*last);
      pthread_mutex_unlock (&mutex_queue_upp);
@@ -128,6 +142,7 @@ void Local_map_spatial::pop_farthest () {
      pthread_mutex_unlock (&mutex_map_spatial);
     }
    }
+// {{{
    //! Otherwise pop the oldest element :LRU:
 //  } else ((policy & LRU) == LRU) {
 //
@@ -152,7 +167,8 @@ void Local_map_spatial::pop_farthest () {
 //   map_spatial->erase (oldest_item);
 //   pthread_mutex_unlock (&mutex_map_spatial);
 //  }
-// }
+// } 
+// }}}
   }
  }
 }
