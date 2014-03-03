@@ -83,7 +83,8 @@ string jobdirpath;
 int taskid;
 int pipefd[2]; // pipe fd when the role is map task or reduce task
 //DHTclient* dhtclient;
-fileclient afileclient;
+fileclient readfileclient;
+fileclient writefileclient;
 string localhostname;
 
 // variables for map task
@@ -117,66 +118,67 @@ void init_mapreduce(int argc, char** argv)
 		role = JOB;
 	}
 
+	ifstream conf;
+	string token;
+	string confpath = LIB_PATH;
+	confpath.append("setup.conf");
+	conf.open(confpath.c_str());
+
+	conf>>token;
+	while(!conf.eof())
+	{
+		if(token == "port")
+		{
+			conf>>token;
+			port = atoi(token.c_str());
+		}
+		else if(token == "dhtport")
+		{
+			conf>>token;
+			dhtport = atoi(token.c_str());
+		}
+		else if(token == "max_job")
+		{
+			// ignore and just pass through this case
+			conf>>token;
+		}
+		else if(token == "num_slave")
+		{
+			conf>>token;
+			num_slave = atoi(token.c_str());
+		}
+		else if(token == "master_address")
+		{
+			conf>>token;
+			strcpy(master_address, token.c_str());
+			master_is_set = true;
+		}
+		else
+		{
+			cout<<"Unknown configure record: "<<token<<endl;
+		}
+		conf>>token;
+	}
+	conf.close();
+
+	// verify initialization
+	if(port == -1)
+	{
+		cout<<"Port should be specified in the setup.conf"<<endl;
+		exit(1);
+	}
+	if(master_is_set == false)
+	{
+		cout<<"Master_address should be specified in the setup.conf"<<endl;
+		exit(1);
+	}
+
 	if(role == JOB) // when the role is job
 	{
 		// determine the argcount
 		argcount = argc;
 
-		ifstream conf;
-		string token;
-		string confpath = LIB_PATH;
-		confpath.append("setup.conf");
-		conf.open(confpath.c_str());
 
-		conf>>token;
-		while(!conf.eof())
-		{
-			if(token == "port")
-			{
-				conf>>token;
-				port = atoi(token.c_str());
-			}
-			else if(token == "dhtport")
-			{
-				conf>>token;
-				dhtport = atoi(token.c_str());
-			}
-			else if(token == "max_job")
-			{
-				// ignore and just pass through this case
-				conf>>token;
-			}
-			else if(token == "num_slave")
-			{
-				conf>>token;
-				num_slave = atoi(token.c_str());
-			}
-			else if(token == "master_address")
-			{
-				conf>>token;
-				strcpy(master_address, token.c_str());
-				master_is_set = true;
-			}
-			else
-			{
-				cout<<"Unknown configure record: "<<token<<endl;
-			}
-			conf>>token;
-		}
-		conf.close();
-
-		// verify initialization
-		if(port == -1)
-		{
-			cout<<"Port should be specified in the setup.conf"<<endl;
-			exit(1);
-		}
-		if(master_is_set == false)
-		{
-			cout<<"Master_address should be specified in the setup.conf"<<endl;
-			exit(1);
-		}
-		
 		masterfd = connect_to_server(master_address, port);
 		if(masterfd<0)
 		{
@@ -217,10 +219,9 @@ void init_mapreduce(int argc, char** argv)
 					}
 					else if(readbytes < 0)
 					{
-						// sleep for 0.0001 second. change this if necessary
-						// usleep(100);
+						continue;
 					}
-					else // reply arived
+					else // reply arrived
 					{
 						break;
 					}
@@ -311,7 +312,7 @@ void init_mapreduce(int argc, char** argv)
 					jobidss<<jobid;
 					jobidss<<"_";
 					jobdirpath = jobidss.str();
-					
+
 				}
 				else if(strncmp(token, "taskid", 6) == 0)
 				{
@@ -453,7 +454,7 @@ void summ_mapreduce()
 		}
 
 		// run the mapfunction until input all inputs are processed
-		
+
 		if(isset_mapper)
 		{
 			while(get_nextinput())
@@ -468,7 +469,7 @@ void summ_mapreduce()
 					string key = *unreported_keys.begin();
 					string keystr = "key ";
 					keystr.append(key);
-cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
+					cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 					unreported_keys.erase(*unreported_keys.begin());
 					reported_keys.insert(key);
 
@@ -492,7 +493,7 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 					}
 
 					// sleeps for 0.0001 seconds. change this if necessary
-					// usleep(100);
+					// usleep(100000);
 				}
 			}
 		}
@@ -501,7 +502,7 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 		memset(write_buf, 0, BUF_SIZE);
 		strcpy(write_buf, "complete");
 		nbwrite(pipefd[1], write_buf);
-		
+
 		// blocking read until the 'terminate' message
 		fcntl(pipefd[0], F_SETFL, fcntl(pipefd[0], F_GETFL) & ~O_NONBLOCK);
 		while(1)
@@ -522,7 +523,7 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 			{
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
-//					cout<<"[mapreduce]Map task is successfully completed"<<endl;
+					//					cout<<"[mapreduce]Map task is successfully completed"<<endl;
 
 					// clear task
 					if(inputtype == LOCAL)
@@ -538,7 +539,7 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 			}
 
 			// sleeps for 0.0001 seconds. change this if necessary
-			// usleep(100);
+			// usleep(100000);
 		}
 		fcntl(pipefd[0], F_SETFL, O_NONBLOCK);
 	}
@@ -588,7 +589,7 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 			{
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
-//					cout<<"[mapreduce]Reduce task is successfully completed"<<endl; // <- this message will be printed in the slave process side
+					//					cout<<"[mapreduce]Reduce task is successfully completed"<<endl; // <- this message will be printed in the slave process side
 
 					// clear task
 					if(inputtype == LOCAL)
@@ -604,7 +605,7 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 			}
 
 			// sleeps for 0.0001 seconds. change this if necessary
-			// usleep(100);
+			// usleep(100000);
 		}
 		fcntl(pipefd[0], F_SETFL, O_NONBLOCK);
 	}
@@ -631,7 +632,7 @@ void set_reducer(void (*red_func) (string key))
 	reducefunction = red_func;
 }
 
-void add_inputpath(string path) // the path is relative path to MR_PATH
+void add_inputpath(string path) // the path is relative path to DHT_PATH
 {
 	if(role == JOB)
 	{
@@ -647,7 +648,7 @@ void add_inputpath(string path) // the path is relative path to MR_PATH
 	}
 }
 
-void set_outputpath(string path) // this user function can be used in anywhere but after initialization
+void set_outputpath(string path) // this user function can be used in anywhere but before initialization
 {
 	outputpath = path;
 }
@@ -690,7 +691,7 @@ void write_keyvalue(string key, string value)
 	if(inside_map)
 	{
 		if(reported_keys.find(key) == reported_keys.end()
-			&& unreported_keys.find(key) == unreported_keys.end())
+				&& unreported_keys.find(key) == unreported_keys.end())
 		{
 			unreported_keys.insert(key);
 
@@ -722,20 +723,26 @@ void write_keyvalue(string key, string value)
 			}
 
 			// sleeps for 0.0001 seconds. change this if necessary
-			// usleep(100);
+			// usleep(100000);
 		}
 
 		// determine the address for the data by hash function
 		string address;
 		stringstream ss;
-		uint32_t hashvalue = h(key.c_str(), HASHLENGTH);
+
+		// use read_buf as temporal buffer for hash function
+		memset(read_buf, 0, BUF_SIZE);
+		strcpy(read_buf, key.c_str());
+
+		uint32_t hashvalue = h(read_buf, HASHLENGTH);
 		ss<<(hashvalue%num_slave)+1;
 		address = ADDRESSPREFIX;
 		address.append(ss.str());
 
 		string keypath = DHT_PATH;
-		keypath.append(jobdirpath);
-		keypath.append(key);
+		string keyfile = jobdirpath;
+		keyfile.append(key);
+		keypath.append(keyfile);
 
 		// result string
 		string rst = key;
@@ -754,9 +761,9 @@ void write_keyvalue(string key, string value)
 		}
 		else
 		{
-			afileclient.write_attach(address, dhtport, keypath);
-			afileclient.write_record(rst);
-			afileclient.close_server();
+			writefileclient.write_attach(address, dhtport, keyfile);
+			writefileclient.write_record(rst);
+			writefileclient.close_server();
 		}
 	}
 	else
@@ -784,7 +791,12 @@ bool get_nextinput() // internal function to process next input file
 		string address;
 		stringstream ss;
 		string inputname = inputpaths.back();
-		uint32_t hashvalue = h(inputname.c_str(), HASHLENGTH);
+
+		// use read_buf as temporal buffer for hash function
+		memset(read_buf, 0, BUF_SIZE);
+		strcpy(read_buf, inputname.c_str());
+		
+		uint32_t hashvalue = h(read_buf, HASHLENGTH);
 		ss<<(hashvalue%num_slave)+1;
 		address = ADDRESSPREFIX;
 		address.append(ss.str());
@@ -812,12 +824,12 @@ bool get_nextinput() // internal function to process next input file
 			bool readsuccess = false;
 			if(inputtype == LOCAL)
 				input.close();
-			afileclient.read_attach(address, dhtport, inputpaths.back());
+			readfileclient.read_attach(address, dhtport, inputpaths.back());
 			inputpaths.pop_back();
 			inputtype = DISTANT;
 
 			// pre-process first record
-			readsuccess = afileclient.read_record(&nextrecord);
+			readsuccess = readfileclient.read_record(&nextrecord);
 			if(readsuccess)
 				is_nextrec = true;
 			else
@@ -848,7 +860,7 @@ string get_nextrecord() // a user function for the map
 		{
 			bool readsuccess = false;
 			string ret = nextrecord;
-			readsuccess = afileclient.read_record(&nextrecord);
+			readsuccess = readfileclient.read_record(&nextrecord);
 
 			if(readsuccess)
 				is_nextrec = true;
@@ -897,7 +909,12 @@ bool get_nextkey(string* key) // internal function for the reduce
 		string address;
 		stringstream ss;
 		string inputname = inputpaths.back();
-		uint32_t hashvalue = h(inputname.c_str(), HASHLENGTH);
+
+		// use read_buf as temporal buffer for hash function
+		memset(read_buf, 0, BUF_SIZE);
+		strcpy(read_buf, inputname.c_str());
+
+		uint32_t hashvalue = h(read_buf, HASHLENGTH);
 		ss<<(hashvalue%num_slave)+1;
 		address = ADDRESSPREFIX;
 		address.append(ss.str());
@@ -932,13 +949,13 @@ bool get_nextkey(string* key) // internal function for the reduce
 
 			string apath = jobdirpath;
 			apath.append(inputpaths.back());
-			afileclient.read_attach(address, dhtport, apath);
+			readfileclient.read_attach(address, dhtport, apath);
 			inputpaths.pop_back();
 			inputtype = DISTANT;
 
 			// pre-process first record
 			stringstream ss;
-			readsuccess = afileclient.read_record(&nextvalue); // key value record
+			readsuccess = readfileclient.read_record(&nextvalue); // key value record
 
 			if(readsuccess)
 			{
@@ -990,7 +1007,7 @@ string get_nextvalue() // returns values in reduce function
 		{
 			string ret = nextvalue;
 			bool readsuccess = false;
-			readsuccess = afileclient.read_record(&nextvalue); // key value record
+			readsuccess = readfileclient.read_record(&nextvalue); // key value record
 
 			// pre-process first record
 			if(readsuccess)
@@ -1027,14 +1044,19 @@ void write_output(string record) // this user function can be used anywhere but 
 		stringstream ss;
 		ss<<"job_";
 		ss<<jobid;
-		ss<<".out";
+		ss<<".txt";
 		outputpath = ss.str();
 	}
 
 	// determine the address for the data by hash function
 	string address;
 	stringstream ss;
-	uint32_t hashvalue = h(outputpath.c_str(), HASHLENGTH);
+
+	// use read_buf as temporal buffer for hash function
+	memset(read_buf, 0, BUF_SIZE);
+	strcpy(read_buf, outputpath.c_str());
+
+	uint32_t hashvalue = h(read_buf, HASHLENGTH);
 	ss<<(hashvalue%num_slave)+1;
 	address = ADDRESSPREFIX;
 	address.append(ss.str());
@@ -1054,9 +1076,9 @@ void write_output(string record) // this user function can be used anywhere but 
 	}
 	else
 	{
-		afileclient.write_attach(address, dhtport, outputpath);
-		afileclient.write_record(record);
-		afileclient.close_server();
+		writefileclient.write_attach(address, dhtport, outputpath);
+		writefileclient.write_record(record);
+		writefileclient.close_server();
 	}
 }
 

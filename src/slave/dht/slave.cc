@@ -185,6 +185,7 @@ void signal_listener()
 			}
 			else if(strncmp(read_buf, "tasksubmit", 10) == 0)
 			{
+cout<<"\033[0;31m"<<read_buf<<"\033[0m"<<endl;
 				// launch the forwarded task
 				slave_job* thejob = NULL;
 				slave_task* thetask = NULL;
@@ -467,7 +468,7 @@ void signal_listener()
 		}
 
 		// sleeps for 0.0001 seconds. change this if necessary
-		// usleep(100);
+		// usleep(100000);
 	}
 	if(close(masterfd)<0)
 		cout<<"[slave]Close failed"<<endl;
@@ -497,6 +498,7 @@ void launch_task(slave_task* atask)
 
 	if(pid == 0) // child side
 	{
+		fileservercontinue = false;
 		// pass all arguments
 		char** args;
 		int count;

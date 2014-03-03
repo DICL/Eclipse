@@ -1,9 +1,29 @@
 #!/bin/sh
 
-# remove the existing file list
+# remove the existing file list and distribution table
+echo "Deleting garbage file on DHT PATH in all slave nodes..."
+
 rm -f $MR_PATH/inputlist.conf
+rm -f $MR_PATH/dist.sh
+
+# remove the existing input files
+for ((i=1;i<=39;i++))
+do
+	if ((i<10))
+	then
+		ssh raven0$i mrrm &
+	else
+		ssh raven$i mrrm &
+	fi
+done
+
+wait
+
+echo -e "\033[0;32mDone\033[0m"
 
 # make new file list
+echo "Generating file list..."
+
 for file in `ls $MR_PATH`
 do
 	if [[ $file == *".txt" ]]
@@ -12,22 +32,19 @@ do
 	fi
 done
 
-# remove existing distribution table
-rm -f $MR_PATH/dist.sh
+echo -e "\033[0;32mDone\033[0m"
+
 
 # make new distribution table
+echo "Generating file distribution table..."
+
 $MR_HOME/bin/fd_core inputlist.conf dist.sh
 
+echo -e "\033[0;32mDone\033[0m"
+
 # distribute the file according to the distribution table
+echo "Distributing the files..."
+
 sh $MR_PATH/dist.sh
 
-
-
-
-
-
-
-
-
-
-#awk '{print "mv",$1,$2}' sample.txt | sh
+echo -e "\033[0;32mDone\033[0m"

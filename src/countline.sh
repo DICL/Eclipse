@@ -7,6 +7,8 @@ killall.sh \
 setup.conf \
 \
 bin/fd \
+bin/mrls \
+bin/mrrm \
 \
 client/client.cc \
 client/client.hh \
@@ -32,10 +34,6 @@ mcc/hdfs/mcc.hh \
 mcc/dht/mcc.cc \
 mcc/dht/mcc.hh \
 \
-common/fileserver.hh \
-common/fileclient.hh \
-common/file_connclient.hh \
-\
 slave/slave.cc \
 slave/slave.hh \
 slave/dht/slave.cc \
@@ -43,4 +41,9 @@ slave/dht/slave.hh \
 slave/slave_job.hh \
 slave/slave_task.hh \
 \
-file_distributor/fd_core.cc
+common/fileclient.hh \
+\
+file_distributor/fd_core.cc \
+file_distributor/fileserver.cc \
+file_distributor/fileserver.hh \
+file_distributor/file_connclient.hh

@@ -72,14 +72,64 @@ int nbwrite(int fd, char* buf, char* contents) // when the content should be spe
 		{
 			cout<<"\twrite function failed due to EAGAIN, retrying..."<<endl;
 		}
+		else if(errno == EBADF)
+		{
+			cout<<"\twrite function failed due to EBADF, retrying..."<<endl;
+		}
+		else if(errno == EFAULT)
+		{
+			cout<<"\twrite function failed due to EFAULT, retrying..."<<endl;
+		}
+		else if(errno == EFBIG)
+		{
+			cout<<"\twrite function failed due to EFBIG, retrying..."<<endl;
+		}
+		else if(errno == EINTR)
+		{
+			cout<<"\twrite function failed due to EINTR, retrying..."<<endl;
+		}
+		else if(errno == EINVAL)
+		{
+			cout<<"\twrite function failed due to EINVAL, retrying..."<<endl;
+		}
+		else if(errno == EIO)
+		{
+			cout<<"\twrite function failed due to EIO, retrying..."<<endl;
+		}
+		else if(errno == ENOSPC)
+		{
+			cout<<"\twrite function failed due to ENOSPC, retrying..."<<endl;
+		}
+		else if(errno == EPIPE)
+		{
+			cout<<"\twrite function failed due to EPIPE, retrying..."<<endl;
+		}
 		else
 		{
-			cout<<"\twrite function failed due to unknown reason(debug needed), retrying..."<<endl;
+			cout<<"\twrite function failed due to unknown reason(debug needed)..."<<endl;
 			return -1;
 		}
 
 		// sleep 1 milli seconds to prevent busy waiting
 		usleep(1000);
+	}
+	if(written_bytes != BUF_CUT*((int)strlen(buf)/BUF_CUT+1))
+	{
+		int progress = written_bytes;
+		int remain = BUF_CUT*(strlen(buf)/BUF_CUT+1) - written_bytes;
+		while(remain > 0)
+		{
+			written_bytes = write(fd, buf+progress, remain);
+
+			if(written_bytes > 0)
+			{
+				progress += written_bytes;
+				remain -= written_bytes;
+			}
+
+			// sleep 1 milli seconds to prevent busy waiting
+			usleep(1000);
+		}
 	}
 	return written_bytes;
 }
@@ -93,15 +143,77 @@ int nbwrite(int fd, char* buf) // when the content is already on the buffer
 		if(errno == EAGAIN)
 		{
 			cout<<"\twrite function failed due to EAGAIN, retrying..."<<endl;
+			sleep(1);
+		}
+		else if(errno == EBADF)
+		{
+			cout<<"\twrite function failed due to EBADF, retrying..."<<endl;
+			sleep(1);
+		}
+		else if(errno == EFAULT)
+		{
+			cout<<"\twrite function failed due to EFAULT, retrying..."<<endl;
+			sleep(1);
+		}
+		else if(errno == EFBIG)
+		{
+			cout<<"\twrite function failed due to EFBIG, retrying..."<<endl;
+			sleep(1);
+		}
+		else if(errno == EINTR)
+		{
+			cout<<"\twrite function failed due to EINTR, retrying..."<<endl;
+			sleep(1);
+		}
+		else if(errno == EINVAL)
+		{
+			cout<<"\twrite function failed due to EINVAL, retrying..."<<endl;
+			sleep(1);
+		}
+		else if(errno == EIO)
+		{
+			cout<<"\twrite function failed due to EIO, retrying..."<<endl;
+			sleep(1);
+		}
+		else if(errno == ENOSPC)
+		{
+			cout<<"\twrite function failed due to ENOSPC, retrying..."<<endl;
+			sleep(1);
+		}
+		else if(errno == EPIPE)
+		{
+			cout<<"\twrite function failed due to EPIPE, retrying..."<<endl;
+			sleep(1);
 		}
 		else
 		{
-			cout<<"\twrite function failed due to unknown reason(debug needed), retrying..."<<endl;
+			cout<<"\twrite function failed due to unknown reason(debug needed)..."<<endl;
+			sleep(1);
 			return -1;
 		}
 
 		// sleep 1 milli seconds to prevent busy waiting
 		usleep(1000);
+	}
+	if(written_bytes != BUF_CUT*((int)strlen(buf)/BUF_CUT+1))
+	{
+		int progress = written_bytes;
+		int remain = BUF_CUT*(strlen(buf)/BUF_CUT+1) - written_bytes;
+		while(remain > 0)
+		{
+			written_bytes = write(fd, buf+progress, remain);
+
+			if(written_bytes > 0)
+			{
+				progress += written_bytes;
+				remain -= written_bytes;
+			}
+
+			// sleep 1 milli seconds to prevent busy waiting
+			//usleep(1000);
+usleep(100000);
+cout<<"\t\tperhaps due to this?"<<endl;
+		}
 	}
 	return written_bytes;
 }
@@ -114,8 +226,18 @@ int nbread(int fd, char* buf)
 	memset(buf, 0, BUF_SIZE);
 
 	readbytes = read(fd, buf, BUF_CUT);
-	if(readbytes <= 0)
+	if(readbytes == 0)
 	{
+		return readbytes;
+	}
+	else if(readbytes < 0)
+	{
+		if(errno != EAGAIN)
+		{
+			cout<<"\tread function failed due to error other than EAGAIN, debug needed"<<endl;
+			sleep(1);
+		}
+
 		return readbytes;
 	}
 	else
@@ -154,6 +276,11 @@ int nbread(int fd, char* buf)
 		
 	}
 	return total_readbytes + readbytes;
+}
+
+int stringhash(int abc)
+{
+	return 0;
 }
 
 #endif

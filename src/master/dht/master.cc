@@ -116,7 +116,7 @@ int main(int argc, char** argv)
 	int serverfd = open_server(port);
 	if(serverfd < 0)
 	{
-		cout<<"[master]Openning server failed"<<endl;
+		cout<<"[master]\033[0;31mOpenning server failed\033[0m"<<endl;
 		return 1;
 	}
 
@@ -181,7 +181,7 @@ int main(int argc, char** argv)
 			// break if all slaves are connected
 			if(slaves.size() == (unsigned)num_slave)
 			{
-				cout<<"[master]All slave nodes are connected successfully"<<endl;
+				cout<<"[master]\033[0;32mAll slave nodes are connected successfully\033[0m"<<endl;
 				// set maximum number of task 4 for each slave as default
 				for(int i=0;(unsigned)i<slaves.size();i++)
 					slaves[i]->setmaxtask(4);
@@ -236,7 +236,7 @@ int open_server(int port)
 	serveraddr.sin_port = htons((unsigned short) port);
 	if(bind(serverfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0)
 	{
-		cout<<"[master]Binding failed"<<endl;
+		cout<<"[master]\033[0;31mBinding failed\033[0m"<<endl;
 		return -1;
 	}
 
@@ -699,9 +699,11 @@ void* signal_listener(void* args)
 			// default scheduler: FCFS-like scheduler
 			for(int j=0;(unsigned)j<slaves.size();j++)
 			{
-				while((slaves[j]->getnumrunningtasks() < slaves[j]->getmaxtask()) && (jobs[i]->get_lastwaitingtask() != NULL)) // schedule all the slot if none of the slot is avilable
+				while((slaves[j]->getnumrunningtasks() < slaves[j]->getmaxtask())
+					&& (jobs[i]->get_lastwaitingtask() != NULL)) // schedule all the slot until none of the slot is avilable
 				{
 					master_task* thetask = jobs[i]->get_lastwaitingtask();
+
 					// write to the slave the task information
 					stringstream ss;
 					ss<<"tasksubmit ";
@@ -744,12 +746,13 @@ cout<<"[master]Debugging: the argument string exceeds the limited length"<<endl;
 					string tmp = ss.str();
 					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, tmp.c_str());
+cout<<"\033[0;32m"<<write_buf<<"\033[0m"<<endl;
 					nbwrite(slaves[j]->getfd(), write_buf);
 
 					// forward waiting task to slave slot
 					jobs[i]->schedule_task(thetask, slaves[j]);
 					// sleeps for 0.0001 seconds. change this if necessary
-					// usleep(100);
+					// usleep(100000);
 				}
 			}
 		}
@@ -759,7 +762,7 @@ cout<<"[master]Debugging: the argument string exceeds the limited length"<<endl;
 			break;
 
 		// sleeps for 0.0001 seconds. change this if necessary
-		// usleep(100);
+		// usleep(100000);
 	}
 
 	// close master socket
