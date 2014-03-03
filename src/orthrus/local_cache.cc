@@ -89,7 +89,7 @@ bool Local_map_spatial::is_disk_page_belonging (disk_page_t& dp) {
  uint64_t max_dist = std::max (ema-lowest, highest-ema);
  //uint64_t oldest   = (*map_lru->begin()).get_time ();
 
- return dp.time < oldest or max_dist > (dp.get_index () - ema);
+ return max_dist > (dp.get_index () - ema);
 }
 //}}}
 // get_local_center{{{
