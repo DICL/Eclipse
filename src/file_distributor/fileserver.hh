@@ -22,7 +22,7 @@ private:
 
 public:
 	fileserver();
-	int run_server(int port, bool* server_continue); // run this function at another thread
+	int run_server(int port);
 };
 
 fileserver::fileserver()
@@ -30,7 +30,7 @@ fileserver::fileserver()
 	this->serverfd = -1;
 }
 
-int fileserver::run_server(int port, bool* server_continue)
+int fileserver::run_server(int port)
 {
 	int fd;
 	struct sockaddr_in serveraddr;
@@ -74,7 +74,7 @@ int fileserver::run_server(int port, bool* server_continue)
 	int addrlen = sizeof(connaddr);
 
 	// listen connections and signals from clients
-	while(*server_continue)
+	while(1)
 	{
 		tmpfd = accept(serverfd, (struct sockaddr *) &connaddr, (socklen_t *) &addrlen);
 		if(tmpfd > 0) // new file client is connected
@@ -122,6 +122,7 @@ int fileserver::run_server(int port, bool* server_continue)
 			{
 				// read file and transfer it to client.
 				// close the connection and delete client from vector after all record is transferred.
+				int written_bytes;
 				string record;
 
 				if(clients[i]->read_record(&record))
@@ -129,9 +130,10 @@ int fileserver::run_server(int port, bool* server_continue)
 					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, record.c_str());
 
-					// TODO: consider if we need to change nbwrite to write
 //cout<<"\033[0;32mrecord sent from server: \033[0m"<<write_buf<<endl;
+
 					nbwrite(clients[i]->get_fd(), write_buf);
+					usleep(1000);
 				}
 				else // if all record is transferred
 				{

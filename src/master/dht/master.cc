@@ -746,7 +746,6 @@ cout<<"[master]Debugging: the argument string exceeds the limited length"<<endl;
 					string tmp = ss.str();
 					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, tmp.c_str());
-cout<<"\033[0;32m"<<write_buf<<"\033[0m"<<endl;
 					nbwrite(slaves[j]->getfd(), write_buf);
 
 					// forward waiting task to slave slot

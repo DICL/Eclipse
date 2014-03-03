@@ -17,7 +17,7 @@ DHT_FLAG += -lmrr
 all:
 	echo Type ether: [make nfs], [make hdfs], [make dht] [make clean]
 
-dht: $(MR_HOME)/make_version/master_dht $(MR_HOME)/make_version/slave_dht $(MR_HOME)/bin/client $(MR_HOME)/make_version/mcc_dht $(MR_HOME)/bin/fd_core $(MR_HOME)/common/hash.o
+dht: $(MR_HOME)/make_version/master_dht $(MR_HOME)/make_version/slave_dht $(MR_HOME)/bin/client $(MR_HOME)/make_version/mcc_dht $(MR_HOME)/bin/fd_core $(MR_HOME)/common/hash.o $(MR_HOME)/bin/fileserver
 	touch $(MR_HOME)/make_version/dht_mode
 
 nfs: $(MR_HOME)/make_version/master_nfs_hdfs $(MR_HOME)/make_version/slave_nfs_hdfs $(MR_HOME)/bin/client $(MR_HOME)/make_version/mcc_nfs $(MR_HOME)/common/hash.o
@@ -38,7 +38,7 @@ $(MR_HOME)/make_version/master_nfs_hdfs: $(MR_HOME)/master/master.cc $(MR_HOME)/
 	touch $(MR_HOME)/make_version/master_nfs_hdfs
 
 
-$(MR_HOME)/make_version/slave_dht: $(MR_HOME)/slave/dht/slave.cc $(MR_HOME)/slave/dht/slave.hh $(MR_HOME)/common/fileserver.hh $(MR_HOME)/common/file_connclient.hh $(MR_DEF) $(DHT_OBJ) $(SLAVE_DEP) $(MR_HOME)/make_version/slave
+$(MR_HOME)/make_version/slave_dht: $(MR_HOME)/slave/dht/slave.cc $(MR_HOME)/slave/dht/slave.hh $(MR_DEF) $(DHT_OBJ) $(SLAVE_DEP) $(MR_HOME)/make_version/slave
 	g++ $(MR_HOME)/slave/dht/slave.cc -o $(MR_HOME)/bin/slave -I $(MR_HOME) $(DHT_FLAG) -lpthread -Wall
 	touch $(MR_HOME)/make_version/slave
 	touch $(MR_HOME)/make_version/slave_dht
@@ -67,6 +67,9 @@ $(MR_HOME)/make_version/mcc_dht: $(MR_HOME)/mcc/dht/mcc.cc $(MR_HOME)/mcc/dht/mc
 	g++ $(MR_HOME)/mcc/dht/mcc.cc -o $(MR_HOME)/bin/mcc -I $(MR_HOME) -Wall
 	touch $(MR_HOME)/make_version/mcc
 	touch $(MR_HOME)/make_version/mcc_dht
+
+$(MR_HOME)/bin/fileserver: $(MR_HOME)/file_distributor/fileserver.cc $(MR_HOME)/file_distributor/fileserver.hh
+	g++ $(MR_HOME)/file_distributor/fileserver.cc -o $(MR_HOME)/bin/fileserver -I $(MR_HOME) -Wall
 
 
 $(MR_HOME)/DHT/DHTserver.o: $(MR_HOME)/DHT/DHTserver.cc $(MR_HOME)/DHT/DHTserver.hh

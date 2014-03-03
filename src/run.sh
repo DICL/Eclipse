@@ -26,4 +26,19 @@ do
 	fi
 done
 
+if [ -e $MR_HOME/make_version/dht_mode ]
+then
+	for((i=1; i<=$numslave; i++))
+	do
+		if ((i<10))
+		then
+			echo "Launching fileserver $i"
+			ssh raven0$i $MR_HOME/bin/fileserver &
+		else
+			echo "Launching fileclient $i"
+			ssh raven$i $MR_HOME/bin/fileserver &
+		fi
+	done
+fi
+
 wait

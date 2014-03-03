@@ -9,28 +9,48 @@ for((i=1; i<=$numslave; i++))
 do
 	if ((i<10))
 	then
-		echo "killing slave in raven0$i"
+		echo "shutdown slave in raven0$i..."
 		ssh raven0$i killall slave &
 	else
-		echo "killing slave in raven$i"
+		echo "shutdown slave in raven$i..."
 		ssh raven$i killall slave  &
 	fi
 done
-
 wait
+echo -e "\033[0;32mDone\033[0m"
 
 for((i=1; i<=$numslave; i++))
 do
 	if ((i<10))
 	then
-		echo "killing $1 in raven0$i"
+		echo "shutdown fileserver in raven0$i..."
+		ssh raven0$i killall fileserver &
+	else
+		echo "shutdown fileserver in raven$i..."
+		ssh raven$i killall fileserver &
+	fi
+done
+wait
+echo -e "\033[0;32mDone\033[0m"
+
+
+for((i=1; i<=$numslave; i++))
+do
+	if ((i<10))
+	then
+		echo "shutdown $1 in raven0$i..."
 		ssh raven0$i killall $1 &
 	else
-		echo "killing $1 in raven$i"
+		echo "shutdown $1 in raven$i..."
 		ssh raven$i killall $1 &
 	fi
 done
-
-killall master
-
 wait
+echo -e "\033[0;32mDone\033[0m"
+
+echo "shutdown master node..."
+killall master
+echo -e "\033[0;32mDone\033[0m"
+
+
+

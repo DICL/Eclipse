@@ -210,9 +210,7 @@ int nbwrite(int fd, char* buf) // when the content is already on the buffer
 			}
 
 			// sleep 1 milli seconds to prevent busy waiting
-			//usleep(1000);
-usleep(100000);
-cout<<"\t\tperhaps due to this?"<<endl;
+			usleep(1000);
 		}
 	}
 	return written_bytes;

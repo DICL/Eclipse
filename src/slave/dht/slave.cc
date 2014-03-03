@@ -10,11 +10,9 @@
 #include <sys/socket.h>
 #include <sys/fcntl.h>
 #include <arpa/inet.h>
-#include <assert.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <mapreduce/definitions.hh>
-#include <common/fileserver.hh>
 #include "slave.hh"
 #include "../slave_job.hh"
 #include "../slave_task.hh"
@@ -31,10 +29,6 @@ bool master_is_set = false;
 char master_address[BUF_SIZE];
 vector<slave_job*> running_jobs; // a vector of job, one or multiple tasks of which are running on this slave node
 vector<slave_task*> running_tasks; // a vector of running tasks
-fileserver afileserver;
-bool fileservercontinue = true;
-
-void* open_fileserver(void* args);
 
 int main(int argc, char** argv)
 {
@@ -105,19 +99,10 @@ int main(int argc, char** argv)
 	// set master socket to be non-blocking socket to avoid deadlock
 	fcntl(masterfd, F_SETFL, O_NONBLOCK);
 
-	// create fileserver thread and launch it
-	pthread_t fileserver_thread;
-	pthread_create(&fileserver_thread, NULL, open_fileserver, NULL);
 
 	signal_listener();
 
 	return 0;
-}
-
-void* open_fileserver(void* args)
-{
-	afileserver.run_server(dhtport, &fileservercontinue);
-	return NULL;
 }
 
 int connect_to_server(char* host, unsigned short port)
@@ -185,7 +170,6 @@ void signal_listener()
 			}
 			else if(strncmp(read_buf, "tasksubmit", 10) == 0)
 			{
-cout<<"\033[0;31m"<<read_buf<<"\033[0m"<<endl;
 				// launch the forwarded task
 				slave_job* thejob = NULL;
 				slave_task* thetask = NULL;
@@ -498,7 +482,6 @@ void launch_task(slave_task* atask)
 
 	if(pid == 0) // child side
 	{
-		fileservercontinue = false;
 		// pass all arguments
 		char** args;
 		int count;
