@@ -216,7 +216,7 @@ void Orthrus::migration_server () {
   if (fd_is_ready (Smigration_server)) {
 
    int ret = recvfrom (Smigration_server, &dp, sizeof (diskPage), 0, (sockaddr*)&Amigration_server, &sa);
-   if (ret != sizeof (diskPage) && ret != -1)
+   if (ret != sizeof (diskPage) and ret != -1)
     log (M_WARN, local_ip_str, "[THREAD_FUNC_NEIGHBOR] Strange diskpage received");
 
    if (ret == -1) { continue; }
@@ -292,7 +292,7 @@ void Orthrus::request_listener () {
 // It assume that the string is at maximum of 32 bits,
 // also assume that the binary has maximum 32 bits width 
 void bin_to_str (int binary, char* str, size_t size) {
- if (size != 32 && size != 16 && size != 8) return;
+ if (size != 32 and size != 16 and size != 8) return;
  size_t i;
  for (i = 2; i <= size - 2; i++)
   str [size-i] = (binary & (1<<(i-2))) ? '1': '0';

@@ -1,4 +1,4 @@
-#include <local_map_spatial.hh>
+#include <local_cache.hh>
 #include <algorithm>
 #include <err.h>
 
@@ -89,7 +89,7 @@ bool Local_map_spatial::is_disk_page_belonging (disk_page_t& dp) {
  uint64_t max_dist = std::max (ema-lowest, highest-ema);
  //uint64_t oldest   = (*map_lru->begin()).get_time ();
 
- return dp.time < oldest || max_dist > (dp.get_index () - ema);
+ return dp.time < oldest or max_dist > (dp.get_index () - ema);
 }
 //}}}
 // get_local_center{{{
@@ -120,7 +120,7 @@ void Local_map_spatial::pop_farthest () {
 
   //! If the victim belongs to the boundary of the node
   if (policy & SPATIAL) {
-   if (boundary_low < lowest || highest < boundary_upp) {
+   if (boundary_low < lowest or highest < boundary_upp) {
     if ((ema - lowest) > (highest - ema)) { //! POP the leftest element
      pthread_mutex_lock (&mutex_queue_low);
      queue_lower.push (*first);
@@ -180,7 +180,7 @@ void Local_map_spatial::boundaries_update (uint64_t low, uint64_t upp) {
  auto low_i = map_spatial->lower_bound (low);
  auto upp_i = map_spatial->upper_bound (upp);
 
- if (low_i != map_spatial->end()  &&  low_i != map_spatial->begin()) {
+ if (low_i != map_spatial->end() and low_i != map_spatial->begin()) {
   for_each (map_spatial->begin(), low_it, [&] (auto it) {
    pthread_mutex_lock (&mutex_queue_low);
    queue_lower.push (*it);
@@ -191,7 +191,7 @@ void Local_map_spatial::boundaries_update (uint64_t low, uint64_t upp) {
    pthread_mutex_unlock (&mutex_map_spatial);
   });
  }  
- if (upp_i != map_spatial->end()  &&  upp_i != map_spatial->begin())  {
+ if (upp_i != map_spatial->end() and upp_i != map_spatial->begin())  {
   for_each (upp_i, map_spatial->end(), [&] (auto it) {
    pthread_mutex_lock (&mutex_queue_upp);
    queue_upper.push (*it);
