@@ -5,6 +5,7 @@ then
 fi
 
 numslave=$(awk '$1=="num_slave"{print $2}' setup.conf)
+
 for((i=1; i<=$numslave; i++))
 do
 	if ((i<10))
@@ -16,7 +17,9 @@ do
 		ssh raven$i killall slave  &
 	fi
 done
+
 wait
+
 echo -e "\033[0;32mDone\033[0m"
 
 for((i=1; i<=$numslave; i++))
@@ -30,9 +33,10 @@ do
 		ssh raven$i killall fileserver &
 	fi
 done
-wait
-echo -e "\033[0;32mDone\033[0m"
 
+wait
+
+echo -e "\033[0;32mDone\033[0m"
 
 for((i=1; i<=$numslave; i++))
 do
@@ -45,12 +49,13 @@ do
 		ssh raven$i killall $1 &
 	fi
 done
+
 wait
+
 echo -e "\033[0;32mDone\033[0m"
 
 echo "shutdown master node..."
+
 killall master
+
 echo -e "\033[0;32mDone\033[0m"
-
-
-

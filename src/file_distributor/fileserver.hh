@@ -122,28 +122,39 @@ int fileserver::run_server(int port)
 			{
 				// read file and transfer it to client.
 				// close the connection and delete client from vector after all record is transferred.
-				int written_bytes;
-				string record;
-
-				if(clients[i]->read_record(&record))
+				if(clients[i]->get_remain() == 0) // if next record should be read
 				{
-					memset(write_buf, 0, BUF_SIZE);
-					strcpy(write_buf, record.c_str());
+					string record;
+					if(clients[i]->read_record(&record))
+					{
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, record.c_str());
 
-//cout<<"\033[0;32mrecord sent from server: \033[0m"<<write_buf<<endl;
 
-					nbwrite(clients[i]->get_fd(), write_buf);
-					usleep(1000);
+						// prepare the write to remote client
+						clients[i]->prep_send(write_buf);
+
+						// send a record
+						clients[i]->send_record();
+						//cout<<"\033[0;32mrecord read from server: \033[0m"<<write_buf<<endl;
+
+
+						//cout<<"\033[0;32mrecord sent from server: \033[0m"<<write_buf<<endl;
+					}
+					else // if all record is transferred
+					{
+						// close the fd to notify that all records are transferred.
+						close(clients[i]->get_fd());
+
+						// delete the client from the vector
+						delete clients[i];
+						clients.erase(clients.begin()+i);
+						i--;
+					}
 				}
-				else // if all record is transferred
+				else
 				{
-					// close the fd to notify that all file is transferred.
-					close(clients[i]->get_fd());
-
-					// delete the client from the vector
-					delete clients[i];
-					clients.erase(clients.begin()+i);
-					i--;
+					clients[i]->send_record();
 				}
 			}
 			else // WRITE role
@@ -166,6 +177,7 @@ int fileserver::run_server(int port)
 //cout<<"\033[0;33mrecord received in server: \033[0m"<<read_buf<<endl;
 					record = read_buf;
 					clients[i]->write_record(record, write_buf);
+//cout<<"\033[0;33mrecord written in server: \033[0m"<<read_buf<<endl;
 				}
 				else // if there is no message from the client
 				{

@@ -13,6 +13,9 @@ class file_connclient
 private:
 	int fd;
 	int writefilefd;
+	int remain; // bytes remained until complete transmission
+	int progress; // bytes progressed during transmission
+	char buf[BUF_SIZE];
 	fstream readfilestream;
 	string filename;
 	file_client_role role;
@@ -31,6 +34,10 @@ public:
 	void open_writefile(string fname);
 	bool read_record(string* record);
 	void write_record(string record, char* write_buf);
+	void prep_send(char* source);
+	void send_record();
+	int get_remain();
+	int get_progress();
 };
 
 file_connclient::file_connclient(int fd)
@@ -38,6 +45,7 @@ file_connclient::file_connclient(int fd)
 	this->fd = fd;
 	this->writefilefd = -1;
 	this->role = UNDEFINED;
+	this->remain = 0;
 }
 
 file_connclient::file_connclient(int fd, file_client_role arole, string aname)
@@ -46,6 +54,7 @@ file_connclient::file_connclient(int fd, file_client_role arole, string aname)
 	this->filename = aname;
 	this->writefilefd = -1;
 	this->role = arole;
+	this->remain = 0;
 }
 
 file_connclient::~file_connclient()
@@ -149,6 +158,36 @@ void file_connclient::write_record(string record, char* write_buf)
 	fcntl(this->writefilefd, F_SETLK, &ulock);
 
 	return;
+}
+
+void file_connclient::send_record()
+{
+	int written_bytes;
+	written_bytes = write(this->fd, buf+progress, remain);
+
+	if(written_bytes > 0)
+	{
+		progress += written_bytes;
+		remain -= written_bytes; 
+	}
+	return;
+}
+
+void file_connclient::prep_send(char* source) // prepare for the sending record through socket
+{
+	strcpy(buf, source);
+	remain = BUF_CUT*(strlen(buf)/BUF_CUT+1); // same as nbwrite
+	progress = 0;
+}
+
+int file_connclient::get_remain()
+{
+	return this->remain;
+}
+
+int file_connclient::get_progress()
+{
+	return this->progress;
 }
 
 #endif
