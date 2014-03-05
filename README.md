@@ -10,8 +10,11 @@ BRIEFING
 UNIX SOCKET MESSAGE IPC REQUIREMENT
 ---
 
-    [ Header            ][ Message    ]
-    [1B type][32B size][4B Key] [ ... ]    
+    [ Header          ][   Message    ] Non-null ended
+    [1B type][32B size][4B Key] [ ... ] Non-null ended  
+
+    - UDP sockets for IPC 
+    - one-to-many communication
 
 <!-- Links -->
 [vicente]:  https://github.com/vicentebolea
