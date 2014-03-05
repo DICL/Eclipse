@@ -6,7 +6,12 @@ AUTHOR
 
 BRIEFING
 ========
-ToDo
+
+UNIX SOCKET MESSAGE IPC REQUIREMENT
+---
+
+    [ Header            ][ Message    ]
+    [1B type][32B size][4B Key] [ ... ]    
 
 <!-- Links -->
 [vicente]:  https://github.com/vicentebolea
