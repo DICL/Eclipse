@@ -266,7 +266,6 @@ void init_mapreduce(int argc, char** argv)
 		//dhtclient = new DHTclient(RAVENLEADER, dhtport);
 
 		// process pipe arguments
-		int readcount = 0;
 		pipefd[0] = atoi(argv[argc-3]); // read fd
 		pipefd[1] = atoi(argv[argc-2]); // write fd
 		argcount = argc - 3;
@@ -369,7 +368,7 @@ void summ_mapreduce()
 			// TODO: deal with the case when number of characters exceeds BUF_SIZE
 			ss<<" inputpath ";
 			ss<<inputpaths.size();
-			for(int i=0;i<inputpaths.size();i++)
+			for(int i=0;(unsigned)i<inputpaths.size();i++)
 			{
 				ss<<" ";
 				ss<<inputpaths[i];
@@ -476,24 +475,7 @@ void summ_mapreduce()
 					// send 'key' meesage to the slave node
 					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, keystr.c_str());
-					while(nbwrite(pipefd[1], write_buf) < 0)
-					{
-						cout<<"[mapreduce]write to slave failed"<<endl;
-						int err = errno;
-						if(err == EAGAIN)
-						{
-							cout<<"[mapreduce]due to the EAGAIN"<<endl;
-						}
-						else if(err == EFAULT)
-						{
-							cout<<"[mapreduce]due to the EFAULT"<<endl;
-						}
-						// sleeps for 1 milli second. change this if necessary
-						usleep(1000);
-					}
-
-					// sleeps for 0.0001 seconds. change this if necessary
-					// usleep(100000);
+					nbwrite(pipefd[1], write_buf);
 				}
 			}
 		}
@@ -524,7 +506,6 @@ void summ_mapreduce()
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
 					//					cout<<"[mapreduce]Map task is successfully completed"<<endl;
-
 					// clear task
 					if(inputtype == LOCAL)
 					{
@@ -761,8 +742,7 @@ void write_keyvalue(string key, string value)
 		}
 		else
 		{
-			writefileclient.write_attach(address, dhtport, keyfile);
-			writefileclient.write_record(rst);
+			writefileclient.write_record(address, dhtport, keyfile, rst);
 			writefileclient.close_server();
 		}
 	}
@@ -872,6 +852,7 @@ string get_nextrecord() // a user function for the map
 		else
 		{
 			cout<<"[mapreduce]File is not opened properly before reading record"<<endl;
+			return "";
 		}
 	}
 	else
@@ -890,6 +871,7 @@ bool is_nextrecord()
 	else
 	{
 		cout<<"[mapreduce]Warning: the is_nextrecord() function is being used outside the map function"<<endl;
+		return false;
 	}
 }
 
@@ -983,6 +965,7 @@ bool is_nextvalue() // returns true if there is next value
 	else
 	{
 		cout<<"[mapreduce]Warning: the is_nextvalue() function is being used outside the reduce function"<<endl;
+		return false;
 	}
 }
 
@@ -1039,6 +1022,7 @@ string get_nextvalue() // returns values in reduce function
 
 void write_output(string record) // this user function can be used anywhere but after initialization
 {
+cout<<"start of write_output()"<<endl;
 	if(outputpath == "default_output")
 	{
 		stringstream ss;
@@ -1076,10 +1060,12 @@ void write_output(string record) // this user function can be used anywhere but 
 	}
 	else
 	{
-		writefileclient.write_attach(address, dhtport, outputpath);
-		writefileclient.write_record(record);
+cout<<"before write_record"<<endl;
+		writefileclient.write_record(address, dhtport, outputpath, record);
+cout<<"after write_record"<<endl;
 		writefileclient.close_server();
 	}
+cout<<"end of write_output()"<<endl;
 }
 
 int get_jobid()

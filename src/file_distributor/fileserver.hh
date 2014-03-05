@@ -79,44 +79,47 @@ int fileserver::run_server(int port)
 		tmpfd = accept(serverfd, (struct sockaddr *) &connaddr, (socklen_t *) &addrlen);
 		if(tmpfd > 0) // new file client is connected
 		{
-			char* token;
-			file_client_role inputrole = UNDEFINED;
-			string filename;
-
-			nbread(tmpfd, read_buf);
-
-			token = strtok(read_buf, " "); // <- read or write
-
-			if(strncmp(token, "read", 4) == 0)
-			{
-				inputrole = READ;
-			}
-			else if(strncmp(token, "write", 5) == 0)
-			{
-				inputrole = WRITE;
-			}
-
-			token = strtok(NULL, " "); // <- file name
-			filename = token;
-
 			// create new clients
-			this->clients.push_back(new file_connclient(tmpfd, inputrole, filename));
-
-			if(clients.back()->get_role() == READ)
-				clients.back()->open_readfile(filename);
-			else if(clients.back()->get_role() == WRITE)
-				clients.back()->open_writefile(filename);
-			else
-				cout<<"[fileserver]The role is not defined"<<endl;
+			this->clients.push_back(new file_connclient(tmpfd));
 
 			// set socket to be non-blocking socket to avoid deadlock
 			fcntl(tmpfd, F_SETFL, O_NONBLOCK);
 		}
-		for(int i=0;(unsigned)i<this->clients.size();i++)
+
+		for(int i=0; (unsigned)i<this->clients.size(); i++)
 		{
 			if(clients[i]->get_role() == UNDEFINED)
 			{
-				cout<<"[fileserver]The role is not defined for a clients"<<endl;
+				int readbytes;
+
+				readbytes = nbread(clients[i]->get_fd(), read_buf);
+				if(readbytes > 0)
+				{
+					char* token;
+					string filename;
+
+					strcpy(write_buf, read_buf);
+
+					token = strtok(read_buf, " "); // <- read or write
+
+					if(strncmp(token, "read", 4) == 0)
+					{
+						clients[i]->set_role(READ);
+					}
+					else if(strncmp(token, "write", 5) == 0)
+					{
+						clients[i]->set_role(WRITE);
+					}
+
+					token = strtok(NULL, " "); // <- file name
+
+					filename = token;
+
+					if(clients[i]->get_role() == READ)
+						clients[i]->open_readfile(filename);
+					else if(clients[i]->get_role() == WRITE)
+						clients[i]->open_writefile(filename);
+				}
 			}
 			else if(clients[i]->get_role() == READ)
 			{
@@ -130,15 +133,13 @@ int fileserver::run_server(int port)
 						memset(write_buf, 0, BUF_SIZE);
 						strcpy(write_buf, record.c_str());
 
-
 						// prepare the write to remote client
 						clients[i]->prep_send(write_buf);
 
 						// send a record
 						clients[i]->send_record();
+
 						//cout<<"\033[0;32mrecord read from server: \033[0m"<<write_buf<<endl;
-
-
 						//cout<<"\033[0;32mrecord sent from server: \033[0m"<<write_buf<<endl;
 					}
 					else // if all record is transferred

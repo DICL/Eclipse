@@ -175,6 +175,7 @@ void file_connclient::send_record()
 
 void file_connclient::prep_send(char* source) // prepare for the sending record through socket
 {
+	memset(buf, 0, BUF_SIZE);
 	strcpy(buf, source);
 	remain = BUF_CUT*(strlen(buf)/BUF_CUT+1); // same as nbwrite
 	progress = 0;

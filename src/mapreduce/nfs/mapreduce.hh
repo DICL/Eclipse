@@ -554,7 +554,6 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
 //					cout<<"[mapreduce]Map task is successfully completed"<<endl;
-
 					// clear task
 					input.close();
 					// terminate successfully

@@ -135,6 +135,7 @@ int connect_to_server(char* host, unsigned short port)
 
 void signal_listener()
 {
+//ofstream logfile = new ofstream("slave" + id + ".log");
 	// get signal from master, jobs and tasks
 	int readbytes = 0;
 	while(1)
@@ -142,6 +143,7 @@ void signal_listener()
 		readbytes = nbread(masterfd, read_buf);
 		if(readbytes == 0) //connection closed from master
 		{
+//logfile << gettimeofday
 			cout<<"[slave]Connection from master is abnormally closed"<<endl;
 			if(close(masterfd)<0)
 				cout<<"[slave]Closing socket failed"<<endl;
