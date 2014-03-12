@@ -1,8 +1,8 @@
 // @brief 
 //  This cache class aim to meet the requirements
-//   - Fix size
-//   - Thread Reentrant support
-//   - Different discarding policies, such as: LRU, locality distance
+//   - Fix size.
+//   - Thread Reentrant support.
+//   - Different discarding policies, such as: LRU, spatial.
 //
 // -------------------------------------------- * * * -- Vicente Bolea
 //
@@ -71,7 +71,6 @@ using std::vector;
 // }}}
 // Orthrus class {{{
 // -------------------------------------------- * * * -- Vicente Bolea
-//
 class Orthrus {
  public:
   Orthrus ();

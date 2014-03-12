@@ -7,9 +7,9 @@ using namespace orthrus;
 // Constructor {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-Local_map_spatial::Local_map_spatial (int _size) {
- map_spatial = new MAP ();
- map_lru     = new MAP ();
+Local_cache::Local_cache (size_t _size) {
+ map_spatial = new Local_cache::MAP ();
+ map_lru     = new Local_cache::MAP ();
  size_max_bytes = _size;
  size_current_bytes = 0;
  policy = NOTHING;
@@ -20,7 +20,7 @@ Local_map_spatial::Local_map_spatial (int _size) {
  pthread_mutex_init (&mutex_queue_upp, NULL);
 }
 //
-Local_map_spatial::~Local_cache () { 
+Local_cache::~Local_cache () { 
  delete map_spatial; 
  delete map_lru; 
 }
@@ -28,41 +28,43 @@ Local_map_spatial::~Local_cache () {
 // insert {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-bool Local_map_spatial::insert (uint64_t idx, disk_page_t& dp) {
+bool Local_cache::insert (uint64_t idx, disk_page_t& dp) {
  auto it = map_spatial->find (idx);
  bool found_same       = (it != map_spatial->end());
  bool does_new_dp_fits = ((size_current_bytes + dp.get_size()) > size_max_bytes);
- dp.time = this->count++;
+ dp.set_time (this->count++);
 
  if (does_new_dp_fits) { //! If its not full
   if (found_same) {
    pthread_mutex_lock (&mutex_map_spatial);
-   map_lru->erase (*it);
+   map_lru->erase (it);
    map_lru->insert (*it);  // :TODO: //std::swap (it, map_lru->begin());
    pthread_mutex_unlock (&mutex_map_spatial);
 
   } else {
    pthread_mutex_lock (&mutex_map_spatial);
-   map_spatial->insert (std::make_pair (idx, dp));
+   map_spatial->insert (std::make_pair (idx, std::make_pair (idx, dp)));
    pthread_mutex_unlock (&mutex_map_spatial);
 
    pthread_mutex_lock (&mutex_map_lru);
-   map_lru->insert (std::make_pair (idx, dp));
+   map_lru->insert (std::make_pair (idx, std::make_pair (idx, dp)));
    pthread_mutex_unlock (&mutex_map_lru);
   }
  } else {                //! If its full
   if (found_same) {
    pthread_mutex_lock (&mutex_map_spatial);
-   map_lru->erase (map_lru->rbegin());
-   map_lru->erase (dp);
+   map_lru->erase (--map_lru->rbegin().base());
+   map_lru->erase (idx);
    pthread_mutex_unlock (&mutex_map_spatial);
    // No need to update map_spatial
 
   } else {
    pthread_mutex_lock (&mutex_map_spatial);
-   map_spatial->insert (dp);
-   map_lru->insert (dp);
+   map_spatial->insert (std::make_pair (idx, std::make_pair (idx, dp)));
    pthread_mutex_unlock (&mutex_map_spatial);
+   pthread_mutex_lock (&mutex_map_lru);
+   map_lru->insert (std::make_pair (idx, std::make_pair (idx, dp)));
+   pthread_mutex_unlock (&mutex_map_lru);
    pop_farthest ();
   }
  } 
@@ -72,7 +74,7 @@ bool Local_map_spatial::insert (uint64_t idx, disk_page_t& dp) {
 // lookup {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-disk_page_t Local_map_spatial::lookup (uint64_t idx) throw (std::out_of_range) {
+disk_page_t Local_cache::lookup (uint64_t idx) throw (std::out_of_range) {
  auto victim = map_spatial->find (idx);
  if (victim != map_spatial->end ())  //! If it is found O(log n)
   return (*victim).second;
@@ -83,7 +85,7 @@ disk_page_t Local_map_spatial::lookup (uint64_t idx) throw (std::out_of_range) {
 // Is_disk_page_belonging {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-bool Local_map_spatial::is_disk_page_belonging (disk_page_t& dp) {
+bool Local_cache::is_disk_page_belonging (disk_page_t& dp) {
  uint64_t lowest   = (*map->begin()).get_index ();
  uint64_t highest  = (*map->rbegin()).get_index ();
  uint64_t max_dist = std::max (ema-lowest, highest-ema);
@@ -110,7 +112,7 @@ uint32_t get_local_center () {
 // Complexity O(1)
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-void Local_map_spatial::pop_farthest () {
+void Local_cache::pop_farthest () {
  if (map_spatial->size () > size_max_bytes) { //! :FIXME:
   auto first = map_spatial->begin ();         //! 0(1)
   auto last  = map_spatial->rbegin ();        //! O(1)
@@ -176,14 +178,14 @@ void Local_map_spatial::pop_farthest () {
 // update {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-void Local_map_spatial::boundaries_update (uint64_t low, uint64_t upp) {
+void Local_cache::boundaries_update (uint64_t low, uint64_t upp) {
  auto low_i = map_spatial->lower_bound (low);
  auto upp_i = map_spatial->upper_bound (upp);
 
  if (low_i != map_spatial->end() and low_i != map_spatial->begin()) {
   for_each (map_spatial->begin(), low_it, [&] (auto it) {
    pthread_mutex_lock (&mutex_queue_low);
-   queue_lower.push (*it);
+   queue_lower.push ((*it).second);
    pthread_mutex_unlock (&mutex_queue_low);
 
    pthread_mutex_lock (&mutex_map_spatial);
@@ -208,14 +210,14 @@ void Local_map_spatial::boundaries_update (uint64_t low, uint64_t upp) {
 // :FIXME: Optimize the return references
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-disk_page_t Local_map_spatial::get_low () {
+disk_page_t Local_cache::get_low () {
  disk_page_t out = queue_lower.front ();
  pthread_mutex_lock (&mutex_queue_low);
  queue_lower.pop ();
  pthread_mutex_unlock (&mutex_queue_low);
  return out;
 }
-disk_page_t Local_map_spatial::get_upp () {
+disk_page_t Local_cache::get_upp () {
  disk_page_t out = queue_upper.front ();
  pthread_mutex_lock (&mutex_queue_upp);
  queue_upper.pop ();

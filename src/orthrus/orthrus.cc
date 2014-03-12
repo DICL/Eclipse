@@ -53,8 +53,8 @@ Orthrus& Orthrus::set_host    (const char* host_) {
  return *this; 
 }
 Orthrus& Orthrus::set_network (std::vector<const char*> in) {
- assert ((setted & SETTED_PORT) == SETTED_PORT);
- assert ((setted & SETTED_IFACE) == SETTED_IFACE);
+ assert (setted & SETTED_PORT);
+ assert (setted & SETTED_IFACE);
 
  for (auto& ip : in) {
   struct sockaddr_in addr;
@@ -215,6 +215,7 @@ void Orthrus::migration_server () {
   diskPage dp;
   if (fd_is_ready (Smigration_server)) {
 
+   //:TODO: Now the diskpage size is undetermined 
    int ret = recvfrom (Smigration_server, &dp, sizeof (diskPage), 0, (sockaddr*)&Amigration_server, &sa);
    if (ret != sizeof (diskPage) and ret != -1)
     log (M_WARN, local_ip_str, "[THREAD_FUNC_NEIGHBOR] Strange diskpage received");
@@ -233,7 +234,7 @@ void Orthrus::migration_client () {
  size_t _size = network.size();
  int sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
- int left_idx  = (local_no == 0) ? _size: local_no - 1;
+ int left_idx  = (local_no == 0) ? _size : local_no - 1;
  int right_idx = ((size_t)local_no == _size) ? 0: local_no + 1;
 
  struct sockaddr_in* addr_left  = &(network [left_idx]);
@@ -270,6 +271,7 @@ void Orthrus::request_listener () {
   Header Hrequested;
   struct sockaddr_in client_addr;
   if (fd_is_ready (Srequest)) {
+   //:TODO: change header for some other index as an integer
    ssize_t ret = recvfrom (Srequest, &Hrequested, sizeof (Header), 0, (sockaddr*)&client_addr, &s);
    if (ret == sizeof (Header)) {
 
