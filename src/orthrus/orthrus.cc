@@ -153,6 +153,9 @@ Orthrus& Orthrus::close () {
 }
 // }}}
 // lookup {{{
+// First, try to get the data from the Local_cache
+// Second, Get the node which has that data (request function deals with this)
+// Third, Request from that node
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 std::tuple<char*, size_t> Orthrus::lookup (std::string key) throw (std::out_of_range) {
@@ -167,6 +170,7 @@ std::tuple<char*, size_t> Orthrus::lookup (std::string key) throw (std::out_of_r
 }
 // }}}
 // insert {{{
+// Instert in the Local_cache
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 bool Orthrus::insert (std::string key, std::string val) {
@@ -176,18 +180,11 @@ bool Orthrus::insert (std::string key, std::string val) {
  memcpy (dp.chunk, val.c_str(), DPSIZE);
  bool ret = cache->insert (dp);
 
- //// Code to ask DHT :TODO:
- //if (ret == false) {
- // int victim = DHT_client->lookup (output);
- // if (victim != local_no) {
- //  request (key);
- // }
- //}
-
  return ret;
 }
 //}}}
 // Request {{{
+// Ask to some other server for the give data
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 bool Orthrus::request (const char * key) {
@@ -197,7 +194,7 @@ bool Orthrus::request (const char * key) {
  uint16_t server_no = DHT_client->lookup (key);
 
  if (server_no == local_no) return false; 
- uint16_t message = htons (server_no);
+ uint16_t message = htons (h(key));
 
  sendto (Srequest, &message, 2, 0,(sockaddr*)&network [server_no], s);
 

@@ -4,7 +4,7 @@
 
 using namespace orthrus;
 
-// Constructor  & getters/setters {{{
+// Constructor&getters/setters {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 Local_cache::Local_cache (size_t _size) {
