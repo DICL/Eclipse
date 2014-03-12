@@ -4,13 +4,12 @@
 
 using namespace orthrus;
 
-// Constructor {{{
+// Constructor  & getters/setters {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 Local_cache::Local_cache (size_t _size) {
  map_spatial = new Local_cache::MAP ();
  map_lru     = new Local_cache::MAP ();
- size_max_bytes = _size;
  size_current_bytes = 0;
  policy = NOTHING;
 
@@ -19,10 +18,31 @@ Local_cache::Local_cache (size_t _size) {
  pthread_mutex_init (&mutex_queue_low, NULL);
  pthread_mutex_init (&mutex_queue_upp, NULL);
 }
-//
+// ----------------------------------------------- 
 Local_cache::~Local_cache () { 
  delete map_spatial; 
  delete map_lru; 
+}
+// ----------------------------------------------- 
+Local_cache& Local_cache::set_policy (int p) {
+ policy = p;
+ return *this;
+}
+// ----------------------------------------------- 
+Local_cache& Local_cache::set_boundaries (uint64_t l, uint64_t u) {
+ boundary_low = l;
+ boundary_upp = u;
+ return *this;
+}
+// ----------------------------------------------- 
+Local_cache& Local_cache::set_ema (uint64_t e) {
+ ema = e;
+ return *this;
+}
+// ----------------------------------------------- 
+Local_cache& Local_cache::set_size (size_t s) {
+ size_max_bytes = s;
+ return *this;
 }
 //}}}
 // insert {{{

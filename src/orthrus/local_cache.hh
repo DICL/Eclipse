@@ -37,20 +37,22 @@ namespace orthrus {
 class Local_cache {
  protected:
   typedef map<uint64_t, std::pair<uint64_t, disk_page_t> > MAP;
-  MAP *map_spatial, *map_lru;
-  int policy;
-  size_t size_max_bytes, size_current_bytes, count;
-  uint64_t boundary_low, boundary_upp, ema;
-  pthread_mutex_t mutex_map_spatial, mutex_map_lru;
-  pthread_mutex_t mutex_queue_low, mutex_queue_upp;
-
-  void pop_farthest ();
 
  public:
-  Local_cache (size_t);
+  Local_cache ();
   ~Local_cache ();
-  void set_policy (int);
 
+  //----------GETTERS & SETTERS-------------------//
+  Local_cache& set_policy (int);
+  Local_cache& set_boundaries (uint64_t, uint64_t);
+  Local_cache& set_ema (uint64_t);
+  Local_cache& set_size (size_t);
+  int       get_policy ()     { return policy; }
+  std::pair get_boundaries () { return make_tuple (boundary_low, boundary_upp);}
+  uint64_t  get_ema ()        { return ema; }
+  size_t    get_size ()       { return size_max_bytes; }
+
+  //----------PUBLIC METHODS----------------------//
   bool insert (uint64_t, disk_page_t&);
   disk_page_t lookup (uint64_t) throw (std::out_of_range);
 
@@ -63,6 +65,16 @@ class Local_cache {
 
   queue<disk_page_t> queue_lower;
   queue<disk_page_t> queue_upper;
+
+ protected:
+  MAP *map_spatial, *map_lru;
+  int policy;
+  size_t size_max_bytes, size_current_bytes, count;
+  uint64_t boundary_low, boundary_upp, ema;
+  pthread_mutex_t mutex_map_spatial, mutex_map_lru;
+  pthread_mutex_t mutex_queue_low, mutex_queue_upp;
+
+  void pop_farthest ();
 };
 
 #endif
