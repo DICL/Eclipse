@@ -111,7 +111,7 @@ poisson (double c)
 }
 
 //rotate/flip a quadrant appropriately
- void
+void
 rot (int64_t n, int64_t  *x, int64_t *y, int64_t  rx, int64_t ry) 
 {
  if (ry == 0) {
@@ -127,7 +127,7 @@ rot (int64_t n, int64_t  *x, int64_t *y, int64_t  rx, int64_t ry)
  }
 }
 
- int64_t
+int64_t
 hilbert (int64_t n, int64_t x, int64_t y) 
 {
  int64_t rx, ry, s, d = 0;
@@ -165,8 +165,12 @@ char* get_ip (const char* interface) {
  return if_ip;
 }
 
-void dump_trace (void) {
-	void * buffer[255];
-	const int calls = backtrace (buffer, sizeof(buffer) / sizeof(void *));
-	backtrace_symbols_fd (buffer, calls, 2);
+char* get_backtrace (void) {
+ static char output [256];
+	void * buffer [256];
+ backtrace (buffer, 256);
+	char * out = backtrace_symbols (buffer, 256);
+ memcpy (output, out, 256);
+ ::free (out);
+ return output;
 }

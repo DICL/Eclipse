@@ -1,34 +1,36 @@
-#include <simring.hh>
-#include <SETcache.hh>
+#include <local_cache.hh>
 #include <UnitTest++.h>
 
-struct fix_setcache {
- uint64_t success, failed;
- SETcache* cache;
+const size_t SIZE = 10;
 
- fix_setcache () {
+struct fix_local_cache {
+ uint64_t success, failed;
+ Local_cache* cache;
+
+ fix_local_cache () {
   success = 0;
   failed = 0;
-  cache = new SETcache (3, "input1.trash");
+  cache = new Local_cache ();
+  cache .set_policy (CACHE_SPATIAL) .set_size (SIZE);
  }
-
- ~fix_setcache () {
+ ~fix_local_cache () {
   delete cache;
  }
 };
 
-SUITE (SETCACHE) {
+SUITE (LOCAL_CACHE) {
  //--------------------------------------//
- TEST_FIXTURE (fix_setcache, match) {
+ TEST_FIXTURE (fix_local_cache, cstrdstr) { }
+ //--------------------------------------//
+ TEST_FIXTURE (fix_local_cache, insert) {
+  const uint64_t left = 100, right = 200, size = 10;
+  disk_page_t dp .set_index (50) .set_size (size) .set_data ("WHASAPGUYS");
 
-  for (int i = 3; i < 7; i++) {
+  boundaries_update (100, 200);
+  insert (50, dp);
+ }
 
-   if (cache->match (i, 1, 10)) 
-    success++;
-   else
-    failed++;
-
-  }
-  CHECK(failed == 4);
+ //--------------------------------------//
+ TEST_FIXTURE (fix_local_cache, lookup) {
  }
 }

@@ -13,7 +13,7 @@ Posix/SignalTranslator.o:  Posix/SignalTranslator.cpp Posix/SignalTranslator.h \
  /usr/include/x86_64-linux-gnu/bits/siginfo.h \
  /usr/include/x86_64-linux-gnu/bits/sigaction.h \
  /usr/include/x86_64-linux-gnu/bits/sigcontext.h \
- /usr/lib/gcc/x86_64-linux-gnu/4.6/include/stddef.h \
+ /usr/lib/gcc/x86_64-linux-gnu/4.8/include/stddef.h \
  /usr/include/x86_64-linux-gnu/bits/sigstack.h \
  /usr/include/x86_64-linux-gnu/sys/ucontext.h \
  /usr/include/x86_64-linux-gnu/bits/pthreadtypes.h \
@@ -33,7 +33,7 @@ Posix/SignalTranslator.cpp Posix/SignalTranslator.h :
  /usr/include/x86_64-linux-gnu/bits/siginfo.h :
  /usr/include/x86_64-linux-gnu/bits/sigaction.h :
  /usr/include/x86_64-linux-gnu/bits/sigcontext.h :
- /usr/lib/gcc/x86_64-linux-gnu/4.6/include/stddef.h :
+ /usr/lib/gcc/x86_64-linux-gnu/4.8/include/stddef.h :
  /usr/include/x86_64-linux-gnu/bits/sigstack.h :
  /usr/include/x86_64-linux-gnu/sys/ucontext.h :
  /usr/include/x86_64-linux-gnu/bits/pthreadtypes.h :

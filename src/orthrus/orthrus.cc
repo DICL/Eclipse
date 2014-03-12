@@ -53,8 +53,8 @@ Orthrus& Orthrus::set_host    (const char* host_) {
  return *this; 
 }
 Orthrus& Orthrus::set_network (std::vector<const char*> in) {
- assert ((setted & SETTED_PORT) == SETTED_PORT);
- assert ((setted & SETTED_IFACE) == SETTED_IFACE);
+ assert (setted & SETTED_PORT);
+ assert (setted & SETTED_IFACE);
 
  for (auto& ip : in) {
   struct sockaddr_in addr;
@@ -153,6 +153,9 @@ Orthrus& Orthrus::close () {
 }
 // }}}
 // lookup {{{
+// First, try to get the data from the Local_cache
+// Second, Get the node which has that data (request function deals with this)
+// Third, Request from that node
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 std::tuple<char*, size_t> Orthrus::lookup (std::string key) throw (std::out_of_range) {
@@ -167,6 +170,7 @@ std::tuple<char*, size_t> Orthrus::lookup (std::string key) throw (std::out_of_r
 }
 // }}}
 // insert {{{
+// Instert in the Local_cache
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 bool Orthrus::insert (std::string key, std::string val) {
@@ -176,18 +180,11 @@ bool Orthrus::insert (std::string key, std::string val) {
  memcpy (dp.chunk, val.c_str(), DPSIZE);
  bool ret = cache->insert (dp);
 
- //// Code to ask DHT :TODO:
- //if (ret == false) {
- // int victim = DHT_client->lookup (output);
- // if (victim != local_no) {
- //  request (key);
- // }
- //}
-
  return ret;
 }
 //}}}
 // Request {{{
+// Ask to some other server for the give data
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 bool Orthrus::request (const char * key) {
@@ -197,7 +194,7 @@ bool Orthrus::request (const char * key) {
  uint16_t server_no = DHT_client->lookup (key);
 
  if (server_no == local_no) return false; 
- uint16_t message = htons (server_no);
+ uint16_t message = htons (h(key));
 
  sendto (Srequest, &message, 2, 0,(sockaddr*)&network [server_no], s);
 
@@ -215,8 +212,9 @@ void Orthrus::migration_server () {
   diskPage dp;
   if (fd_is_ready (Smigration_server)) {
 
+   //:TODO: Now the diskpage size is undetermined 
    int ret = recvfrom (Smigration_server, &dp, sizeof (diskPage), 0, (sockaddr*)&Amigration_server, &sa);
-   if (ret != sizeof (diskPage) && ret != -1)
+   if (ret != sizeof (diskPage) and ret != -1)
     log (M_WARN, local_ip_str, "[THREAD_FUNC_NEIGHBOR] Strange diskpage received");
 
    if (ret == -1) { continue; }
@@ -233,7 +231,7 @@ void Orthrus::migration_client () {
  size_t _size = network.size();
  int sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
- int left_idx  = (local_no == 0) ? _size: local_no - 1;
+ int left_idx  = (local_no == 0) ? _size : local_no - 1;
  int right_idx = ((size_t)local_no == _size) ? 0: local_no + 1;
 
  struct sockaddr_in* addr_left  = &(network [left_idx]);
@@ -270,6 +268,7 @@ void Orthrus::request_listener () {
   Header Hrequested;
   struct sockaddr_in client_addr;
   if (fd_is_ready (Srequest)) {
+   //:TODO: change header for some other index as an integer
    ssize_t ret = recvfrom (Srequest, &Hrequested, sizeof (Header), 0, (sockaddr*)&client_addr, &s);
    if (ret == sizeof (Header)) {
 
@@ -292,7 +291,7 @@ void Orthrus::request_listener () {
 // It assume that the string is at maximum of 32 bits,
 // also assume that the binary has maximum 32 bits width 
 void bin_to_str (int binary, char* str, size_t size) {
- if (size != 32 && size != 16 && size != 8) return;
+ if (size != 32 and size != 16 and size != 8) return;
  size_t i;
  for (i = 2; i <= size - 2; i++)
   str [size-i] = (binary & (1<<(i-2))) ? '1': '0';
@@ -303,7 +302,7 @@ void bin_to_str (int binary, char* str, size_t size) {
 void Orthrus::print_cache () {
  const char * msg = 
  "--------------------------------------------------\n"
- " +++++++ Orthrus debug info                         \n"
+ " +++++++ Orthrus debug info                       \n"
  "--------------------------------------------------\n"
  " + Status:         | %16s                         \n"
  " + Policy:         | %16s                         \n"

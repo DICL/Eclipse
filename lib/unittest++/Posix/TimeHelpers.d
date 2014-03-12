@@ -13,7 +13,7 @@ Posix/TimeHelpers.o:  Posix/TimeHelpers.cpp Posix/TimeHelpers.h \
  /usr/include/x86_64-linux-gnu/bits/sigset.h /usr/include/unistd.h \
  /usr/include/x86_64-linux-gnu/bits/posix_opt.h \
  /usr/include/x86_64-linux-gnu/bits/environments.h \
- /usr/lib/gcc/x86_64-linux-gnu/4.6/include/stddef.h \
+ /usr/lib/gcc/x86_64-linux-gnu/4.8/include/stddef.h \
  /usr/include/x86_64-linux-gnu/bits/confname.h /usr/include/getopt.h
 Posix/TimeHelpers.cpp Posix/TimeHelpers.h :
  /usr/include/x86_64-linux-gnu/sys/time.h /usr/include/features.h :
@@ -30,5 +30,5 @@ Posix/TimeHelpers.cpp Posix/TimeHelpers.h :
  /usr/include/x86_64-linux-gnu/bits/sigset.h /usr/include/unistd.h :
  /usr/include/x86_64-linux-gnu/bits/posix_opt.h :
  /usr/include/x86_64-linux-gnu/bits/environments.h :
- /usr/lib/gcc/x86_64-linux-gnu/4.6/include/stddef.h :
+ /usr/lib/gcc/x86_64-linux-gnu/4.8/include/stddef.h :
  /usr/include/x86_64-linux-gnu/bits/confname.h /usr/include/getopt.h :

@@ -13,7 +13,8 @@ INCLUDE += -I $(LIBDIR)/unittest++/
 CXXFLAGS := -ggdb3 -Wall -Wextra $(INCLUDE) -std=gnu++11 -fopenmp #-D_DEBUG
 LDFLAGS := -L $(LIBDIR) -L $(LIBDIR2) -lUnitTest++ -lm -lpthread -lmrr
 
-SOURCES := local_cache.cc local_cache_test.cc main.cc orthrus.cc orthrus_test.cc DHTclient.cc
+SOURCES := main.cc diskpage_test.cc 
+#local_cache.cc local_cache_test.cc main.cc orthrus.cc orthrus_test.cc DHTclient.cc
 OBJECTS := $(patsubst %.cc, %.o, $(SOURCES))
 
 %.o : %.cc 

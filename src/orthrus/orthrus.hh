@@ -1,8 +1,8 @@
 // @brief 
 //  This cache class aim to meet the requirements
-//   - Fix size
-//   - Thread Reentrant support
-//   - Different discarding policies, such as: LRU, locality distance
+//   - Fix size.
+//   - Thread Reentrant support.
+//   - Different discarding policies, such as: LRU, spatial.
 //
 // -------------------------------------------- * * * -- Vicente Bolea
 //
@@ -69,18 +69,8 @@
 using std::vector;
 
 // }}}
-class Partition_entry {
- public:
-  Partition_entry ();
-  virtual ~Partition_entry ();
-
- private:
-  size_t key, length;
-  uint8_t* address;
-};
 // Orthrus class {{{
 // -------------------------------------------- * * * -- Vicente Bolea
-//
 class Orthrus {
  public:
   Orthrus ();
