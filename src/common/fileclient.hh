@@ -4,6 +4,7 @@
 #include <iostream>
 #include <pthread.h>
 #include <fcntl.h>
+#include <sys/time.h>
 #include <mapreduce/definitions.hh>
 
 using namespace std;
@@ -32,7 +33,16 @@ fileclient::fileclient()
 
 fileclient::~fileclient()
 {
-	close(this->serverfd);
+	if(this->serverfd != -1)
+	{
+		while(close(this->serverfd) < 0)
+		{
+			cout<<"[fileclient]close failed"<<endl;
+
+			// sleep for 1 millisecond
+			usleep(1000);
+		}
+	}
 	this->serverfd = -1;
 }
 
@@ -60,13 +70,31 @@ int fileclient::connect_to_server(string address, int port)
 	memcpy(&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
 	serveraddr.sin_port = htons(port);
 
-	if(connect(fd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0)
+struct timeval time_start;
+struct timeval time_end;
+double elapsed = 0.0;
+gettimeofday(&time_start, NULL);
+
+	while(connect(fd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0)
 	{
-		cout<<"[fileclient]The connection failed to the file server"<<endl;
-		exit(1);
+		// sleep for 1 miilisecond
+		usleep(1000);
+		//cout<<"[fileclient]The connection failed to the file server"<<endl;
+		//exit(1);
 	}
+
 	// set socket to be nonblocking
 	fcntl(fd, F_SETFL, O_NONBLOCK);
+
+gettimeofday(&time_end, NULL);
+elapsed = 1000000.0*(time_end.tv_sec - time_start.tv_sec);
+elapsed += (time_end.tv_usec - time_start.tv_usec);
+elapsed /= 1000.0;
+if(elapsed > 10.0)
+cout<<"\033[0;33m\tconnect() elapsed: "<<elapsed<<" milli seconds\033[0m"<<endl;
+
+
+//cout<<"the connect is straggler"<<endl;
 	return fd;
 }
 
@@ -96,8 +124,18 @@ bool fileclient::write_record(string address, int port, string filename, string 
 
 void fileclient::close_server()
 {
-	close(this->serverfd);
+	if(this->serverfd != -1)
+	{
+		while(close(this->serverfd) < 0)
+		{
+			cout<<"[fileclient]close failed"<<endl;
+
+			// sleep for 1 millisecond
+			usleep(1000);
+		}
+	}
 	this->serverfd = -1;
+
 }
 
 bool fileclient::read_attach(string address, int port, string filename)

@@ -27,6 +27,7 @@ int dhtport = -1;
 int masterfd = -1;
 bool master_is_set = false;
 char master_address[BUF_SIZE];
+string localhostname;
 vector<slave_job*> running_jobs; // a vector of job, one or multiple tasks of which are running on this slave node
 vector<slave_task*> running_tasks; // a vector of running tasks
 
@@ -88,6 +89,13 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+	// read hostname from hostname file
+	ifstream hostfile;
+	string hostpath = DHT_PATH;
+	hostpath.append("hostname");
+	hostfile.open(hostpath.c_str());
+	hostfile>>localhostname;
+
 	// connect to master
 	masterfd = connect_to_server(master_address, port);
 	if(masterfd<0)
@@ -135,9 +143,15 @@ int connect_to_server(char* host, unsigned short port)
 
 void signal_listener()
 {
-//ofstream logfile = new ofstream("slave" + id + ".log");
+	//ofstream logfile = new ofstream("slave" + id + ".log");
 	// get signal from master, jobs and tasks
 	int readbytes = 0;
+	struct timeval time_start;
+	struct timeval time_end;
+
+	gettimeofday(&time_start, NULL);
+	gettimeofday(&time_end, NULL);
+
 	while(1)
 	{
 		readbytes = nbread(masterfd, read_buf);
@@ -145,8 +159,13 @@ void signal_listener()
 		{
 //logfile << gettimeofday
 			cout<<"[slave]Connection from master is abnormally closed"<<endl;
-			if(close(masterfd)<0)
+			while(close(masterfd)<0)
+			{
 				cout<<"[slave]Closing socket failed"<<endl;
+
+				// sleeps for 1 milli second
+				usleep(1000);
+			}
 			cout<<"[slave]Exiting slave..."<<endl;
 			exit(0);
 		}
@@ -165,8 +184,13 @@ void signal_listener()
 			else if(strncmp(read_buf, "close", 5) == 0)
 			{
 				cout<<"[slave]Close request from master"<<endl;
-				if(close(masterfd<0))
+				while(close(masterfd)<0)
+				{
 					cout<<"[slave]Close failed"<<endl;
+
+					// sleeps for 1 milli seconds
+					usleep(1000);
+				}
 				cout<<"[slave]Exiting slave..."<<endl;
 				exit(0);
 			}
@@ -354,9 +378,9 @@ void signal_listener()
 			{
 				if(strncmp(read_buf, "complete", 8) == 0)
 				{
-					cout<<"[slave]Task with taskid "<<running_tasks[i]->get_taskid();
-					cout<<" and job id "<<running_tasks[i]->get_job()->get_jobid();
-					cout<<" completed successfully"<<endl;
+					//cout<<"[slave]Task with taskid "<<running_tasks[i]->get_taskid();
+					//cout<<" and job id "<<running_tasks[i]->get_job()->get_jobid();
+					//cout<<" completed successfully"<<endl;
 
 					// send terminate message
 					memset(write_buf, 0, BUF_SIZE);
@@ -453,11 +477,22 @@ void signal_listener()
 			}
 		}
 
-		// sleeps for 0.0001 seconds. change this if necessary
-		// usleep(100000);
+		gettimeofday(&time_end, NULL);
+		if(time_end.tv_sec - time_start.tv_sec > 5.0)
+		{
+			cout<<"[Slave Heartbeat]";
+			cout<<"numjob: "<<running_jobs.size()<<", ";
+			cout<<"numtask: "<<running_tasks.size()<<"("<<localhostname<<")"<<endl;
+			gettimeofday(&time_start, NULL);
+		}
 	}
-	if(close(masterfd)<0)
+	while(close(masterfd)<0)
+	{
 		cout<<"[slave]Close failed"<<endl;
+		
+		// sleeps for 1 milliseconds
+		usleep(1000);
+	}
 	cout<<"[slave]Exiting slave..."<<endl;
 	exit(0);
 }
@@ -555,13 +590,13 @@ void launch_task(slave_task* atask)
 		atask->set_pid(pid);
 
 		// print the launch message
-		cout<<"[slave]A ";
-		if(atask->get_taskrole() == MAP)
-			cout<<"map ";
-		else if(atask->get_taskrole() == REDUCE)
-			cout<<"reduce ";
-		cout<<"task launched with taskid "<<atask->get_taskid()<<" and jobid "<<atask->get_job()->get_jobid();
-		cout<<endl;
+		//cout<<"[slave]A ";
+		//if(atask->get_taskrole() == MAP)
+		//	cout<<"map ";
+		//else if(atask->get_taskrole() == REDUCE)
+		//	cout<<"reduce ";
+		//cout<<"task launched with taskid "<<atask->get_taskid()<<" and jobid "<<atask->get_job()->get_jobid();
+		//cout<<endl;
 		return;
 	}
 }

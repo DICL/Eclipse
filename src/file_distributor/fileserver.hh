@@ -110,6 +110,15 @@ int fileserver::run_server(int port)
 					{
 						clients[i]->set_role(WRITE);
 					}
+					else if(strncmp(token, "stop", 4) == 0)
+					{
+						// clear the process and exit
+
+						for(int i=0; (unsigned)i<this->clients.size(); i++)
+							close(this->clients[i]->get_fd());
+						close(serverfd);
+						exit(0);
+					}
 
 					token = strtok(NULL, " "); // <- file name
 

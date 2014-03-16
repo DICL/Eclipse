@@ -10,11 +10,13 @@ class connslave // connection to the slave
 private:
 	int fd;
 	int maxtask;
+	string address;
 	vector<master_task*> running_tasks;
 
 public:
 	connslave(int fd);
 	connslave(int maxtask, int fd);
+	connslave(int maxtask, int fd, string anaddress);
 	~connslave();
 	int getfd();
 	int getmaxtask();
@@ -23,6 +25,8 @@ public:
 	master_task* getrunningtask(int index);
 	void add_runningtask(master_task* atask);
 	void remove_runningtask(master_task* atask);
+	void set_address(string anaddress);
+	string get_address();
 };
 
 connslave::connslave(int fd)
@@ -36,6 +40,14 @@ connslave::connslave(int maxtask, int fd)
 	this->maxtask = maxtask;
 	this->fd = fd;
 }
+
+connslave::connslave(int maxtask, int fd, string anaddress)
+{
+	this->maxtask = maxtask;
+	this->fd = fd;
+	this->address = anaddress;
+}
+
 connslave::~connslave()
 {
 	close(fd);
@@ -90,6 +102,16 @@ void connslave::remove_runningtask(master_task* atask)
 			break;
 		}
 	}
+}
+
+void connslave::set_address(string anaddress)
+{
+	this->address = anaddress;
+}
+
+string connslave::get_address()
+{
+	return this->address;
 }
 
 #endif

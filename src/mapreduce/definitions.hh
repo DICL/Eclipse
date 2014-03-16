@@ -11,7 +11,8 @@ using namespace std;
 #define LIB_PATH "/home/youngmoon01/MRR/src/"
 #define BUF_SIZE (4*1024) // 4 KB sized buffer
 //#define BUF_SIZE (512*1024) // 512 KB sized buffer
-#define BUF_CUT 16
+#define BUF_CUT 32
+#define TASK_SLOT 4
 #define HDFS_PATH "/home/youngmoon01/hadoop-2.2.0/include/"
 #define JAVA_LIB "/home/youngmoon01/jdk1.7.0_17/jre/lib/amd64/server/"
 #define HDFS_LIB "/home/youngmoon01/hadoop-2.2.0/lib/native/"
@@ -24,7 +25,7 @@ using namespace std;
 #define ADDRESSPREFIX "192.168.1."
 #define HASHLENGTH 6
 
-#define BACKLOG 10000
+#define BACKLOG 16384
 
 enum mr_role
 {
@@ -55,7 +56,8 @@ enum filetype // file(input and output) type for the task side in the dht mode
 	NOTOPENED
 };
 
-enum file_client_role {
+enum file_client_role 
+{
 	READ,
 	WRITE,
 	UNDEFINED

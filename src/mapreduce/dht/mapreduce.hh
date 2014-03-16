@@ -241,7 +241,7 @@ void init_mapreduce(int argc, char** argv)
 				{
 					cout<<"[mapreduce]Debugging: protocol error in mapreduce"<<endl;
 				}
-				cout<<"[mapreduce]Debugging: Job id is: "<<jobid<<endl;
+				cout<<"[mapreduce]Job submitted(jobid: "<<jobid<<")"<<endl;
 			}
 			else
 			{
@@ -423,6 +423,20 @@ void summ_mapreduce()
 			if(readbytes == 0) // master abnormally terminated
 			{
 				// TODO: Terminate the job properly
+				while(close(pipefd[0]) < 0)
+				{
+					cout<<"close failed"<<endl;
+
+					// sleeps for 1 milli seconds
+					usleep(1000);
+				}
+				while(close(pipefd[1]) < 0)
+				{
+					cout<<"close failed"<<endl;
+
+					// sleeps for 1 milli seconds
+					usleep(1000);
+				}
 				cout<<"[mapreduce]Connection to master abnormally closed"<<endl;
 				exit(0);
 			}
@@ -430,7 +444,7 @@ void summ_mapreduce()
 			{
 				if(strncmp(read_buf, "complete", 8) == 0) // "complete" message received
 				{
-					cout<<"[mapreduce]Job is successfully completed"<<endl;
+					cout<<"[mapreduce]Job "<<jobid<<" is successfully completed"<<endl;
 					break;
 				}
 				else if(strncmp(read_buf, "mapcomplete", 11) == 0)
@@ -440,7 +454,6 @@ void summ_mapreduce()
 				}
 			}
 		}
-		fcntl(masterfd, F_SETFL, O_NONBLOCK);
 
 		exit(0);
 	}
@@ -468,7 +481,7 @@ void summ_mapreduce()
 					string key = *unreported_keys.begin();
 					string keystr = "key ";
 					keystr.append(key);
-					cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
+//cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 					unreported_keys.erase(*unreported_keys.begin());
 					reported_keys.insert(key);
 
@@ -512,7 +525,22 @@ void summ_mapreduce()
 						inputtype = NOTOPENED;
 						input.close();
 					}
+
 					// terminate successfully
+					readfileclient.close_server();
+					writefileclient.close_server();
+					while(close(pipefd[0]) < 0)
+					{
+cout<<"[mapreduce]close failed"<<endl;
+						// sleeps for 1 milli seconds
+						usleep(1000);
+					}
+					while(close(pipefd[1]) < 0)
+					{
+cout<<"[mapreduce]close failed"<<endl;
+						// sleeps for 1 milli seconds
+						usleep(1000);
+					}
 					exit(0);
 				}
 				else // all other messages are ignored
@@ -680,7 +708,7 @@ void write_keyvalue(string key, string value)
 			string key = *unreported_keys.begin();
 			string keystr = "key ";
 			keystr.append(key);
-			cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
+//cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 			unreported_keys.erase(*unreported_keys.begin());
 			reported_keys.insert(key);
 
@@ -1022,7 +1050,6 @@ string get_nextvalue() // returns values in reduce function
 
 void write_output(string record) // this user function can be used anywhere but after initialization
 {
-cout<<"start of write_output()"<<endl;
 	if(outputpath == "default_output")
 	{
 		stringstream ss;
@@ -1060,12 +1087,9 @@ cout<<"start of write_output()"<<endl;
 	}
 	else
 	{
-cout<<"before write_record"<<endl;
 		writefileclient.write_record(address, dhtport, outputpath, record);
-cout<<"after write_record"<<endl;
 		writefileclient.close_server();
 	}
-cout<<"end of write_output()"<<endl;
 }
 
 int get_jobid()

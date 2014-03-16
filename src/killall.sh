@@ -57,5 +57,6 @@ echo -e "\033[0;32mDone\033[0m"
 echo "shutdown master node..."
 
 killall master
+killall $1
 
 echo -e "\033[0;32mDone\033[0m"

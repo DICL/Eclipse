@@ -18,13 +18,13 @@ CCFLAGS = -Wall
 all:
 	echo Type ether: [make nfs], [make hdfs], [make dht] [make clean]
 
-dht: $(MR_HOME)/make_version/master_dht $(MR_HOME)/make_version/slave_dht $(MR_HOME)/bin/client $(MR_HOME)/make_version/mcc_dht $(MR_HOME)/bin/fd_core $(MR_HOME)/common/hash.o $(MR_HOME)/bin/fileserver
+dht: $(MR_HOME)/make_version/master_dht $(MR_HOME)/make_version/slave_dht $(MR_HOME)/make_version/client_dht $(MR_HOME)/make_version/mcc_dht $(MR_HOME)/bin/fd_core $(MR_HOME)/common/hash.o $(MR_HOME)/bin/fileserver
 	touch $(MR_HOME)/make_version/dht_mode
 
-nfs: $(MR_HOME)/make_version/master_nfs_hdfs $(MR_HOME)/make_version/slave_nfs_hdfs $(MR_HOME)/bin/client $(MR_HOME)/make_version/mcc_nfs $(MR_HOME)/common/hash.o
+nfs: $(MR_HOME)/make_version/master_nfs_hdfs $(MR_HOME)/make_version/slave_nfs_hdfs $(MR_HOME)/make_version/client_nfs_hdfs $(MR_HOME)/make_version/mcc_nfs $(MR_HOME)/common/hash.o
 	rm -f $(MR_HOME)/make_version/dht_mode
 
-hdfs: $(MR_HOME)/make_version/master_nfs_hdfs $(MR_HOME)/make_version/slave_nfs_hdfs $(MR_HOME)/bin/client $(MR_HOME)/make_version/mcc_hdfs $(MR_HOME)/common/hash.o
+hdfs: $(MR_HOME)/make_version/master_nfs_hdfs $(MR_HOME)/make_version/slave_nfs_hdfs $(MR_HOME)/make_version/client_nfs_hdfs $(MR_HOME)/make_version/mcc_hdfs $(MR_HOME)/common/hash.o
 	rm -f $(MR_HOME)/make_version/dht_mode
 
 
@@ -50,8 +50,15 @@ $(MR_HOME)/make_version/slave_nfs_hdfs: $(MR_HOME)/slave/slave.cc $(MR_HOME)/sla
 	touch $(MR_HOME)/make_version/slave_nfs_hdfs
 
 
-$(MR_HOME)/bin/client: $(MR_HOME)/client/client.cc $(MR_HOME)/client/client.hh $(MR_DEF)
-	g++ $(CCFLAGS) $(MR_HOME)/client/client.cc -o $(MR_HOME)/bin/client -I $(MR_HOME) -lpthread 
+$(MR_HOME)/make_version/client_dht: $(MR_HOME)/client/dht/client.cc $(MR_HOME)/client/dht/client.hh $(MR_DEF) $(MR_HOME)/make_version/client
+	g++ $(CCFLAGS) $(MR_HOME)/client/dht/client.cc -o $(MR_HOME)/bin/client -I $(MR_HOME) -lpthread
+	touch $(MR_HOME)/make_version/client
+	touch $(MR_HOME)/make_version/client_dht
+
+$(MR_HOME)/make_version/client_nfs_hdfs: $(MR_HOME)/client/client.cc $(MR_HOME)/client/client.hh $(MR_DEF) $(MR_HOME)/make_version/client
+	g++ $(CCFLAGS) $(MR_HOME)/client/client.cc -o $(MR_HOME)/bin/client -I $(MR_HOME) -lpthread
+	touch $(MR_HOME)/make_version/client
+	touch $(MR_HOME)/make_version/client_nfs_hdfs
 
 
 $(MR_HOME)/make_version/mcc_nfs: $(MR_HOME)/mcc/nfs/mcc.cc $(MR_HOME)/mcc/nfs/mcc.hh $(MR_HOME)/mapreduce/nfs/mapreduce.hh $(MR_HOME)/make_version/mcc
@@ -88,6 +95,9 @@ $(MR_HOME)/make_version/mcc:
 
 $(MR_HOME)/make_version/slave:
 	touch $(MR_HOME)/make_version/slave
+
+$(MR_HOME)/make_version/client:
+	touch $(MR_HOME)/make_version/client
 
 
 $(MR_HOME)/bin/fd_core: $(MR_HOME)/file_distributor/fd_core.cc

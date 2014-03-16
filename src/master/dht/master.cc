@@ -11,6 +11,7 @@
 #include <sys/fcntl.h>
 #include <sys/wait.h>
 #include <arpa/inet.h>
+#include <common/hash.hh>
 #include <pthread.h>
 #include <mapreduce/definitions.hh>
 #include <DHT/DHTserver.hh>
@@ -19,6 +20,10 @@
 #include "../master_task.hh"
 #include "../connslave.hh"
 #include "../connclient.hh"
+
+
+// Available scheduling: {FCFS, LOCAL}
+#define FCFS // scheduler
 
 using namespace std;
 
@@ -149,11 +154,12 @@ int main(int argc, char** argv)
 
 			if(strncmp(read_buf, "slave", 5) == 0) // slave connected
 			{
-				// add connected slave to the slaves
-				slaves.push_back(new connslave(fd));
-
 				// get ip address of slave
 				haddrp = inet_ntoa(connaddr.sin_addr);
+
+				// add connected slave to the slaves
+				slaves.push_back(new connslave(TASK_SLOT, fd, haddrp));
+
 				printf("slave node connected from %s \n", haddrp);
 			}
 			else if(strncmp(read_buf, "client", 6) == 0) // client connected
@@ -179,16 +185,13 @@ int main(int argc, char** argv)
 			}
 
 			// break if all slaves are connected
-			if(slaves.size() == (unsigned)num_slave)
+			if(slaves.size() == (unsigned) num_slave)
 			{
 				cout<<"[master]\033[0;32mAll slave nodes are connected successfully\033[0m"<<endl;
-				// set maximum number of task 4 for each slave as default
-				for(int i=0;(unsigned)i<slaves.size();i++)
-					slaves[i]->setmaxtask(4);
 
 				break;
 			}
-			else if(slaves.size() > (unsigned)num_slave)
+			else if(slaves.size() > (unsigned) num_slave)
 			{
 				cout<<"[master]Number of slave connection exceeded allowed limits"<<endl;
 				cout<<"[master]\tDebugging needed on this problem"<<endl;
@@ -694,9 +697,11 @@ void* signal_listener(void* args)
 		}
 
 		// process and schedule jobs and tasks
+
+#ifdef FCFS
+		// default scheduler: FCFS-like scheduler
 		for(int i=0; (unsigned)i<jobs.size(); i++)
 		{
-			// default scheduler: FCFS-like scheduler
 			for(int j=0;(unsigned)j<slaves.size();j++)
 			{
 				while((slaves[j]->getnumrunningtasks() < slaves[j]->getmaxtask())
@@ -718,7 +723,7 @@ void* signal_listener(void* args)
 					else if(thetask->get_taskrole() == REDUCE)
 						ss<<"REDUCE";
 else
-cout<<"[master]Debugging: the role of the task not defined in the initialization step:745";
+cout<<"[master]Debugging: the role of the task not defined in the initialization step";
 
 					ss<<" inputpath ";
 					ss<<thetask->get_numinputpaths(); // number of input paths
@@ -755,6 +760,87 @@ cout<<"[master]Debugging: the argument string exceeds the limited length"<<endl;
 				}
 			}
 		}
+#endif
+
+#ifdef LOCAL
+		// LOCAL scheduler: schedule the task where the input is located
+		for(int i = 0; (unsigned)i < jobs.size(); i++)
+		{
+			if(jobs[i]->get_lastwaitingtask() == NULL)
+				continue;
+			master_task* thetask = jobs[i]->get_lastwaitingtask();
+			string thepath = thetask->get_inputpath(0);
+			string address = ADDRESSPREFIX;
+			stringstream tmpss;
+
+			memset(write_buf, 0, BUF_SIZE);
+			strcpy(write_buf, thepath.c_str());
+
+			uint32_t hashvalue = h(write_buf, HASHLENGTH);
+			tmpss<<(hashvalue%num_slave)+1;
+			address.append(tmpss.str());
+
+			// seek the target slave in which the input file is located on
+			for(int j = 0; j < num_slave; j++)
+			{
+				if(address == slaves[j]->get_address()) // if the slave is target slave
+				{
+					if(slaves[j]->getnumrunningtasks() >= slaves[j]->getmaxtask()) // no available task slot
+						break;
+						
+					// write to the slave the task information
+					stringstream ss;
+					ss<<"tasksubmit ";
+					ss<<"jobid ";
+					ss<<jobs[i]->getjobid();
+					ss<<" ";
+					ss<<"taskid ";
+					ss<<thetask->gettaskid();
+					ss<<" role ";
+
+					if(thetask->get_taskrole() == MAP)
+						ss<<"MAP";
+					else if(thetask->get_taskrole() == REDUCE)
+						ss<<"REDUCE";
+else
+cout<<"[master]Debugging: the role of the task not defined in the initialization step";
+
+					ss<<" inputpath ";
+					ss<<thetask->get_numinputpaths(); // number of input paths
+
+					// parse all the input paths
+					for(int k = 0; k < thetask->get_numinputpaths(); k++)
+					{
+						ss<<" ";
+						ss<<thetask->get_inputpath(k);
+					}
+
+					ss<<" argcount ";
+					ss<<thetask->get_job()->getargcount();
+
+					// NOTE: there should be at leat 1 arguments(program path name)
+					ss<<" argvalues";
+					for(int k=0;k<thetask->get_job()->getargcount();k++)
+					{
+						ss<<" ";
+						ss<<thetask->get_job()->getargvalue(k);
+					}
+if(ss.str().length()>=BUF_SIZE)
+cout<<"[master]Debugging: the argument string exceeds the limited length"<<endl;
+					
+					string tmp = ss.str();
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, tmp.c_str());
+					nbwrite(slaves[j]->getfd(), write_buf);
+
+					// forward waiting task to slave slot
+					jobs[i]->schedule_task(thetask, slaves[j]);
+
+					break;
+				}
+			}
+		}
+#endif
 
 		// break if all slaves and clients are closed
 		if(slaves.size() == 0 && clients.size() == 0)

@@ -157,7 +157,7 @@ void master_job::add_inputpath(string path)
 
 string master_job::get_inputpath(int index)
 {
-	if((unsigned)index<inputpaths.size())
+	if((unsigned) index < inputpaths.size())
 	{
 		return this->inputpaths[index];
 	}
