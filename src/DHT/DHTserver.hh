@@ -7,8 +7,11 @@
 #ifndef __DHTSERVER_HH__
 #define __DHTSERVER_HH__
 
-#include <string.h>
 #include <utils.hh>  //! Where the hash function is
+#include <hash.hh>
+#include <macros.h>  //! Some macros
+#include <string.h>
+#include <stdio.h>  
 #include <sys/time.h>
 #include <pthread.h>
 #include <sys/types.h>
@@ -19,11 +22,10 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 #include <time.h>
 #include <math.h>
 #include <map>
-#include <hash.hh>
-#include <macros.h>  //! Some macros
 
 using std::map;
 
