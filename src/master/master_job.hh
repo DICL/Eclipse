@@ -2,6 +2,7 @@
 #define _MASTER_JOB_
 
 #include <iostream>
+#include <mapreduce/definitions.hh>
 #include <string>
 #include <vector>
 #include <set>
@@ -66,6 +67,7 @@ public:
 	string pop_key();
 	set<string>::iterator get_keybegin();
 	set<string>::iterator get_keyend();
+	
 };
 
 master_job::master_job()
@@ -155,7 +157,7 @@ void master_job::add_inputpath(string path)
 
 string master_job::get_inputpath(int index)
 {
-	if((unsigned)index<inputpaths.size())
+	if((unsigned) index < inputpaths.size())
 	{
 		return this->inputpaths[index];
 	}
@@ -443,6 +445,5 @@ void master_task::set_taskrole(mr_role arole)
 {
 	this->role = arole;
 }
-
 
 #endif

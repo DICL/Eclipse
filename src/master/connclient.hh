@@ -13,6 +13,7 @@ public:
 	~connclient();
 	int getfd();
 	void setfd(int num);
+
 };
 
 connclient::connclient(int fd)

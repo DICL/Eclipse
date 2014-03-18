@@ -46,6 +46,7 @@ int get_argc(void); // get user argc excepting passed pipe fd
 void report_key(int index);
 int connect_to_server(char *host, unsigned short port);
 int get_jobid();
+int master_readbytes = 0;
 
 mr_role role = JOB;
 char read_buf[BUF_SIZE]; // read buffer for pipe
@@ -56,6 +57,7 @@ char** argvalues = NULL;
 
 // variables for job role
 int port = -1;
+int dhtport = -1;
 int masterfd = -1;
 int jobid;
 int nummap = 0;
@@ -124,7 +126,7 @@ void init_mapreduce(int argc, char** argv)
 		{
 			if(token == "backlog")
 			{
-				// ignore and just pass throught this case
+				// ignore and just pass through this case
 				conf>>token;
 			}
 			else if(token == "port")
@@ -132,14 +134,19 @@ void init_mapreduce(int argc, char** argv)
 				conf>>token;
 				port = atoi(token.c_str());
 			}
+			else if(token == "dhtport")
+			{
+				conf>>token;
+				dhtport = atoi(token.c_str());
+			}
 			else if(token == "max_job")
 			{
-				// ignore and just pass throught this case
+				// ignore and just pass through this case
 				conf>>token;
 			}
 			else if(token == "num_slave")
 			{
-				// ignore and just pass throught this case
+				// ignore and just pass through this case
 				conf>>token;
 			}
 			else if(token == "master_address")
@@ -179,8 +186,8 @@ void init_mapreduce(int argc, char** argv)
 			cout<<"Connection to the mater node successfully established"<<endl;
 		}
 
-		// read "whoareyou" signal from master
-		readbytes = read(masterfd, read_buf, BUF_SIZE);
+		// a blocking read "whoareyou" signal from master
+		readbytes = read(masterfd, read_buf, BUF_CUT);
 
 		if(readbytes == 0) // connection closed
 		{
@@ -195,13 +202,13 @@ void init_mapreduce(int argc, char** argv)
 				// respond to "whoareyou"
 				memset(write_buf, 0, BUF_SIZE);
 				strcpy(write_buf, "job");
-				write(masterfd, write_bufh, BUF_SIZE);
+				write(masterfd, write_buf, BUF_CUT*(strlen(write_buf)/BUF_CUT+1));
 
 				// blocking read of job id
 				while(1)
 				{
 					memset(read_buf, 0, BUF_SIZE);
-					readbytes = read(masterfd, read_buf, BUF_SIZE);
+					readbytes = read(masterfd, read_buf, BUF_CUT);
 					if(readbytes == 0)
 					{
 						cout<<"[mapreduce]Connection from master abnormally close"<<endl;
@@ -210,7 +217,7 @@ void init_mapreduce(int argc, char** argv)
 					else if(readbytes < 0)
 					{
 						// sleep for 0.0001 second. change this if necessary
-						//usleep(100);
+						// usleep(100);
 					}
 					else // reply arived
 					{
@@ -280,6 +287,8 @@ void init_mapreduce(int argc, char** argv)
 	}
 	else // when the role is map task or reduce task
 	{
+		int readcount = 0;
+		master_readbytes = 0;
 		pipefd[0] = atoi(argv[argc-3]); // read fd
 		pipefd[1] = atoi(argv[argc-2]); // write fd
 		argcount = argc - 3;
@@ -287,27 +296,24 @@ void init_mapreduce(int argc, char** argv)
 		// request the task configuration
 		memset(write_buf, 0, BUF_SIZE);
 		strcpy(write_buf, "requestconf");
-		write(pipefd[1], write_buf, BUF_SIZE);
+		write(pipefd[1], write_buf, BUF_CUT*(strlen(write_buf)/BUF_CUT+1));
 
 		// blocking read until the arrival of 'taskconf' message from master
-		while(1)
+		fcntl(pipefd[0], F_SETFL, fcntl(pipefd[0], F_GETFL) & ~O_NONBLOCK);
+		memset(read_buf, 0, BUF_SIZE);
+		readbytes = read(pipefd[0], read_buf, BUF_CUT);
+		while(read_buf[master_readbytes+readbytes-1] != 0 || (master_readbytes+readbytes)%BUF_CUT != 0)
 		{
-			memset(read_buf, 0, BUF_SIZE);
-			readbytes = read(pipefd[0], read_buf, BUF_SIZE);
-			if(readbytes == 0)
-			{
-				cout<<"[mapreduce]the connection from slave node is abnormally closed"<<endl;
-			}
-			else if(readbytes < 0)
-			{
-				// sleep for 0.0001 second. change this if necessary
-				//usleep(100);
-			}
-			else
-			{
-				break;
-			}
+			readbytes = read(pipefd[0], read_buf+master_readbytes, BUF_CUT-master_readbytes%BUF_CUT);
 		}
+
+		if(readbytes == 0)
+		{
+			cout<<"[mapreduce]the connection from slave node is abnormally closed"<<endl;
+			exit(1);
+		}
+		fcntl(pipefd[0], F_SETFL, O_NONBLOCK);
+
 		// parse the task configure
 		char* token;
 		token = strtok(read_buf, " "); // token <- taskconf
@@ -433,23 +439,21 @@ void summ_mapreduce()
 			write_string.append(ss.str());
 			memset(write_buf, 0, BUF_SIZE);
 			strcpy(write_buf, write_string.c_str());
-			write(masterfd, write_buf, BUF_SIZE);
+			write(masterfd, write_buf, BUF_CUT*(strlen(write_buf)/BUF_CUT+1));
 		}
 
 		// blocking read from master until "complete" receiving message
+		fcntl(masterfd, F_SETFL, fcntl(masterfd, F_GETFL) & ~O_NONBLOCK);
+
 		while(1)
 		{
-			readbytes = read(masterfd, read_buf, BUF_SIZE);
+			memset(read_buf, 0, BUF_SIZE);
+			readbytes = read(masterfd, read_buf, BUF_CUT);
 			if(readbytes == 0) // master abnormally terminated
 			{
 				// TODO: Terminate the job properly
+				cout<<"[mapreduce]Connection to master abnormally closed"<<endl;
 				exit(0);
-			}
-			else if(readbytes < 0)
-			{
-				// sleeps for 0.0001 seconds. change this if necessary
-				//usleep(100);
-				continue;
 			}
 			else
 			{
@@ -463,10 +467,9 @@ void summ_mapreduce()
 					cout<<"[mapreduce]Map tasks are completed"<<endl;
 					cout<<"[mapreduce]Now reduce tasks are launched"<<endl;
 				}
-				else // all other messages are ignored
-					continue;
 			}
 		}
+		fcntl(masterfd, F_SETFL, O_NONBLOCK);
 
 		// remove the job directory
 		int pid;
@@ -534,7 +537,7 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 					// send 'key' meesage to the slave node
 					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, keystr.c_str());
-					while(write(pipefd[1], write_buf, BUF_SIZE)< 0)
+					while(write(pipefd[1], write_buf, BUF_CUT*(strlen(write_buf)/BUF_CUT+1)) < 0)
 					{
 						cout<<"[mapreduce]write to slave failed"<<endl;
 						int err = errno;
@@ -551,7 +554,7 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 					}
 
 					// sleeps for 0.0001 seconds. change this if necessary
-					//usleep(100);
+					// usleep(100);
 				}
 			}
 		}
@@ -559,16 +562,19 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 		// send complete message
 		memset(write_buf, 0, BUF_SIZE);
 		strcpy(write_buf, "complete");
-		write(pipefd[1], write_buf, BUF_SIZE);
+		write(pipefd[1], write_buf, BUF_CUT*(strlen(write_buf)/BUF_CUT+1));
 		
 		// blocking read until the 'terminate' message
+		fcntl(pipefd[0], F_SETFL, fcntl(pipefd[0], F_GETFL) & ~O_NONBLOCK);
 		while(1)
 		{
-			readbytes = read(pipefd[0], read_buf, BUF_SIZE);
+			memset(read_buf, 0, BUF_SIZE);
+			readbytes = read(pipefd[0], read_buf, BUF_CUT);
 			if(readbytes == 0) // pipe fd was closed abnormally
 			{
 				// TODO: Terminate the task properly
 				input.close();
+				cout<<"[mapreduce]Connection from master abnormally closed"<<endl;
 				exit(0);
 			}
 			else if(readbytes > 0)
@@ -587,8 +593,9 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 			}
 
 			// sleeps for 0.0001 seconds. change this if necessary
-			//usleep(100);
+			// usleep(100);
 		}
+		fcntl(pipefd[0], F_SETFL, O_NONBLOCK);
 	}
 	else // reduce task
 	{
@@ -613,12 +620,15 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 		// send complete message
 		memset(write_buf, 0, BUF_SIZE);
 		strcpy(write_buf, "complete");
-		write(pipefd[1], write_buf, BUF_SIZE);
+		write(pipefd[1], write_buf, BUF_CUT*(strlen(write_buf)/BUF_CUT+1));
 
 		// blocking read until 'terminate' message arrive
+		fcntl(pipefd[0], F_SETFL, fcntl(pipefd[0], F_GETFL) & ~O_NONBLOCK);
+
 		while(1)
 		{
-			readbytes = read(pipefd[0], read_buf, BUF_SIZE);
+			memset(read_buf, 0, BUF_SIZE);
+			readbytes = read(pipefd[0], read_buf, BUF_CUT);
 			if(readbytes == 0) // pipe fd was closed abnormally
 			{
 				// TODO: Terminate the task properly
@@ -642,8 +652,9 @@ cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 			}
 
 			// sleeps for 0.0001 seconds. change this if necessary
-			//usleep(100);
+			// usleep(100);
 		}
+		fcntl(pipefd[0], F_SETFL, O_NONBLOCK);
 	}
 }
 
@@ -742,7 +753,7 @@ void write_keyvalue(string key, string value)
 			// send 'key' meesage to the slave node
 			memset(write_buf, 0, BUF_SIZE);
 			strcpy(write_buf, keystr.c_str());
-			while(write(pipefd[1], write_buf, BUF_SIZE)< 0)
+			while(write(pipefd[1], write_buf, BUF_CUT*(strlen(write_buf)/BUF_CUT+1)) < 0)
 			{
 				cout<<"[mapreduce]write to slave failed"<<endl;
 				int err = errno;
@@ -759,7 +770,7 @@ void write_keyvalue(string key, string value)
 			}
 
 			// sleeps for 0.0001 seconds. change this if necessary
-			//usleep(100);
+			// usleep(100);
 		}
 
 		// path of the key file

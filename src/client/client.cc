@@ -19,6 +19,7 @@ char read_buf[BUF_SIZE];
 char write_buf[BUF_SIZE];
 char master_address[BUF_SIZE];
 int port = -1;
+int dhtport = -1;
 int masterfd = -1;
 bool master_is_set = false;
 
@@ -43,15 +44,15 @@ int main(int argc, char** argv)
 	conf>>token;
 	while(!conf.eof())
 	{
-		if(token == "backlog")
-		{
-			// ignore and just pass through this case
-			conf>>token;
-		}
-		else if(token == "port")
+		if(token == "port")
 		{
 			conf>>token;
 			port = atoi(token.c_str());
+		}
+		else if(token == "dhtport")
+		{
+			conf>>token;
+			dhtport = atoi(token.c_str());
 		}
 		else if(token == "max_job")
 		{
@@ -111,6 +112,8 @@ int main(int argc, char** argv)
 	else if(strncmp(argv[1], "help", 4) == 0)
 	{
 		// TODO: lists request and their usage
+
+		exit(0);
 	}
 	/*
 	else if(strncmp(argv[1], "submit", 6) == 0) // submit a job
@@ -211,9 +214,7 @@ void* signal_listener(void* args)
 	char tmp_buf[BUF_SIZE];
 	while(1)
 	{
-		// listen to the matser node
-		memset(read_buf, 0, BUF_SIZE);
-		readbytes = read(serverfd, read_buf, BUF_SIZE); // non-blocking read
+		readbytes = nbread(serverfd, read_buf);
 		if(readbytes == 0) // connection closed from master
 		{
 			cout<<"Connection from master is abnormally closed"<<endl;
@@ -221,7 +222,9 @@ void* signal_listener(void* args)
 			exit(0);
 		}
 		else if(readbytes < 0) // no signal arrived
+		{
 			continue;
+		}
 		else // a signal arrived from master
 		{
 			if(strncmp(read_buf, "whoareyou", 9) == 0)
@@ -229,10 +232,10 @@ void* signal_listener(void* args)
 				// respond to "whoareyou"
 				memset(tmp_buf, 0, BUF_SIZE);
 				strcpy(tmp_buf, "client");
-				write(serverfd, tmp_buf, BUF_SIZE);
+				nbwrite(serverfd, tmp_buf);
 
 				// request to master
-				write(serverfd, write_buf, BUF_SIZE);
+				nbwrite(serverfd, write_buf);
 			}
 			else if(strncmp(read_buf, "close", 5) == 0)
 			{
@@ -254,7 +257,7 @@ void* signal_listener(void* args)
 		}
 
 		// sleeps for 0.0001 seconds. change this if necessary
-		//usleep(100);
+		// usleep(100);
 	}
 	close(serverfd);
 

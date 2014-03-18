@@ -5,8 +5,8 @@
 // :TODO: Which hash function use ?
 //
 // Preprocessor {{{
-#ifndef __DHTSERVER_HH__
-#define __DHTSERVER_HH__
+#ifndef __DHTCLIENT_HH__
+#define __DHTCLIENT_HH__
 // 
 #include <DHTmacros.h>  //! Some macros
 #include <utils.hh>  //! Where the hash function is

@@ -5,7 +5,7 @@
 // lookup {{{
 // ----------------------------------------------- 
 int DHTclient::lookup (const char * key) {
- //prepare packet
+ // prepare packet
  uint32_t key_int = h (key, strlen (key));
 
  // Send it 

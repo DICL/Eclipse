@@ -23,6 +23,7 @@ char read_buf[BUF_SIZE];
 char write_buf[BUF_SIZE];
 
 int port = -1;
+int dhtport = -1;
 int masterfd = -1;
 bool master_is_set = false;
 char master_address[BUF_SIZE];
@@ -41,10 +42,10 @@ int main(int argc, char** argv)
 	conf>>token;
 	while(!conf.eof())
 	{
-		if(token == "backlog")
+		if(token == "dhtport")
 		{
-			// ignore and just pass through this case
 			conf>>token;
+			dhtport = atoi(token.c_str());
 		}
 		else if(token == "port")
 		{
@@ -138,8 +139,7 @@ void signal_listener()
 	while(1)
 	{
 		// check signal arrived from master
-		memset(read_buf, 0, BUF_SIZE);
-		readbytes = read(masterfd, read_buf, BUF_SIZE);
+		readbytes = nbread(masterfd, read_buf);
 		if(readbytes == 0) //connection closed from master
 		{
 			cout<<"[slave]Connection from master is abnormally closed"<<endl;
@@ -148,13 +148,17 @@ void signal_listener()
 			cout<<"[slave]Exiting slave..."<<endl;
 			exit(0);
 		}
-		else if(readbytes > 0)// signal arrived from master
+		else if(readbytes < 0)
+		{
+			// do nothing
+		}
+		else // signal arrived from master
 		{
 			if(strncmp(read_buf, "whoareyou", 9) == 0)
 			{
 				memset(write_buf, 0, BUF_SIZE);
 				strcpy(write_buf, "slave");
-				write(masterfd, write_buf, BUF_SIZE);
+				nbwrite(masterfd, write_buf);
 			}
 			else if(strncmp(read_buf, "close", 5) == 0)
 			{
@@ -293,6 +297,7 @@ void signal_listener()
 			else
 			{
 				cout<<"[slave]Undefined signal from master: "<<read_buf<<endl;
+				cout<<"[slave]Undefined signal size: "<<readbytes<<endl;
 			}
 		}
 
@@ -316,23 +321,7 @@ void signal_listener()
 				strcpy(write_buf, keystr.c_str());
 
 				// send message to the master node
-				while(write(masterfd, write_buf, BUF_SIZE)<0)
-				{
-					// sleeps for 0.0001 seconds. change this if necessary
-					cout<<"[slave]write to master failed"<<endl;
-					int err = errno;
-					if(err == EAGAIN)
-					{
-						cout<<"[slave]due to EAEGIN"<<endl;
-					}
-					else if(err == EFAULT)
-					{
-						cout<<"[slave]due to EFAULT"<<endl;
-					}
-					sleep(1);
-				}
-				// sleeps for 0.0001 second. change this if necessary
-				//usleep(100);
+				nbwrite(masterfd, write_buf);
 			}
 
 			// check if all tasks in the job are finished
@@ -350,8 +339,7 @@ void signal_listener()
 		// check message from tasks through pipe
 		for(int i=0;(unsigned)i<running_tasks.size();i++)
 		{
-			memset(read_buf, 0, BUF_SIZE);
-			readbytes = read(running_tasks[i]->get_readfd(), read_buf, BUF_SIZE);
+			readbytes = nbread(running_tasks[i]->get_readfd(), read_buf);
 			if(readbytes == 0)
 			{
 				// ignore this case as default
@@ -371,7 +359,7 @@ void signal_listener()
 					// send terminate message
 					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, "terminate");
-					write(running_tasks[i]->get_writefd(), write_buf, BUF_SIZE);
+					nbwrite(running_tasks[i]->get_writefd(), write_buf);
 
 					// mark the task as completed
 					running_tasks[i]->set_status(COMPLETED);
@@ -402,7 +390,7 @@ void signal_listener()
 					// send message to the task
 					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, message.str().c_str());
-					write(running_tasks[i]->get_writefd(), write_buf, BUF_SIZE);
+					nbwrite(running_tasks[i]->get_writefd(), write_buf);
 				}
 				else if(strncmp(read_buf, "key", 3) == 0)
 				{
@@ -437,7 +425,7 @@ void signal_listener()
 
 					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, msg.c_str());
-					write(masterfd, write_buf, BUF_SIZE);
+					nbwrite(masterfd, write_buf);
 
 					// clear all to things related to this task
 					running_tasks[i]->get_job()->finish_task(running_tasks[i]);
@@ -464,7 +452,7 @@ void signal_listener()
 		}
 
 		// sleeps for 0.0001 seconds. change this if necessary
-		//usleep(100);
+		// usleep(100);
 	}
 	if(close(masterfd)<0)
 		cout<<"[slave]Close failed"<<endl;
