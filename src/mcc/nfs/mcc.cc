@@ -21,7 +21,9 @@ int main(int argc, char** argv)
 	}
 
 	char** argvalue = new char*[argc+3];
-	argvalue[0] = "/usr/bin/g++";
+	//argvalue[0] = "/usr/bin/g++";
+	argvalue[0] = new char[strlen("/opt/centos/devtoolset-1.1/root/usr/bin/g++")+1];
+	strcpy(argvalue[0], "/opt/centos/devtoolset-1.1/root/usr/bin/g++");
 
 	string libpath = LIB_PATH;
 	libpath.append("mapreduce/nfs/");

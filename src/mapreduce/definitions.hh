@@ -3,6 +3,9 @@
 
 #include <errno.h>
 #include <iostream>
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -191,8 +194,6 @@ int nbwrite(int fd, char* buf) // when the content is already on the buffer
 
 		// sleep 1 milli seconds to prevent busy waiting
 		usleep(1000);
-cout<<"does this delay"<<endl;
-usleep(100000);
 	}
 	if(written_bytes != BUF_CUT*((int)strlen(buf)/BUF_CUT+1))
 	{
@@ -210,8 +211,6 @@ usleep(100000);
 
 			// sleep 1 milli seconds to prevent busy waiting
 			usleep(1000);
-cout<<"does this delay"<<endl;
-usleep(100000);
 		}
 	}
 	return written_bytes;
@@ -296,8 +295,6 @@ int nbread(int fd, char* buf)
 					else
 						return total_readbytes;
 				}
-cout<<"is this blocking?"<<endl;
-usleep(100000);
 			}
 		}
 		

@@ -14,8 +14,8 @@
 #include <common/hash.hh>
 #include <pthread.h>
 #include <mapreduce/definitions.hh>
-#include <DHT/DHTserver.hh>
-#include <DHT/DHTclient.hh>
+//#include <DHT/DHTserver.hh>
+//#include <DHT/DHTclient.hh>
 #include "../master_job.hh"
 #include "../master_task.hh"
 #include "../connslave.hh"

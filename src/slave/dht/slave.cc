@@ -547,16 +547,22 @@ void launch_task(slave_task* atask)
 		// pass task type
 		if(atask->get_taskrole() == MAP)
 		{
-			args[count+2] = "MAP";
+			args[count+2] = new char[4];
+			strcpy(args[count+2], "MAP");
+			//args[count+2] = "MAP";
 		}
 		else if(atask->get_taskrole() == REDUCE)
 		{
-			args[count+2] = "REDUCE";
+			args[count+2] = new char[6];
+			strcpy(args[count+2], "REDUCE");
+			//args[count+2] = "REDUCE";
 		}
 		else
 		{
 			cout<<"[slave]Debugging: the role of the task is not defined in launch_task() function"<<endl;
-			args[count+2] = "JOB";
+			args[count+2] = new char[4];
+			strcpy(args[count+2], "JOB");
+			//args[count+2] = "JOB";
 		}
 		// pass null to last parameter
 		args[count+3] = NULL;

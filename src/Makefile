@@ -1,5 +1,5 @@
-DHT_OBJ = $(MR_HOME)/DHT/DHTserver.o
-DHT_OBJ += $(MR_HOME)/DHT/DHTclient.o
+#DHT_OBJ = $(MR_HOME)/DHT/DHTserver.o
+#DHT_OBJ += $(MR_HOME)/DHT/DHTclient.o
 MR_DEF = $(MR_HOME)/mapreduce/definitions.hh 
 MASTER_DEP = $(MR_HOME)/master/master_job.hh 
 MASTER_DEP += $(MR_HOME)/master/master_task.hh 
