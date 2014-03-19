@@ -10,6 +10,7 @@
 #include <fstream>
 #include <string>
 #include <stdexcept>
+#include <utility>
 
 using std::map;
 using std::queue;
@@ -36,7 +37,7 @@ namespace orthrus {
 
 class Local_cache {
  protected:
-  typedef map<uint64_t, std::pair<uint64_t, disk_page_t> > MAP;
+  typedef map<uint64_t, disk_page_t> MAP;
 
  public:
   Local_cache ();
@@ -48,7 +49,9 @@ class Local_cache {
   Local_cache& set_ema (uint64_t);
   Local_cache& set_size (size_t);
   int       get_policy ()     { return policy; }
-  std::pair get_boundaries () { return make_tuple (boundary_low, boundary_upp);}
+  std::pair<uint64_t, uint64_t> get_boundaries () { 
+   return make_pair (boundary_low, boundary_upp);
+  }
   uint64_t  get_ema ()        { return ema; }
   size_t    get_size ()       { return size_max_bytes; }
 
@@ -58,10 +61,9 @@ class Local_cache {
 
   bool is_disk_page_belonging (disk_page_t&);
   uint64_t get_local_center ();
-  void update (double low, double upp);
-
-  disk_page_t get_low ();
+  void boundaries_update (uint64_t, uint64_t);
   disk_page_t get_upp ();
+  disk_page_t get_low ();
 
   queue<disk_page_t> queue_lower;
   queue<disk_page_t> queue_upper;
