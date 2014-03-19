@@ -7,7 +7,7 @@ using namespace orthrus;
 // Constructor&getters/setters {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-Local_cache::Local_cache (size_t _size) {
+Local_cache::Local_cache () {
  map_spatial = new Local_cache::MAP ();
  map_lru     = new Local_cache::MAP ();
  size_current_bytes = 0;
@@ -63,11 +63,11 @@ bool Local_cache::insert (uint64_t idx, disk_page_t& dp) {
 
   } else {
    pthread_mutex_lock (&mutex_map_spatial);
-   map_spatial->insert (std::make_pair (idx, std::make_pair (idx, dp)));
+   map_spatial->insert (std::make_pair (idx, dp));
    pthread_mutex_unlock (&mutex_map_spatial);
 
    pthread_mutex_lock (&mutex_map_lru);
-   map_lru->insert (std::make_pair (idx, std::make_pair (idx, dp)));
+   map_lru->insert (std::make_pair (idx, dp));
    pthread_mutex_unlock (&mutex_map_lru);
   }
  } else {                //! If its full
@@ -80,10 +80,10 @@ bool Local_cache::insert (uint64_t idx, disk_page_t& dp) {
 
   } else {
    pthread_mutex_lock (&mutex_map_spatial);
-   map_spatial->insert (std::make_pair (idx, std::make_pair (idx, dp)));
+   map_spatial->insert (std::make_pair (idx, dp));
    pthread_mutex_unlock (&mutex_map_spatial);
    pthread_mutex_lock (&mutex_map_lru);
-   map_lru->insert (std::make_pair (idx, std::make_pair (idx, dp)));
+   map_lru->insert (std::make_pair (idx, dp));
    pthread_mutex_unlock (&mutex_map_lru);
    pop_farthest ();
   }
@@ -106,8 +106,8 @@ disk_page_t Local_cache::lookup (uint64_t idx) throw (std::out_of_range) {
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
 bool Local_cache::is_disk_page_belonging (disk_page_t& dp) {
- uint64_t lowest   = (*map->begin()).get_index ();
- uint64_t highest  = (*map->rbegin()).get_index ();
+ uint64_t lowest   = map_spatial->begin()->second.get_index ();
+ uint64_t highest  = map_spatial->rbegin()->second.get_index ();
  uint64_t max_dist = std::max (ema-lowest, highest-ema);
  //uint64_t oldest   = (*map_lru->begin()).get_time ();
 
@@ -117,10 +117,10 @@ bool Local_cache::is_disk_page_belonging (disk_page_t& dp) {
 // get_local_center{{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-uint32_t get_local_center () {
- uint32_t counter = 0, total = 0;
- for (auto& dp : map_spatial) {
-  total += dp.get_index () * dp.get_size ();
+uint64_t Local_cache::get_local_center () {
+ uint64_t counter = 0, total = 0;
+ for (auto& dp : *map_spatial) {
+  total += dp.second.get_index () * dp.second.get_size ();
   counter++;
  } 
  return total / counter;
@@ -137,30 +137,30 @@ void Local_cache::pop_farthest () {
   auto first = map_spatial->begin ();         //! 0(1)
   auto last  = map_spatial->rbegin ();        //! O(1)
 
-  uint64_t lowest  = (*first).point;
-  uint64_t highest = (*last).point;
+  uint64_t lowest  = first->second.get_index ();
+  uint64_t highest = last-> second.get_index ();
 
   //! If the victim belongs to the boundary of the node
   if (policy & SPATIAL) {
    if (boundary_low < lowest or highest < boundary_upp) {
     if ((ema - lowest) > (highest - ema)) { //! POP the leftest element
      pthread_mutex_lock (&mutex_queue_low);
-     queue_lower.push (*first);
+     queue_lower.push (first->second);
      pthread_mutex_unlock (&mutex_queue_low);
 
      pthread_mutex_lock (&mutex_map_spatial);
-     map_spatial->erase (*first);
-     map_lru->erase (*first);
+     map_spatial->erase (first);
+     map_lru->erase (first);
      pthread_mutex_unlock (&mutex_map_spatial);
 
     } else if (highest > ema) { //! Pop the rightest element
      pthread_mutex_lock (&mutex_queue_upp);
-     queue_upper.push (*last);
+     queue_upper.push (last->second);
      pthread_mutex_unlock (&mutex_queue_upp);
 
      pthread_mutex_lock (&mutex_map_spatial);
-     map_spatial->erase (*last);
-     map_lru->erase (*last);
+     map_spatial->erase (last->first);
+     //map_lru->erase (last);
      pthread_mutex_unlock (&mutex_map_spatial);
     }
    }
@@ -203,24 +203,24 @@ void Local_cache::boundaries_update (uint64_t low, uint64_t upp) {
  auto upp_i = map_spatial->upper_bound (upp);
 
  if (low_i != map_spatial->end() and low_i != map_spatial->begin()) {
-  for_each (map_spatial->begin(), low_it, [&] (auto it) {
+  for_each (map_spatial->begin(), low_i, [&] (std::pair<uint64_t, disk_page_t> it) {
    pthread_mutex_lock (&mutex_queue_low);
-   queue_lower.push ((*it).second);
+   queue_lower.push (it.second);
    pthread_mutex_unlock (&mutex_queue_low);
 
    pthread_mutex_lock (&mutex_map_spatial);
-   map_spatial->erase (it);
+   map_spatial->erase (it.first);
    pthread_mutex_unlock (&mutex_map_spatial);
   });
  }  
  if (upp_i != map_spatial->end() and upp_i != map_spatial->begin())  {
-  for_each (upp_i, map_spatial->end(), [&] (auto it) {
+  for_each (upp_i, map_spatial->end(), [&] (std::pair<uint64_t, disk_page_t> it) {
    pthread_mutex_lock (&mutex_queue_upp);
-   queue_upper.push (*it);
+   queue_upper.push (it.second);
    pthread_mutex_unlock (&mutex_queue_upp);
  
    pthread_mutex_lock (&mutex_map_spatial);
-   map_spatial->erase (it);
+   map_spatial->erase (it.first);
    pthread_mutex_unlock (&mutex_map_spatial);
   });
  }
