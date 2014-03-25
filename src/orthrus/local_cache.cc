@@ -88,6 +88,9 @@ bool Local_cache::insert (uint64_t idx, disk_page_t& dp) {
    pop_farthest ();
   }
  } 
+
+ size_current_bytes += dp.get_size();
+
  return true;
 }
 //}}}
@@ -105,13 +108,13 @@ disk_page_t Local_cache::lookup (uint64_t idx) throw (std::out_of_range) {
 // Is_disk_page_belonging {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-bool Local_cache::is_disk_page_belonging (disk_page_t& dp) {
- uint64_t lowest   = map_spatial->begin()->second.get_index ();
- uint64_t highest  = map_spatial->rbegin()->second.get_index ();
- uint64_t max_dist = std::max (ema-lowest, highest-ema);
+bool Local_cache::is_disk_page_belonging (const disk_page_t& dp) {
+ //uint64_t lowest   = map_spatial->begin()->second.get_index ();
+ //uint64_t highest  = map_spatial->rbegin()->second.get_index ();
+ //uint64_t max_dist = std::max (ema-lowest, highest-ema);
  //uint64_t oldest   = (*map_lru->begin()).get_time ();
-
- return max_dist > (dp.get_index () - ema);
+ //return max_dist > (dp.get_index () - ema);
+ return (boundary_low <= dp.get_index() and dp.get_index() <= boundary_upp);
 }
 //}}}
 // get_local_center{{{
@@ -201,6 +204,8 @@ void Local_cache::pop_farthest () {
 void Local_cache::boundaries_update (uint64_t low, uint64_t upp) {
  auto low_i = map_spatial->lower_bound (low);
  auto upp_i = map_spatial->upper_bound (upp);
+ this->boundary_low = low;
+ this->boundary_upp = upp;
 
  if (low_i != map_spatial->end() and low_i != map_spatial->begin()) {
   for_each (map_spatial->begin(), low_i, [&] (std::pair<uint64_t, disk_page_t> it) {
