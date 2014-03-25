@@ -5,7 +5,7 @@ const size_t SIZE = 10;
 
 struct fix_local_cache : public Local_cache {
  fix_local_cache () {
-  set_policy (orthrus::SPATIAL) .set_size (SIZE);
+  set_policy (orthrus::SPATIAL | orthrus::LRU) .set_size (SIZE);
  }
 };
 
@@ -14,7 +14,7 @@ SUITE (LOCAL_CACHE_BASIC) {
  TEST_FIXTURE (fix_local_cache, cstrdstr) {
   CHECK (get_size () == 10);
   CHECK (get_current_size () == 0);
-  CHECK (get_policy () == orthrus::SPATIAL);
+  CHECK (get_policy () == (orthrus::SPATIAL | orthrus::LRU));
  }
  //--------------------------------------//
  TEST_FIXTURE (fix_local_cache, insert) {

@@ -56,35 +56,43 @@ bool Local_cache::insert (uint64_t idx, disk_page_t& dp) {
 
  if (does_new_dp_fits) { //! If its not full
   if (found_same) {
-   pthread_mutex_lock (&mutex_map_spatial);
-   map_lru->erase (it);
-   map_lru->insert (*it);  // :TODO: //std::swap (it, map_lru->begin());
-   pthread_mutex_unlock (&mutex_map_spatial);
-
+   if (policy & orthrus::LRU) {
+    pthread_mutex_lock (&mutex_map_lru);
+    map_lru->erase (it);
+    map_lru->insert (*it);  // :TODO: //std::swap (it, map_lru->begin());
+    pthread_mutex_unlock (&mutex_map_lru);
+   }
   } else {
    pthread_mutex_lock (&mutex_map_spatial);
    map_spatial->insert (std::make_pair (idx, dp));
    pthread_mutex_unlock (&mutex_map_spatial);
 
-   pthread_mutex_lock (&mutex_map_lru);
-   map_lru->insert (std::make_pair (idx, dp));
-   pthread_mutex_unlock (&mutex_map_lru);
+   if (policy & orthrus::LRU) {
+    pthread_mutex_lock (&mutex_map_lru);
+    map_lru->insert (std::make_pair (idx, dp));
+    pthread_mutex_unlock (&mutex_map_lru);
+   }
   }
  } else {                //! If its full
   if (found_same) {
-   pthread_mutex_lock (&mutex_map_spatial);
-   map_lru->erase (--map_lru->rbegin().base());
-   map_lru->erase (idx);
-   pthread_mutex_unlock (&mutex_map_spatial);
+   if (policy & orthrus::LRU) {
+    pthread_mutex_lock (&mutex_map_spatial);
+    map_lru->erase (--map_lru->rbegin().base());
+    map_lru->erase (idx);
+    pthread_mutex_unlock (&mutex_map_spatial);
    // No need to update map_spatial
+   }
 
   } else {
    pthread_mutex_lock (&mutex_map_spatial);
    map_spatial->insert (std::make_pair (idx, dp));
    pthread_mutex_unlock (&mutex_map_spatial);
-   pthread_mutex_lock (&mutex_map_lru);
-   map_lru->insert (std::make_pair (idx, dp));
-   pthread_mutex_unlock (&mutex_map_lru);
+
+   if (policy & orthrus::LRU) {
+    pthread_mutex_lock (&mutex_map_lru);
+    map_lru->insert (std::make_pair (idx, dp));
+    pthread_mutex_unlock (&mutex_map_lru);
+   }
    pop_farthest ();
   }
  } 
@@ -153,8 +161,13 @@ void Local_cache::pop_farthest () {
 
      pthread_mutex_lock (&mutex_map_spatial);
      map_spatial->erase (first);
-     map_lru->erase (first);
      pthread_mutex_unlock (&mutex_map_spatial);
+ 
+     if (policy & orthrus::LRU) {
+      pthread_mutex_lock (&mutex_map_lru);
+      map_lru->erase (first->first);
+      pthread_mutex_unlock (&mutex_map_lru);
+     }
 
     } else if (highest > ema) { //! Pop the rightest element
      pthread_mutex_lock (&mutex_queue_upp);
@@ -163,8 +176,13 @@ void Local_cache::pop_farthest () {
 
      pthread_mutex_lock (&mutex_map_spatial);
      map_spatial->erase (last->first);
-     //map_lru->erase (last);
      pthread_mutex_unlock (&mutex_map_spatial);
+
+     if (policy & orthrus::LRU) {
+      pthread_mutex_lock (&mutex_map_lru);
+      map_lru->erase (last->first);
+      pthread_mutex_unlock (&mutex_map_lru);
+     }
     }
    }
 // {{{
@@ -216,6 +234,12 @@ void Local_cache::boundaries_update (uint64_t low, uint64_t upp) {
    pthread_mutex_lock (&mutex_map_spatial);
    map_spatial->erase (it.first);
    pthread_mutex_unlock (&mutex_map_spatial);
+
+   if (policy & orthrus::LRU) {
+    pthread_mutex_lock (&mutex_map_lru);
+    map_lru->erase (it.first);
+    pthread_mutex_unlock (&mutex_map_lru);
+   }
   });
  }  
  if (upp_i != map_spatial->end() and upp_i != map_spatial->begin())  {
@@ -227,6 +251,12 @@ void Local_cache::boundaries_update (uint64_t low, uint64_t upp) {
    pthread_mutex_lock (&mutex_map_spatial);
    map_spatial->erase (it.first);
    pthread_mutex_unlock (&mutex_map_spatial);
+
+   if (policy & orthrus::LRU) {
+    pthread_mutex_lock (&mutex_map_lru);
+    map_lru->erase (it.first);
+    pthread_mutex_unlock (&mutex_map_lru);
+   }
   });
  }
 }
