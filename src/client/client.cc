@@ -59,11 +59,6 @@ int main(int argc, char** argv)
 			// ignore and just pass through this case
 			conf>>token;
 		}
-		else if(token == "num_slave")
-		{
-			// ignore and just pass through this case
-			conf>>token;
-		}
 		else if(token == "master_address")
 		{
 			conf>>token;

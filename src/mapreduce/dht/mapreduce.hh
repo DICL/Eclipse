@@ -1,5 +1,5 @@
-#ifndef _MAPREDUCE_
-#define _MAPREDUCE_
+#ifndef __MAPREDUCE__
+#define __MAPREDUCE__
 
 #include <iostream>
 #include <errno.h>
@@ -41,9 +41,9 @@ char** get_argv(void); // get user argv excepting passed pipe fd
 void write_keyvalue(string key, string value);
 void write_output(string record); // function used in reduce function
 
-int openoutfile(string path); // open a task/job result file
-int writeoutfile(int fd, string data); // write to the task/job result file
-int closeoutfile(int fd); // close task/job result file
+//int openoutfile(string path); // open a task/job result file
+//int writeoutfile(int fd, string data); // write to the task/job result file
+//int closeoutfile(int fd); // close task/job result file
 int get_argc(void); // get user argc excepting passed pipe fd
 void report_key(int index);
 int connect_to_server(char *host, unsigned short port);
@@ -60,8 +60,8 @@ char** argvalues = NULL;
 int port = -1;
 int dhtport = -1;
 int masterfd = -1;
+int ipcfd = -1;
 int jobid;
-int num_slave = -1;
 int nummap = 0;
 int numreduce = 0;
 int completed_map = 0;
@@ -73,9 +73,10 @@ bool inside_map = false; // true if the code is inside map function
 bool inside_reduce = false; // true if the code is inside reduce function 
 char master_address[BUF_SIZE];
 vector<string> inputpaths; // list of input paths.
-ifstream input; // input file stream for get_record
-filetype inputtype = NOTOPENED; // input type of the input
-filetype outputtype = NOTOPENED; // input type of the input
+//vector<string> nodelist; // list of slave node addresses
+//ifstream input; // input file stream for get_record
+//filetype inputtype = NOTOPENED; // type of the input data
+//filetype outputtype = NOTOPENED; // type of the input data
 string outputpath = "default_output";
 
 // variables for task role
@@ -85,7 +86,6 @@ int pipefd[2]; // pipe fd when the role is map task or reduce task
 //DHTclient* dhtclient;
 fileclient readfileclient;
 fileclient writefileclient;
-string localhostname;
 
 // variables for map task
 void (*mapfunction) (); // map function pointer
@@ -104,7 +104,7 @@ void init_mapreduce(int argc, char** argv)
 	int readbytes; // number of bytes read from pipe fd
 
 	// check the arguments do determine the role
-	if(argc>1) // check argc to avoid index out of bound
+	if(argc > 1) // check argc to avoid index out of bound
 	{
 		if(strncmp(argv[argc-1], "MAP", 3) == 0)
 			role = MAP;
@@ -142,11 +142,6 @@ void init_mapreduce(int argc, char** argv)
 			// ignore and just pass through this case
 			conf>>token;
 		}
-		else if(token == "num_slave")
-		{
-			conf>>token;
-			num_slave = atoi(token.c_str());
-		}
 		else if(token == "master_address")
 		{
 			conf>>token;
@@ -173,14 +168,26 @@ void init_mapreduce(int argc, char** argv)
 		exit(1);
 	}
 
+	/*
+	ifstream nodelistfile;
+	string filepath = LIB_PATH;
+	filepath.append("nodelist.conf");
+	nodelistfile.open(filepath.c_str());
+
+	while(!nodelistfile.eof())
+	{
+		nodelistfile>>token;
+		nodelist.push_back(token);
+	}
+	*/
+
 	if(role == JOB) // when the role is job
 	{
 		// determine the argcount
 		argcount = argc;
 
-
 		masterfd = connect_to_server(master_address, port);
-		if(masterfd<0)
+		if(masterfd < 0)
 		{
 			cout<<"Connecting to master failed"<<endl;
 			exit(1);
@@ -255,12 +262,16 @@ void init_mapreduce(int argc, char** argv)
 	}
 	else // when the role is map task or reduce task
 	{
+		/*
 		// read hostname from hostname file
 		ifstream hostfile;
 		string hostpath = DHT_PATH;
 		hostpath.append("hostname");
 		hostfile.open(hostpath.c_str());
 		hostfile>>localhostname;
+
+		hostfile.close();
+		*/
 
 		// run the dht client
 		//dhtclient = new DHTclient(RAVENLEADER, dhtport);
@@ -506,11 +517,6 @@ void summ_mapreduce()
 			if(readbytes == 0) // pipe fd was closed abnormally
 			{
 				// TODO: Terminate the task properly
-				if(inputtype == LOCAL)
-				{
-					inputtype = NOTOPENED;
-					input.close();
-				}
 				cout<<"[mapreduce]Connection from master abnormally closed"<<endl;
 				exit(0);
 			}
@@ -519,13 +525,6 @@ void summ_mapreduce()
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
 					//					cout<<"[mapreduce]Map task is successfully completed"<<endl;
-					// clear task
-					if(inputtype == LOCAL)
-					{
-						inputtype = NOTOPENED;
-						input.close();
-					}
-
 					// terminate successfully
 					readfileclient.close_server();
 					writefileclient.close_server();
@@ -585,12 +584,6 @@ cout<<"[mapreduce]close failed"<<endl;
 			readbytes = nbread(pipefd[0], read_buf);
 			if(readbytes == 0) // pipe fd was closed abnormally
 			{
-				// TODO: Terminate the task properly
-				if(inputtype == LOCAL)
-				{
-					inputtype = NOTOPENED;
-					input.close();
-				}
 				cout<<"the reduce task is gone"<<endl;
 				exit(0);
 			}
@@ -598,14 +591,8 @@ cout<<"[mapreduce]close failed"<<endl;
 			{
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
-					//					cout<<"[mapreduce]Reduce task is successfully completed"<<endl; // <- this message will be printed in the slave process side
+					// cout<<"[mapreduce]Reduce task is successfully completed"<<endl; // <- this message will be printed in the slave process side
 
-					// clear task
-					if(inputtype == LOCAL)
-					{
-						inputtype = NOTOPENED;
-						input.close();
-					}
 					// terminate successfully
 					exit(0);
 				}
@@ -670,7 +657,7 @@ int connect_to_server(char *host, unsigned short port)
 
 	// SOCK_STREAM -> tcp
 	clientfd = socket(AF_INET, SOCK_STREAM, 0);
-	if(clientfd<0)
+	if(clientfd < 0)
 	{
 		cout<<"[mapreduce]Openning socket failed"<<endl;
 		exit(1);
@@ -735,44 +722,30 @@ void write_keyvalue(string key, string value)
 			// usleep(100000);
 		}
 
+		/*
 		// determine the address for the data by hash function
 		string address;
-		stringstream ss;
 
 		// use read_buf as temporal buffer for hash function
 		memset(read_buf, 0, BUF_SIZE);
 		strcpy(read_buf, key.c_str());
 
 		uint32_t hashvalue = h(read_buf, HASHLENGTH);
-		ss<<(hashvalue%num_slave)+1;
-		address = ADDRESSPREFIX;
-		address.append(ss.str());
+		hashvalue = hashvalue%nodelist.size();
 
-		string keypath = DHT_PATH;
+		address = nodelist[hashvalue];
+		*/
+
 		string keyfile = jobdirpath;
 		keyfile.append(key);
-		keypath.append(keyfile);
 
 		// result string
 		string rst = key;
 		rst.append(" ");
 		rst.append(value);
 
-		if(address == localhostname) // output can be written to local file
-		{
-			int fd = openoutfile(keypath);
-			if(fd < 0)
-			{
-				cout<<"[mapreduce]Debugging: openoutfile error"<<endl;
-			}
-			writeoutfile(fd, rst);
-			closeoutfile(fd);
-		}
-		else
-		{
-			writefileclient.write_record(address, dhtport, keyfile, rst);
-			writefileclient.close_server();
-		}
+		writefileclient.write_record(keyfile, rst, INTERMEDIATE);
+		writefileclient.close_server();
 	}
 	else
 	{
@@ -784,11 +757,6 @@ bool get_nextinput() // internal function to process next input file
 {
 	if(inputpaths.size() == 0) // no more input
 	{
-		if(inputtype == LOCAL)
-		{
-			inputtype = NOTOPENED;
-			input.close();
-		}
 		return false;
 	}
 	else
@@ -796,8 +764,8 @@ bool get_nextinput() // internal function to process next input file
 		// request the location of the input to the dht server
 		// NOTE: for this version, we can simply call hash function
 		// rather than requesting to dht server
+		/*
 		string address;
-		stringstream ss;
 		string inputname = inputpaths.back();
 
 		// use read_buf as temporal buffer for hash function
@@ -805,44 +773,21 @@ bool get_nextinput() // internal function to process next input file
 		strcpy(read_buf, inputname.c_str());
 		
 		uint32_t hashvalue = h(read_buf, HASHLENGTH);
-		ss<<(hashvalue%num_slave)+1;
-		address = ADDRESSPREFIX;
-		address.append(ss.str());
+		hashvalue = hashvalue%nodelist.size();
 
-		if(address == localhostname) // input can be read from local file
-		{
-			// open another input file
-			string apath = DHT_PATH;
-			apath.append(inputpaths.back());
-			if(inputtype == LOCAL)
-				input.close();
-			input.open(apath.c_str());
-			inputpaths.pop_back();
-			inputtype = LOCAL;
+		address = nodelist[hashvalue];
+		*/
 
-			// pre-process first record
-			getline(input, nextrecord);
-			if(input.eof())
-				is_nextrec = false;
-			else
-				is_nextrec = true;
-		}
-		else // the input should be read from other slave node
-		{
-			bool readsuccess = false;
-			if(inputtype == LOCAL)
-				input.close();
-			readfileclient.read_attach(address, dhtport, inputpaths.back());
-			inputpaths.pop_back();
-			inputtype = DISTANT;
+		bool readsuccess = false;
+		readfileclient.read_attach(inputpaths.back(), RAW);
+		inputpaths.pop_back();
 
-			// pre-process first record
-			readsuccess = readfileclient.read_record(&nextrecord);
-			if(readsuccess)
-				is_nextrec = true;
-			else
-				is_nextrec = false;
-		}
+		// pre-process first record
+		readsuccess = readfileclient.read_record(&nextrecord);
+		if(readsuccess)
+			is_nextrec = true;
+		else
+			is_nextrec = false;
 
 		return true;
 	}
@@ -852,36 +797,16 @@ string get_nextrecord() // a user function for the map
 {
 	if(inside_map)
 	{
-		if(inputtype == LOCAL)
-		{
-			string ret = nextrecord;
-			getline(input, nextrecord);
+		bool readsuccess = false;
+		string ret = nextrecord;
+		readsuccess = readfileclient.read_record(&nextrecord);
 
-			if(input.eof())
-				is_nextrec = false;
-			else
-				is_nextrec = true;
-
-			return ret;
-		}
-		else if(inputtype == DISTANT)
-		{
-			bool readsuccess = false;
-			string ret = nextrecord;
-			readsuccess = readfileclient.read_record(&nextrecord);
-
-			if(readsuccess)
-				is_nextrec = true;
-			else
-				is_nextrec = false;
-
-			return ret;
-		}
+		if(readsuccess)
+			is_nextrec = true;
 		else
-		{
-			cout<<"[mapreduce]File is not opened properly before reading record"<<endl;
-			return "";
-		}
+			is_nextrec = false;
+
+		return ret;
 	}
 	else
 	{
@@ -916,68 +841,41 @@ bool get_nextkey(string* key) // internal function for the reduce
 		// NOTE: for this version, we can simply call hash function
 		// rather than requesting to dht server
 
-		string address;
-		stringstream ss;
-		string inputname = inputpaths.back();
+		/*
+		   string address;
+		   string inputname = inputpaths.back();
 
 		// use read_buf as temporal buffer for hash function
 		memset(read_buf, 0, BUF_SIZE);
 		strcpy(read_buf, inputname.c_str());
 
 		uint32_t hashvalue = h(read_buf, HASHLENGTH);
-		ss<<(hashvalue%num_slave)+1;
-		address = ADDRESSPREFIX;
-		address.append(ss.str());
+		hashvalue = hashvalue%nodelist.size();
 
-		if(address == localhostname) // input can be read from local file
+		address = nodelist[hashvalue];
+		*/
+
+		bool readsuccess = false;
+
+		string apath = jobdirpath;
+		apath.append(inputpaths.back());
+		readfileclient.read_attach(apath, INTERMEDIATE);
+		inputpaths.pop_back();
+
+		// pre-process first record
+		stringstream ss;
+		readsuccess = readfileclient.read_record(&nextvalue); // key value record
+
+		if(readsuccess)
 		{
-			// open another input key file
-			string apath = DHT_PATH;
-			apath.append(jobdirpath);
-			apath.append(inputpaths.back());
-
-			if(inputtype == LOCAL)
-				input.close();
-
-			input.open(apath.c_str());
-			inputpaths.pop_back();
-			inputtype = LOCAL;
-
-			// pre-process first value 
-			input>>nextvalue; // key. pass this key
-			input>>nextvalue; // first value
-			if(input.eof())
-				is_nextval = false;
-			else
-				is_nextval = true;
+			ss<<nextvalue;
+			ss>>nextvalue; // <- key
+			ss>>nextvalue; // <- value
+			is_nextval = true;
 		}
-		else // the input should be read from other slave node
+		else
 		{
-			bool readsuccess = false;
-			if(inputtype == LOCAL)
-				input.close();
-
-			string apath = jobdirpath;
-			apath.append(inputpaths.back());
-			readfileclient.read_attach(address, dhtport, apath);
-			inputpaths.pop_back();
-			inputtype = DISTANT;
-
-			// pre-process first record
-			stringstream ss;
-			readsuccess = readfileclient.read_record(&nextvalue); // key value record
-
-			if(readsuccess)
-			{
-				ss<<nextvalue;
-				ss>>nextvalue; // <- key
-				ss>>nextvalue; // <- value
-				is_nextval = true;
-			}
-			else
-			{
-				is_nextval = false;
-			}
+			is_nextval = false;
 		}
 		return true;
 	}
@@ -1002,44 +900,24 @@ string get_nextvalue() // returns values in reduce function
 	// check if this function is called inside the reduce function
 	if(inside_reduce)
 	{
-		if(inputtype == LOCAL)
-		{
-			string ret = nextvalue;
-			input>>nextvalue; // key. pass this key
-			input>>nextvalue; // next value
+		string ret = nextvalue;
+		bool readsuccess = false;
+		readsuccess = readfileclient.read_record(&nextvalue); // key value record
 
-			if(input.eof())
-				is_nextval = false;
-			else
-				is_nextval = true;
-			return ret;
-		}
-		else if(inputtype == DISTANT)
+		// pre-process first record
+		if(readsuccess)
 		{
-			string ret = nextvalue;
-			bool readsuccess = false;
-			readsuccess = readfileclient.read_record(&nextvalue); // key value record
-
-			// pre-process first record
-			if(readsuccess)
-			{
-				stringstream ss;
-				ss<<nextvalue;
-				ss>>nextvalue; // <- key
-				ss>>nextvalue; // <- value
-				is_nextval = true;
-			}
-			else
-			{
-				is_nextval = false;
-			}
-			return ret;
+			stringstream ss;
+			ss<<nextvalue;
+			ss>>nextvalue; // <- key
+			ss>>nextvalue; // <- value
+			is_nextval = true;
 		}
 		else
 		{
-			cout<<"[mapreduce]The input file for the reduce task is not properly opened"<<endl;
-			return "";
+			is_nextval = false;
 		}
+		return ret;
 	}
 	else
 	{
@@ -1059,37 +937,22 @@ void write_output(string record) // this user function can be used anywhere but 
 		outputpath = ss.str();
 	}
 
+	/*
 	// determine the address for the data by hash function
 	string address;
-	stringstream ss;
 
 	// use read_buf as temporal buffer for hash function
 	memset(read_buf, 0, BUF_SIZE);
 	strcpy(read_buf, outputpath.c_str());
 
 	uint32_t hashvalue = h(read_buf, HASHLENGTH);
-	ss<<(hashvalue%num_slave)+1;
-	address = ADDRESSPREFIX;
-	address.append(ss.str());
+	hashvalue = hashvalue%nodelist.size();
 
-	if(address == localhostname)
-	{
-		// open output file
-		string outpath = DHT_PATH;
-		outpath.append(outputpath);
-		int fd = openoutfile(outpath);
-		if(fd < 0)
-		{
-			cout<<"[mapreduce]Debugging: openoutfile error"<<endl;
-		}
-		writeoutfile(fd, record);
-		closeoutfile(fd);
-	}
-	else
-	{
-		writefileclient.write_record(address, dhtport, outputpath, record);
-		writefileclient.close_server();
-	}
+	address = nodelist[hashvalue];
+	*/
+
+	writefileclient.write_record(outputpath, record, OUTPUT);
+	writefileclient.close_server();
 }
 
 int get_jobid()
@@ -1097,11 +960,14 @@ int get_jobid()
 	return jobid;
 }
 
+/*
 int openoutfile(string path) // path: full absolute path
 {
 	return open(path.c_str(), O_APPEND|O_SYNC|O_WRONLY|O_CREAT, 0644);
 }
+*/
 
+/*
 int writeoutfile(int fd, string data)
 {
 	struct flock alock;
@@ -1136,10 +1002,13 @@ int writeoutfile(int fd, string data)
 	// return 1 when successful
 	return 1;
 }
+*/
 
+/*
 int closeoutfile(int fd)
 {
 	return close(fd);
 }
+*/
 
 #endif

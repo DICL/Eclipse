@@ -169,7 +169,7 @@ char* get_backtrace (void) {
  static char output [256];
 	void * buffer [256];
  backtrace (buffer, 256);
-	char * out = backtrace_symbols (buffer, 256);
+	char ** out = backtrace_symbols (buffer, 256);
  memcpy (output, out, 256);
  ::free (out);
  return output;

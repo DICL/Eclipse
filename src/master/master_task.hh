@@ -1,5 +1,5 @@
-#ifndef _MASTER_TASK_
-#define _MASTER_TASK_
+#ifndef __MASTER_TASK__
+#define __MASTER_TASK__
 
 #include <iostream>
 #include <mapreduce/definitions.hh>

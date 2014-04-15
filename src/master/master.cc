@@ -25,12 +25,13 @@ vector<connclient*> clients;
 
 vector<master_job*> jobs;
 
-int num_slave = -1;
 int port = -1;
 int dhtport = -1;
 int max_job = -1;
 int jobidclock = 0; // job id starts 0
 bool thread_continue;
+
+vector<string> nodelist;
 
 char read_buf[BUF_SIZE]; // read buffer for signal_listener thread
 char write_buf[BUF_SIZE]; // write buffer for signal_listener thread
@@ -71,11 +72,6 @@ int main(int argc, char** argv)
 			conf>>token;
 			max_job = atoi(token.c_str());
 		}
-		else if(token == "num_slave")
-		{
-			conf>>token;
-			num_slave = atoi(token.c_str());
-		}
 		else if(token == "master_address")
 		{
 			// ignore and just pass through this case
@@ -99,11 +95,20 @@ int main(int argc, char** argv)
 		cout<<"[master]max_job should be specified in the setup.conf"<<endl;
 		exit(1);
 	}
-	if(num_slave == -1)
+
+	// read the node list information
+	ifstream nodelistfile;
+	string filepath = LIB_PATH;
+	filepath.append("nodelist.conf");
+
+	nodelistfile.open(filepath.c_str());
+	nodelistfile>>token;
+	while(!nodelistfile.eof())
 	{
-		cout<<"[master]num_slave should be specified in the setup.conf"<<endl;
-		exit(1);
+		nodelist.push_back(token);
+		nodelistfile>>token;
 	}
+	
 
 	int serverfd = open_server(port);
 	if(serverfd < 0)
@@ -171,7 +176,7 @@ int main(int argc, char** argv)
 			}
 
 			// break if all slaves are connected
-			if(slaves.size() == (unsigned)num_slave)
+			if(slaves.size() == nodelist.size())
 			{
 				cout<<"[master]All slave nodes are connected successfully"<<endl;
 				// set maximum number of task 4 for each slave as default
@@ -180,7 +185,7 @@ int main(int argc, char** argv)
 
 				break;
 			}
-			else if(slaves.size() > (unsigned)num_slave)
+			else if(slaves.size() > nodelist.size())
 			{
 				cout<<"[master]Number of slave connection exceeded allowed limits"<<endl;
 				cout<<"[master]\tDebugging needed on this problem"<<endl;

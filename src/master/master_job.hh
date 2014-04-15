@@ -1,5 +1,5 @@
-#ifndef _MASTER_JOB_
-#define _MASTER_JOB_
+#ifndef __MASTER_JOB__
+#define __MASTER_JOB__
 
 #include <iostream>
 #include <mapreduce/definitions.hh>

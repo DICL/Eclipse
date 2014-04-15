@@ -32,12 +32,13 @@ vector<connclient*> clients;
 
 vector<master_job*> jobs;
 
-int num_slave = -1;
 int port = -1;
 int dhtport = -1;
 int max_job = -1;
 int jobidclock = 0; // job id starts 0
 bool thread_continue;
+
+vector<string> nodelist;
 
 char read_buf[BUF_SIZE]; // read buffer for signal_listener thread
 char write_buf[BUF_SIZE]; // write buffer for signal_listener thread
@@ -80,11 +81,6 @@ int main(int argc, char** argv)
 			conf>>token;
 			max_job = atoi(token.c_str());
 		}
-		else if(token == "num_slave")
-		{
-			conf>>token;
-			num_slave = atoi(token.c_str());
-		}
 		else if(token == "master_address")
 		{
 			// ignore and just pass through this case
@@ -108,10 +104,18 @@ int main(int argc, char** argv)
 		cout<<"[master]max_job should be specified in the setup.conf"<<endl;
 		exit(1);
 	}
-	if(num_slave == -1)
+
+	// read the node list information
+	ifstream nodelistfile;
+	string filepath = LIB_PATH;
+	filepath.append("nodelist.conf");
+
+	nodelistfile.open(filepath.c_str());
+	nodelistfile>>token;
+	while(!nodelistfile.eof())
 	{
-		cout<<"[master]num_slave should be specified in the setup.conf"<<endl;
-		exit(1);
+		nodelist.push_back(token);
+		nodelistfile>>token;
 	}
 
 	//dhtserver = new DHTserver(dhtport);
@@ -185,13 +189,13 @@ int main(int argc, char** argv)
 			}
 
 			// break if all slaves are connected
-			if(slaves.size() == (unsigned) num_slave)
+			if(slaves.size() == nodelist.size())
 			{
 				cout<<"[master]\033[0;32mAll slave nodes are connected successfully\033[0m"<<endl;
 
 				break;
 			}
-			else if(slaves.size() > (unsigned) num_slave)
+			else if(slaves.size() > nodelist.size())
 			{
 				cout<<"[master]Number of slave connection exceeded allowed limits"<<endl;
 				cout<<"[master]\tDebugging needed on this problem"<<endl;
@@ -777,11 +781,11 @@ cout<<"[master]Debugging: the argument string exceeds the limited length"<<endl;
 			strcpy(write_buf, thepath.c_str());
 
 			uint32_t hashvalue = h(write_buf, HASHLENGTH);
-			tmpss<<(hashvalue%num_slave)+1;
-			address.append(tmpss.str());
+			hashvalue = hashvalue%nodelist.size();
+			address = nodelist[hashvalue];
 
 			// seek the target slave in which the input file is located on
-			for(int j = 0; j < num_slave; j++)
+			for(int j = 0; (unsigned)j < slaves.size(); j++)
 			{
 				if(address == slaves[j]->get_address()) // if the slave is target slave
 				{

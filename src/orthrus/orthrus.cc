@@ -20,7 +20,7 @@ Orthrus::~Orthrus () {
  if (status != STATUS_CLOSED) this->close();
  pthread_barrier_destroy (&barrier_start);
  delete cache;
- delete DHT_client;
+ //delete DHT_client;
 }
 // }}}
 // Setters {{{
@@ -108,8 +108,8 @@ Orthrus& Orthrus::bind () {
  if (::bind (Srequest, (struct sockaddr*)&Arequest, sizeof (Arequest)) == -1)
   log (M_ERR, local_ip_str, "bind function");
 
- DHT_client = new DHTclient (host, Pmigration + 3);
- cache = new Orthrus (_size);
+ //DHT_client = new DHTclient (host, Pmigration + 3);
+ cache = new Orthrus (_size); // ASK TO VICENTE
 
 #ifdef _DEBUG
  log (M_INFO, local_ip_str, "MRR distributed cached setted\n"
@@ -191,7 +191,7 @@ bool Orthrus::request (const char * key) {
  assert (key != NULL);
 
  socklen_t s = sizeof (struct sockaddr);
- uint16_t server_no = DHT_client->lookup (key);
+ //uint16_t server_no = DHT_client->lookup (key);
 
  if (server_no == local_no) return false; 
  uint16_t message = htons (h(key));

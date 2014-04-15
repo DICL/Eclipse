@@ -14,30 +14,23 @@ sleep 1
 
 numslave=$(awk '$1=="num_slave"{print $2}' setup.conf)
 
-for((i=1; i<=$numslave; i++))
+i=0
+for line in `cat nodelist.conf`
 do
-	if ((i<10))
-	then
-		echo "Launching slave $i"
-		ssh raven0$i $MR_HOME/bin/slave &
-	else
-		echo "Launching slave $i"
-		ssh raven$i $MR_HOME/bin/slave &
-	fi
+	echo "Launching slave $i"
+	ssh $line $MR_HOME/bin/slave &
+	(( i++ ))
 done
+
 
 if [ -e $MR_HOME/make_version/dht_mode ]
 then
-	for((i=1; i<=$numslave; i++))
+	i=0
+	for line in `cat nodelist.conf`
 	do
-		if ((i<10))
-		then
-			echo "Launching fileserver $i"
-			ssh raven0$i $MR_HOME/bin/fileserver &
-		else
-			echo "Launching fileclient $i"
-			ssh raven$i $MR_HOME/bin/fileserver &
-		fi
+		echo "Launching eclipse $i"
+		ssh $line $MR_HOME/bin/eclipse &
+		(( i++ ))
 	done
 fi
 

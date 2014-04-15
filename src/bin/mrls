@@ -1,51 +1,10 @@
 #!/bin/sh
 
-numslave=$(awk '$1=="num_slave"{print $2}' $MR_HOME/setup.conf)
-
-echo -e "\033[0;32mraven01:\033[0m"
-ssh raven01 ls -a $DHT_PATH
-
-for ((i=2;i<=numslave;i++))
+i=1
+for line in `cat $MR_HOME/nodelist.conf`
 do
-	if ((i<10))
-	then
-		echo
-		echo -e "\033[0;32mraven0$i:\033[0m"
-		ssh raven0$i ls -a $DHT_PATH
-	else
-		echo
-		echo -e "\033[0;32mraven$i:\033[0m"
-		ssh raven$i ls -a $DHT_PATH
-	fi
+	echo -e "\033[0;32mSlave$i:\033[0m"
+	ssh $line ls -a $DHT_PATH
+	echo
+	(( i++ ))
 done
-
-#for ((i=1;i<=numslave;i++))
-#do
-#	if ((i<10))
-#	then
-#		lslist[$i]=`ssh raven0$i ls $DHT_PATH`
-#	else
-#		lslist[$i]=`ssh raven$i ls $DHT_PATH`
-#	fi
-#done
-#
-#wait
-#
-#echo -e "\033[0;32mraven01:\033[0m"
-#printf "${lslist[1]}"
-#
-#for ((i=2;i<=numslave;i++))
-#do
-#	if ((i<10))
-#	then
-#		echo
-#		echo
-#		echo -e "\033[0;32mraven0$i:\033[0m"
-#		printf "${lslist[$i]}"
-#	else
-#		echo
-#		echo
-#		echo -e "\033[0;32mraven$i:\033[0m"
-#		printf "${lslist[$i]}"
-#	fi
-#done

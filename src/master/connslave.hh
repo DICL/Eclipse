@@ -1,5 +1,5 @@
-#ifndef _CONNSLAVE_
-#define _CONNSLAVE_
+#ifndef __CONNSLAVE__
+#define __CONNSLAVE__
 
 #include <iostream>
 #include <mapreduce/definitions.hh>

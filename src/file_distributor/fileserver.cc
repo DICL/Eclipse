@@ -15,8 +15,6 @@
 
 using namespace std;
 
-char read_buf[BUF_SIZE];
-char write_buf[BUF_SIZE];
 char master_address[BUF_SIZE];
 
 bool master_is_set = false;
@@ -49,11 +47,6 @@ int main(int argc, char** argv)
 			port = atoi(token.c_str());
 		}
 		else if(token == "max_job")
-		{
-			// ignore and just pass through this case
-			conf>>token;
-		}
-		else if(token == "num_slave")
 		{
 			// ignore and just pass through this case
 			conf>>token;

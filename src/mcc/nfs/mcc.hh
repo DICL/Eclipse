@@ -1,5 +1,5 @@
-#ifndef _MCC_
-#define _MCC_
+#ifndef __MCC__
+#define __MCC__
 #include <iostream>
 
 

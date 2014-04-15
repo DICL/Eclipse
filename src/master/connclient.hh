@@ -1,5 +1,5 @@
-#ifndef _CONNCLIENT_
-#define _CONNCLIENT_
+#ifndef __CONNCLIENT__
+#define __CONNCLIENT__
 
 #include <iostream>
 

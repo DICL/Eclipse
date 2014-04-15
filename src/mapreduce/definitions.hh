@@ -1,8 +1,8 @@
-#ifndef _DEFINITIONS_
-#define _DEFINITIONS_
+#ifndef __DEFINITIONS__
+#define __DEFINITIONS__
 
-#include <errno.h>
 #include <iostream>
+#include <errno.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -10,10 +10,12 @@
 using namespace std;
 
 #define MR_PATH "/home/youngmoon01/mr_storage/"
+#define IPC_PATH "/scratch/youngmoon01/socketfile"
 #define HDMR_PATH "/user/youngmoon01/mr_storage/"
 #define LIB_PATH "/home/youngmoon01/MRR/src/"
 #define BUF_SIZE (4*1024) // 4 KB sized buffer
-//#define BUF_SIZE (512*1024) // 512 KB sized buffer
+#define STREAM_BUF_SIZE 1000
+// #define BUF_SIZE (512*1024) // 512 KB sized buffer
 #define BUF_CUT 32
 #define TASK_SLOT 4
 #define HDFS_PATH "/home/youngmoon01/hadoop-2.2.0/include/"
@@ -37,6 +39,13 @@ enum mr_role
 	REDUCE
 };
 
+enum datatype
+{
+	RAW,
+	INTERMEDIATE,
+	OUTPUT
+};
+
 enum task_status
 {
 	WAITING,
@@ -52,14 +61,30 @@ enum job_stage
 	COMPLETED_STAGE // not used but reserved for future use
 };
 
+/*
 enum filetype // file(input and output) type for the task side in the dht mode
 {
 	LOCAL,
-	DISTANT,
+	REMOTE,
 	NOTOPENED
 };
+*/
 
-enum file_client_role 
+enum bridgetype // bridge source and destination type
+{
+	PEER,
+	DISK,
+	CACHE,
+	CLIENT
+};
+
+enum transfertype // data transfer type. packet or stream
+{
+	PACKET,
+	STERAM
+};
+
+enum file_role 
 {
 	READ,
 	WRITE,
@@ -153,42 +178,52 @@ int nbwrite(int fd, char* buf) // when the content is already on the buffer
 		if(errno == EAGAIN)
 		{
 			cout<<"\twrite function failed due to EAGAIN, retrying..."<<endl;
+			sleep(1);
 		}
 		else if(errno == EBADF)
 		{
 			cout<<"\twrite function failed due to EBADF, retrying..."<<endl;
+			sleep(5);
 		}
 		else if(errno == EFAULT)
 		{
 			cout<<"\twrite function failed due to EFAULT, retrying..."<<endl;
+			sleep(5);
 		}
 		else if(errno == EFBIG)
 		{
 			cout<<"\twrite function failed due to EFBIG, retrying..."<<endl;
+			sleep(5);
 		}
 		else if(errno == EINTR)
 		{
 			cout<<"\twrite function failed due to EINTR, retrying..."<<endl;
+			sleep(5);
 		}
 		else if(errno == EINVAL)
 		{
 			cout<<"\twrite function failed due to EINVAL, retrying..."<<endl;
+			sleep(5);
 		}
 		else if(errno == EIO)
 		{
 			cout<<"\twrite function failed due to EIO, retrying..."<<endl;
+			sleep(5);
 		}
 		else if(errno == ENOSPC)
 		{
 			cout<<"\twrite function failed due to ENOSPC, retrying..."<<endl;
+			sleep(5);
 		}
 		else if(errno == EPIPE)
 		{
 			cout<<"\twrite function failed due to EPIPE, retrying..."<<endl;
+			sleep(5);
 		}
 		else
 		{
 			cout<<"\twrite function failed due to unknown reason(debug needed)..."<<endl;
+			sleep(5);
 			return -1;
 		}
 

@@ -2,6 +2,12 @@
 #define __FILECLIENT__
 
 #include <iostream>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+#include <stdlib.h>
 #include <pthread.h>
 #include <fcntl.h>
 #include <sys/time.h>
@@ -15,14 +21,14 @@ private:
 	int serverfd;
 	char read_buf[BUF_SIZE];
 	char write_buf[BUF_SIZE];
-	int connect_to_server(string address, int port); // returns fd of file server
+	int connect_to_server(); // returns fd of file server
 
 public:
 	fileclient();
 	~fileclient();
-	bool write_record(string address, int port, string filename, string data); // append mode, wirte a record
+	bool write_record(string filename, string data, datatype atype); // append mode, write a record
 	void close_server(); // this function is used to notify the server that writing is done
-	bool read_attach(string address, int port, string filename); // connect to read file
+	bool read_attach(string filename, datatype atype); // connect to read file
 	bool read_record(string* record); // read sentences from connected file(after read_attach())
 };
 
@@ -46,34 +52,27 @@ fileclient::~fileclient()
 	this->serverfd = -1;
 }
 
-int fileclient::connect_to_server(string address, int port)
+int fileclient::connect_to_server()
 {
 	int fd;
-	struct sockaddr_in serveraddr;
-	struct hostent* hp;
+	struct sockaddr_un serveraddr;
 
 	// SOCK_STREAM -> tcp
-	fd = socket(AF_INET, SOCK_STREAM, 0);
+	fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if(fd < 0)
 	{
-		cout<<"[slave]Openning socket failed"<<endl;
+		cout<<"[fileclient]Openning socket failed"<<endl;
 		exit(1);
 	}
 
-	hp = gethostbyname(address.c_str());
-
-	if (hp == NULL)
-		cout<<"[fileclient]Cannot find host by host name:"<<address<<endl;
-	
 	memset((void*) &serveraddr, 0, sizeof(struct sockaddr));
-	serveraddr.sin_family = AF_INET;
-	memcpy(&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
-	serveraddr.sin_port = htons(port);
+	serveraddr.sun_family = AF_UNIX;
+	strcpy(serveraddr.sun_path, IPC_PATH);
 
-struct timeval time_start;
-struct timeval time_end;
-double elapsed = 0.0;
-gettimeofday(&time_start, NULL);
+//struct timeval time_start;
+//struct timeval time_end;
+//double elapsed = 0.0;
+//gettimeofday(&time_start, NULL);
 
 	while(connect(fd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0)
 	{
@@ -86,12 +85,12 @@ gettimeofday(&time_start, NULL);
 	// set socket to be nonblocking
 	fcntl(fd, F_SETFL, O_NONBLOCK);
 
-gettimeofday(&time_end, NULL);
-elapsed = 1000000.0*(time_end.tv_sec - time_start.tv_sec);
-elapsed += (time_end.tv_usec - time_start.tv_usec);
-elapsed /= 1000.0;
-if(elapsed > 10.0)
-cout<<"\033[0;33m\tconnect() elapsed: "<<elapsed<<" milli seconds\033[0m"<<endl;
+//gettimeofday(&time_end, NULL);
+//elapsed = 1000000.0*(time_end.tv_sec - time_start.tv_sec);
+//elapsed += (time_end.tv_usec - time_start.tv_usec);
+//elapsed /= 1000.0;
+//if(elapsed > 10.0)
+//cout<<"\033[0;33m\tconnect() elapsed: "<<elapsed<<" milli seconds\033[0m"<<endl;
 
 
 //cout<<"the connect is straggler"<<endl;
@@ -99,23 +98,33 @@ cout<<"\033[0;33m\tconnect() elapsed: "<<elapsed<<" milli seconds\033[0m"<<endl;
 }
 
 // close should be done exclusively with close_server() function
-bool fileclient::write_record(string address, int port, string filename, string data)
+bool fileclient::write_record(string filename, string data, datatype atype)
 {
 	// connect to the fileserver
-	this->serverfd = connect_to_server(address, port);
+	this->serverfd = connect_to_server();
 
 	// generate request string to send file server
-	string str = "write ";
+	string str;
+	if(atype == INTERMEDIATE)
+	{
+		str = "Iwrite ";
+	}
+	else if(atype == OUTPUT)
+	{
+		str = "Owrite ";
+	}
+	else // atype <- OUTPUT
+	{
+		cout<<"[fileclient]An invalid output type"<<endl;
+		return false;
+	}
 	str.append(filename);
+	str.append(" ");
+	str.append(data);
 
 	// send the message to the server
 	memset(this->write_buf, 0, BUF_SIZE);
 	strcpy(this->write_buf, str.c_str());
-	nbwrite(this->serverfd, this->write_buf);
-
-	// send the data to the server
-	memset(this->write_buf, 0, BUF_SIZE);
-	strcpy(this->write_buf, data.c_str());
 	nbwrite(this->serverfd, this->write_buf);
 
 //cout<<"\033[0;33m\trecord sent from client: \033[0m"<<write_buf<<endl;
@@ -135,18 +144,31 @@ void fileclient::close_server()
 		}
 	}
 	this->serverfd = -1;
-
 }
 
-bool fileclient::read_attach(string address, int port, string filename)
+bool fileclient::read_attach(string filename, datatype atype)
 {
 	// generate request string to send file server
-	string str = "read ";
+	string str;
+	if(atype == RAW)
+	{
+		str = "Rread ";
+	}
+	else if(atype == INTERMEDIATE)
+	{
+		str = "Iread ";
+	}
+	else
+	{
+		cout<<"[fileclient]Invalid read data type"<<endl;
+		return false;
+	}
 	str.append(filename);
 
 	memset(this->write_buf, 0, BUF_SIZE);
 	strcpy(this->write_buf, str.c_str());
-	this->serverfd = connect_to_server(address, port);
+
+	this->serverfd = connect_to_server();
 	nbwrite(this->serverfd, this->write_buf);
 	return true;
 }

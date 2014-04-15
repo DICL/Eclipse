@@ -1,0 +1,231 @@
+Deleting garbage file on DHT PATH in all slave nodes...
+[0;32mDone[0m
+Generating file list...
+[0;32mDone[0m
+Generating file distribution table...
+[0;32mDone[0m
+Distributing the files...
+[0;32mDone[0m
+Launching master...
+Launching slave 0
+Launching slave 1
+Launching slave 2
+Launching slave 3
+Launching slave 4
+Launching slave 5
+Launching slave 6
+Launching slave 7
+Launching slave 8
+Launching slave 9
+Launching slave 10
+Launching slave 11
+Launching slave 12
+Launching slave 13
+Launching slave 14
+Launching slave 15
+Launching slave 16
+Launching slave 17
+Launching slave 18
+Launching slave 19
+Launching eclipse 0
+Launching eclipse 1
+Launching eclipse 2
+Launching eclipse 3
+Launching eclipse 4
+Launching eclipse 5
+Launching eclipse 6
+Launching eclipse 7
+Launching eclipse 8
+Launching eclipse 9
+Launching eclipse 10
+Launching eclipse 11
+Launching eclipse 12
+Launching eclipse 13
+Launching eclipse 14
+Launching eclipse 15
+Launching eclipse 16
+Launching eclipse 17
+Launching eclipse 18
+Launching eclipse 19
+slave node connected from 192.168.1.2 
+slave node connected from 192.168.1.5 
+slave node connected from 192.168.1.1 
+slave node connected from 192.168.1.4 
+slave node connected from 192.168.1.3 
+slave node connected from 192.168.1.7 
+slave node connected from 192.168.1.11 
+slave node connected from 192.168.1.6 
+slave node connected from 192.168.1.17 
+slave node connected from 192.168.1.16 
+slave node connected from 192.168.1.13 
+slave node connected from 192.168.1.12 
+slave node connected from 192.168.1.10 
+slave node connected from 192.168.1.15 
+slave node connected from 192.168.1.18 
+slave node connected from 192.168.1.19 
+slave node connected from 192.168.1.9 
+slave node connected from 192.168.1.8 
+slave node connected from 192.168.1.14 
+slave node connected from 192.168.1.20 
+[master][0;32mAll slave nodes are connected successfully[0m
+[fileserver]Eclipse network successfully established(id=0)
+[fileserver]Eclipse network successfully established(id=1)
+[fileserver]Eclipse network successfully established(id=2)
+[fileserver]Eclipse network successfully established(id=3)
+[fileserver]Eclipse network successfully established(id=6)
+[fileserver]Eclipse network successfully established(id=5)
+[fileserver]Eclipse network successfully established(id=7)
+[fileserver]Eclipse network successfully established(id=4)
+[fileserver]Eclipse network successfully established(id=8)
+[fileserver]Eclipse network successfully established(id=9)
+[fileserver]Eclipse network successfully established(id=11)
+[fileserver]Eclipse network successfully established(id=13)
+[fileserver]Eclipse network successfully established(id=14)
+[fileserver]Eclipse network successfully established(id=12)
+[fileserver]Eclipse network successfully established(id=10)
+[fileserver]Eclipse network successfully established(id=15)
+[fileserver]Eclipse network successfully established(id=16)
+[fileserver]Eclipse network successfully established(id=17)
+[fileserver]Eclipse network successfully established(id=18)
+[fileserver]Eclipse network successfully established(id=19)
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Connection from a slave closed
+[master]Master server closed
+[master]Exiting master...
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.7
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.7
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.7
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.7
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.7
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.3
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.3
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.3
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.3
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.3
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.3
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.11
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.11
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.11
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.11
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.11
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.5
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.5
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.5
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.5
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.5
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.6
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.6
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.6
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.6
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.6
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.6
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.6
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.6
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.6
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.1
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.1
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.1
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.1
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.1
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.1
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.1
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.1
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.10
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.1
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.10
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.10
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.10
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.10
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.10
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.10
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.10
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.10
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.10
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.10
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.10
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.10
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.9
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.9
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.9
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.9
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.9
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.9
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.9
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.9
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.9
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.17
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.17
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.17
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.17
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.17
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.17
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.17
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.17
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.4
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.4
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.17
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.17
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.4
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.4
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.4
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.15
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.4
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.15
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.15
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.4
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.15
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.4
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.15
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.4
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.15
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.15
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.15
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.15
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.16
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.16
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.16
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.16
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.16
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.16
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.16
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.16
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.8
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.8
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.8
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.8
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.8
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.8
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.20
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.19
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.20
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.20
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.19
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.19
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.19
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.12
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.12
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.12
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.12
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.13
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.13
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.13
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.18
+[fileserver]Debugging: Connection from a peer disconnected: 192.168.1.18

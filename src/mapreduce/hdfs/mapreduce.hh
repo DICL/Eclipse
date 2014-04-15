@@ -1,5 +1,5 @@
-#ifndef _MAPREDUCE_
-#define _MAPREDUCE_
+#ifndef __MAPREDUCE__
+#define __MAPREDUCE__
 
 #include <iostream>
 #include <errno.h>
@@ -144,11 +144,6 @@ void init_mapreduce(int argc, char** argv)
 				dhtport = atoi(token.c_str());
 			}
 			else if(token == "max_job")
-			{
-				// ignore and just pass throught this case
-				conf>>token;
-			}
-			else if(token == "num_slave")
 			{
 				// ignore and just pass throught this case
 				conf>>token;

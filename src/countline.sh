@@ -44,6 +44,10 @@ slave/slave_task.hh \
 common/fileclient.hh \
 \
 file_distributor/fd_core.cc \
-file_distributor/fileserver.cc \
 file_distributor/fileserver.hh \
-file_distributor/file_connclient.hh
+file_distributor/filebridge.hh \
+file_distributor/filepeer.hh \
+file_distributor/file_connclient.hh \
+file_distributor/messagebuffer.hh \
+\
+orthrus/launcher.cc

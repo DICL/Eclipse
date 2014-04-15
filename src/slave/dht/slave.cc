@@ -478,11 +478,11 @@ void signal_listener()
 		}
 
 		gettimeofday(&time_end, NULL);
-		if(time_end.tv_sec - time_start.tv_sec > 5.0)
+		if(time_end.tv_sec - time_start.tv_sec > 20.0)
 		{
-			cout<<"[Slave Heartbeat]";
-			cout<<"numjob: "<<running_jobs.size()<<", ";
-			cout<<"numtask: "<<running_tasks.size()<<"("<<localhostname<<")"<<endl;
+			//cout<<"[Slave Heartbeat]";
+			//cout<<"numjob: "<<running_jobs.size()<<", ";
+			//cout<<"numtask: "<<running_tasks.size()<<"("<<localhostname<<")"<<endl;
 			gettimeofday(&time_start, NULL);
 		}
 	}

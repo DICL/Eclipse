@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
 #include <sstream>
 #include <stdlib.h>
 #include <sys/unistd.h>
@@ -23,8 +24,9 @@ char master_address[BUF_SIZE];
 int port = -1;
 int dhtport = -1;
 int masterfd = -1;
-int num_slave = -1;
 bool master_is_set = false;
+vector<string> nodelist;
+
 
 int main(int argc, char** argv)
 {
@@ -62,12 +64,6 @@ int main(int argc, char** argv)
 			// ignore and just pass through this case
 			conf>>token;
 		}
-		else if(token == "num_slave")
-		{
-			// ignore and just pass through this case
-			conf>>token;
-			num_slave = atoi(token.c_str());
-		}
 		else if(token == "master_address")
 		{
 			conf>>token;
@@ -92,6 +88,22 @@ int main(int argc, char** argv)
 		cout<<"[client]master_address should be specified in the setup.conf"<<endl;
 		exit(1);
 	}
+
+
+	// read the node list information
+	ifstream nodelistfile;
+	string filepath = LIB_PATH;
+	filepath.append("nodelist.conf");
+
+	nodelistfile.open(filepath.c_str());
+
+	nodelistfile>>token;
+	while(!nodelistfile.eof())
+	{
+		nodelist.push_back(token);
+		nodelistfile>>token;
+	}
+
 	// copy request command to write buffer
 	if(strncmp(argv[1], "stop", 4) == 0)
 	{
@@ -210,18 +222,18 @@ void* signal_listener(void* args)
 
 				// send close message to all fileserver if the message is "stop"
 				if(strncmp(write_buf, "stop", 4) == 0)
-				for(int i = 1; i <= num_slave; i++)
 				{
-					int fd;
-					stringstream ss;
-					ss<<i;
-					string address = ADDRESSPREFIX;
-					address.append(ss.str());
-					strcpy(read_buf, address.c_str());
-					
-					fd = connect_to_server(read_buf, dhtport);
-					nbwrite(fd, write_buf);
-					close(fd);
+					for(int i = 0; (unsigned)i < nodelist.size(); i++)
+					{
+						int fd;
+						
+						memset(read_buf, 0, BUF_SIZE);
+						strcpy(read_buf, nodelist[i].c_str());
+
+						fd = connect_to_server(read_buf, dhtport);
+						nbwrite(fd, write_buf);
+						close(fd);
+					}
 				}
 			}
 			else if(strncmp(read_buf, "close", 5) == 0)
