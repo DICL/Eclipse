@@ -527,7 +527,7 @@ void summ_mapreduce()
 					//					cout<<"[mapreduce]Map task is successfully completed"<<endl;
 					// terminate successfully
 					readfileclient.close_server();
-					writefileclient.close_server();
+					//writefileclient.close_server();
 					while(close(pipefd[0]) < 0)
 					{
 cout<<"[mapreduce]close failed"<<endl;
@@ -745,7 +745,7 @@ void write_keyvalue(string key, string value)
 		rst.append(value);
 
 		writefileclient.write_record(keyfile, rst, INTERMEDIATE);
-		writefileclient.close_server();
+		writefileclient.wait_write();
 	}
 	else
 	{
@@ -952,7 +952,7 @@ void write_output(string record) // this user function can be used anywhere but 
 	*/
 
 	writefileclient.write_record(outputpath, record, OUTPUT);
-	writefileclient.close_server();
+	writefileclient.wait_write();
 }
 
 int get_jobid()

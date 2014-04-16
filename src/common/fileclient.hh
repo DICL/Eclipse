@@ -28,6 +28,7 @@ public:
 	~fileclient();
 	bool write_record(string filename, string data, datatype atype); // append mode, write a record
 	void close_server(); // this function is used to notify the server that writing is done
+	void wait_write(); // wait until write is done
 	bool read_attach(string filename, datatype atype); // connect to read file
 	bool read_record(string* record); // read sentences from connected file(after read_attach())
 };
@@ -39,6 +40,7 @@ fileclient::fileclient()
 
 fileclient::~fileclient()
 {
+	/*
 	if(this->serverfd != -1)
 	{
 		while(close(this->serverfd) < 0)
@@ -49,6 +51,8 @@ fileclient::~fileclient()
 			usleep(1000);
 		}
 	}
+	*/
+	close(this->serverfd);
 	this->serverfd = -1;
 }
 
@@ -133,6 +137,7 @@ bool fileclient::write_record(string filename, string data, datatype atype)
 
 void fileclient::close_server()
 {
+/*
 	if(this->serverfd != -1)
 	{
 		while(close(this->serverfd) < 0)
@@ -144,6 +149,27 @@ void fileclient::close_server()
 		}
 	}
 	this->serverfd = -1;
+*/
+	close(this->serverfd);
+}
+
+void fileclient::wait_write() // wait until write is done
+{
+	int read_bytes;
+	while(1)
+	{
+		read_bytes = read(this->serverfd, read_buf, BUF_CUT);  // use BUF_CUT as read size exceptively
+		if(read_bytes > 0)
+		{
+			cout<<"[fileclient]Unexpected message while waiting close of socket during the write"<<endl;
+		}
+		else if(read_bytes == 0)
+		{
+			break;
+		}
+	}
+	close(this->serverfd);
+	return;
 }
 
 bool fileclient::read_attach(string filename, datatype atype)

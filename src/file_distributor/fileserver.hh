@@ -78,7 +78,6 @@ int fileserver::run_server(int port)
 		unlink(IPC_PATH);
 	}
 
-
 	// determine the network topology by reading node list information
 	int networkidx = -1;
 	for(int i = 0; (unsigned) i < nodelist.size(); i++)
@@ -350,7 +349,6 @@ int fileserver::run_server(int port)
 								}
 							}
 
-
 							//nbwrite(find_peer(address)->get_fd(), write_buf);
 						}
 					}
@@ -503,11 +501,21 @@ int fileserver::run_server(int port)
 						}
 						else // distant
 						{
+							bridges.push_back(thebridge);
+
+							// set up the bridge
+							thebridge->set_srctype(PEER); // source of Ewrite
+							thebridge->set_dsttype(CLIENT); // destination of Ewrite
+							thebridge->set_dstclient(clients[i]);
+							thebridge->set_dtype(INTERMEDIATE);
+
 							// send message along with the record to the target peer
 							string message;
 							stringstream ss;
 							ss << "Iwrite ";
 							ss << filename;
+							ss << " ";
+							ss << thebridge->get_id();
 							ss << " ";
 							ss << record;
 							message = ss.str();
@@ -537,22 +545,6 @@ int fileserver::run_server(int port)
 								{
 									thepeer->msgbuf.push_back(new messagebuffer());
 								}
-							}
-							//nbwrite(find_peer(address)->get_fd(), write_buf);
-
-							delete thebridge;
-
-							if(clients[i]->msgbuf.size() > 1)
-							{
-								clients[i]->msgbuf.back()->set_endbuffer(clients[i]->get_fd());
-								clients[i]->msgbuf.push_back(new messagebuffer());
-							}
-							else
-							{
-								close(clients[i]->get_fd());
-								delete clients[i];
-								clients.erase(clients.begin()+i);
-								i--;
 							}
 						}
 					}
@@ -609,11 +601,21 @@ int fileserver::run_server(int port)
 						}
 						else // distant
 						{
+							bridges.push_back(thebridge);
+
+							// set up the bridge
+							thebridge->set_srctype(PEER); // source of Ewrite
+							thebridge->set_dsttype(CLIENT); // destination of Ewrite
+							thebridge->set_dstclient(clients[i]);
+							thebridge->set_dtype(INTERMEDIATE);
+
 							// send message along with the record to the target peer
 							string message;
 							stringstream ss;
 							ss << "Owrite ";
 							ss << filename;
+							ss << " ";
+							ss << thebridge->get_id();
 							ss << " ";
 							ss << record;
 							message = ss.str();
@@ -644,23 +646,8 @@ int fileserver::run_server(int port)
 									thepeer->msgbuf.push_back(new messagebuffer());
 								}
 							}
+
 							//nbwrite(find_peer(address)->get_fd(), write_buf);
-
-							delete thebridge;
-
-							// clear the client
-							if(clients[i]->msgbuf.size() > 1)
-							{
-								clients[i]->msgbuf.back()->set_endbuffer(clients[i]->get_fd());
-								clients[i]->msgbuf.push_back(new messagebuffer());
-							}
-							else
-							{
-								close(clients[i]->get_fd());
-								delete clients[i];
-								clients.erase(clients.begin()+i);
-								i--;
-							}
 						}
 					}
 					else if(strncmp(token, "stop", 4) == 0)
@@ -701,6 +688,7 @@ int fileserver::run_server(int port)
 
 			int readbytes;
 			readbytes = nbread(peers[i]->get_fd(), read_buf);
+
 			if(readbytes > 0)
 			{
 				if(strncmp(read_buf, "Rread", 5) == 0)
@@ -781,14 +769,22 @@ int fileserver::run_server(int port)
 					string filename;
 					char* token;
 					char* buf;
+					int bridgeid;
 
 					buf = read_buf;
+
 					token = strtok(read_buf, " "); // <- message type
 					buf += strlen(token) + 1;
 					token = strtok(NULL, " "); // <- filename
 					buf += strlen(token) + 1;
 
 					filename = token;
+
+					token = strtok(NULL, " "); // <- bridge id
+					buf += strlen(token) + 1;
+
+					bridgeid = atoi(token);
+
 					record = buf;
 
 					filebridge* thebridge = new filebridge(fbidclock++);
@@ -802,7 +798,31 @@ int fileserver::run_server(int port)
 					{
 						thebridge->open_writefile(filename);
 						thebridge->write_record(record, write_buf);
-						cout<<"record written: "<<record<<endl;
+
+cout<<"record written: "<<record<<endl;
+
+						stringstream ss;
+						string message;
+						ss << "Ewrite ";
+						ss << bridgeid;
+						message = ss.str();
+
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, message.c_str());
+
+						if(peers[i]->msgbuf.size() > 1)
+						{
+							peers[i]->msgbuf.back()->set_buffer(write_buf, peers[i]->get_fd());
+							peers[i]->msgbuf.push_back(new messagebuffer());
+						}
+						else
+						{
+							if(nbwritebuf(peers[i]->get_fd(),
+										write_buf, peers[i]->msgbuf.back()) <= 0)
+							{
+								peers[i]->msgbuf.push_back(new messagebuffer());
+							}
+						}
 
 						delete thebridge;
 					}
@@ -814,14 +834,22 @@ int fileserver::run_server(int port)
 					string filename;
 					char* token;
 					char* buf;
+					int bridgeid;
 
 					buf = read_buf;
+
 					token = strtok(read_buf, " "); // <- message type
 					buf += strlen(token)+1;
 					token = strtok(NULL, " "); // <- filename
 					buf += strlen(token)+1;
 
 					filename = token;
+
+					token = strtok(NULL, " "); // <- bridge id
+					buf += strlen(token)+1;
+
+					bridgeid = atoi(token);
+
 					record = buf;
 
 					filebridge* thebridge = new filebridge(fbidclock++);
@@ -835,14 +863,37 @@ int fileserver::run_server(int port)
 					{
 						thebridge->open_writefile(filename);
 						thebridge->write_record(record, write_buf);
-						cout<<"record written: "<<record<<endl;
+
+cout<<"record written: "<<record<<endl;
+
+						stringstream ss;
+						string message;
+						ss << "Ewrite ";
+						ss << bridgeid;
+						message = ss.str();
+
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, message.c_str());
+
+						if(peers[i]->msgbuf.size() > 1)
+						{
+							peers[i]->msgbuf.back()->set_buffer(write_buf, peers[i]->get_fd());
+							peers[i]->msgbuf.push_back(new messagebuffer());
+						}
+						else
+						{
+							if(nbwritebuf(peers[i]->get_fd(),
+									write_buf, peers[i]->msgbuf.back()) <= 0)
+							{
+								peers[i]->msgbuf.push_back(new messagebuffer());
+							}
+						}
 
 						delete thebridge;
 					}
 				}
 				else if(strncmp(read_buf, "Eread", 5) == 0) // end of file read stream notifiation
 				{
-					string record;
 					char* token;
 					int id;
 					int bridgeindex = -1;
@@ -862,11 +913,13 @@ int fileserver::run_server(int port)
 					}
 if(bridgeindex == -1)
 cout<<"bridge not found with that index"<<endl;
+
 					dsttype = bridges[bridgeindex]->get_dsttype();
 
 					if(dsttype == CLIENT)
 					{
 						file_connclient* theclient = bridges[bridgeindex]->get_dstclient();
+
 						// clear the clients and bridges
 						for(int j = 0; (unsigned)j < clients.size(); j++)
 						{
@@ -895,6 +948,64 @@ cout<<"bridge not found with that index"<<endl;
 						// do nothing for now
 					}
 					cout<<"end of read"<<endl;
+				}
+				else if(strncmp(read_buf, "Ewrite", 6) == 0)
+				{
+					char* token;
+					int bridgeid;
+					int bridgeindex = -1;
+					bridgetype dsttype;
+
+					token = strtok(read_buf, " "); // <- Ewrite
+					token = strtok(NULL, " "); // <- bridge id
+
+					bridgeid = atoi(token);
+
+					for(int j = 0; (unsigned)j < bridges.size(); j++)
+					{
+						if(bridges[j]->get_id() == bridgeid)
+						{
+							bridgeindex = j;
+							break;
+						}
+					}
+if(bridgeindex == -1)
+cout<<"bridge not found with that index"<<endl;
+					
+					dsttype = bridges[bridgeindex]->get_dsttype();
+
+					if(dsttype == CLIENT)
+					{
+						file_connclient* theclient = bridges[bridgeindex]->get_dstclient();
+
+						// clear the clients and bridges
+						
+						for(int j = 0; (unsigned)j < clients.size(); j++)
+						{
+							if(clients[j] == theclient)
+							{
+								if(theclient->msgbuf.size() > 1)
+								{
+									theclient->msgbuf.back()->set_endbuffer(theclient->get_fd());
+									theclient->msgbuf.push_back(new messagebuffer());
+								}
+								else
+								{
+									close(clients[j]->get_fd());
+									delete clients[j];
+									clients.erase(clients.begin()+j);
+								}
+								break;
+							}
+						}
+
+						delete bridges[bridgeindex];
+						bridges.erase(bridges.begin()+bridgeindex);
+					}
+					else if(dsttype == PEER)
+					{
+						// do nothing for now
+					}
 				}
 				else // a filebridge id is passed. this is the case of data read stream
 				{
@@ -1184,8 +1295,6 @@ cout<<"bridge not found with that index"<<endl;
 				}
 			}
 		}
-
-//usleep(100000);
 	}
 	return 0;
 }
