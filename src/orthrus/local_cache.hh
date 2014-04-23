@@ -54,12 +54,13 @@ class Local_cache {
   }
   uint64_t  get_ema ()        { return ema; }
   size_t    get_size ()       { return size_max_bytes; }
+  size_t    get_current_size ()       { return size_current_bytes; }
 
   //----------PUBLIC METHODS----------------------//
   bool insert (uint64_t, disk_page_t&);
   disk_page_t lookup (uint64_t) throw (std::out_of_range);
 
-  bool is_disk_page_belonging (disk_page_t&);
+  bool is_disk_page_belonging (const disk_page_t&);
   uint64_t get_local_center ();
   void boundaries_update (uint64_t, uint64_t);
   disk_page_t get_upp ();

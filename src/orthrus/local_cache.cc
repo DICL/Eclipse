@@ -56,38 +56,49 @@ bool Local_cache::insert (uint64_t idx, disk_page_t& dp) {
 
  if (does_new_dp_fits) { //! If its not full
   if (found_same) {
-   pthread_mutex_lock (&mutex_map_spatial);
-   map_lru->erase (it);
-   map_lru->insert (*it);  // :TODO: //std::swap (it, map_lru->begin());
-   pthread_mutex_unlock (&mutex_map_spatial);
-
+   if (policy & orthrus::LRU) {
+    pthread_mutex_lock (&mutex_map_lru);
+    map_lru->erase (it);
+    map_lru->insert (*it);  // :TODO: //std::swap (it, map_lru->begin());
+    pthread_mutex_unlock (&mutex_map_lru);
+   }
   } else {
    pthread_mutex_lock (&mutex_map_spatial);
    map_spatial->insert (std::make_pair (idx, dp));
    pthread_mutex_unlock (&mutex_map_spatial);
 
-   pthread_mutex_lock (&mutex_map_lru);
-   map_lru->insert (std::make_pair (idx, dp));
-   pthread_mutex_unlock (&mutex_map_lru);
+   if (policy & orthrus::LRU) {
+    pthread_mutex_lock (&mutex_map_lru);
+    map_lru->insert (std::make_pair (idx, dp));
+    pthread_mutex_unlock (&mutex_map_lru);
+   }
   }
  } else {                //! If its full
   if (found_same) {
-   pthread_mutex_lock (&mutex_map_spatial);
-   map_lru->erase (--map_lru->rbegin().base());
-   map_lru->erase (idx);
-   pthread_mutex_unlock (&mutex_map_spatial);
+   if (policy & orthrus::LRU) {
+    pthread_mutex_lock (&mutex_map_spatial);
+    map_lru->erase (--map_lru->rbegin().base());
+    map_lru->erase (idx);
+    pthread_mutex_unlock (&mutex_map_spatial);
    // No need to update map_spatial
+   }
 
   } else {
    pthread_mutex_lock (&mutex_map_spatial);
    map_spatial->insert (std::make_pair (idx, dp));
    pthread_mutex_unlock (&mutex_map_spatial);
-   pthread_mutex_lock (&mutex_map_lru);
-   map_lru->insert (std::make_pair (idx, dp));
-   pthread_mutex_unlock (&mutex_map_lru);
+
+   if (policy & orthrus::LRU) {
+    pthread_mutex_lock (&mutex_map_lru);
+    map_lru->insert (std::make_pair (idx, dp));
+    pthread_mutex_unlock (&mutex_map_lru);
+   }
    pop_farthest ();
   }
  } 
+
+ size_current_bytes += dp.get_size();
+
  return true;
 }
 //}}}
@@ -105,13 +116,13 @@ disk_page_t Local_cache::lookup (uint64_t idx) throw (std::out_of_range) {
 // Is_disk_page_belonging {{{
 //                                -- Vicente Bolea
 // ----------------------------------------------- 
-bool Local_cache::is_disk_page_belonging (disk_page_t& dp) {
- uint64_t lowest   = map_spatial->begin()->second.get_index ();
- uint64_t highest  = map_spatial->rbegin()->second.get_index ();
- uint64_t max_dist = std::max (ema-lowest, highest-ema);
+bool Local_cache::is_disk_page_belonging (const disk_page_t& dp) {
+ //uint64_t lowest   = map_spatial->begin()->second.get_index ();
+ //uint64_t highest  = map_spatial->rbegin()->second.get_index ();
+ //uint64_t max_dist = std::max (ema-lowest, highest-ema);
  //uint64_t oldest   = (*map_lru->begin()).get_time ();
-
- return max_dist > (dp.get_index () - ema);
+ //return max_dist > (dp.get_index () - ema);
+ return (boundary_low <= dp.get_index() and dp.get_index() <= boundary_upp);
 }
 //}}}
 // get_local_center{{{
@@ -150,8 +161,13 @@ void Local_cache::pop_farthest () {
 
      pthread_mutex_lock (&mutex_map_spatial);
      map_spatial->erase (first);
-     map_lru->erase (first);
      pthread_mutex_unlock (&mutex_map_spatial);
+ 
+     if (policy & orthrus::LRU) {
+      pthread_mutex_lock (&mutex_map_lru);
+      map_lru->erase (first->first);
+      pthread_mutex_unlock (&mutex_map_lru);
+     }
 
     } else if (highest > ema) { //! Pop the rightest element
      pthread_mutex_lock (&mutex_queue_upp);
@@ -160,8 +176,13 @@ void Local_cache::pop_farthest () {
 
      pthread_mutex_lock (&mutex_map_spatial);
      map_spatial->erase (last->first);
-     //map_lru->erase (last);
      pthread_mutex_unlock (&mutex_map_spatial);
+
+     if (policy & orthrus::LRU) {
+      pthread_mutex_lock (&mutex_map_lru);
+      map_lru->erase (last->first);
+      pthread_mutex_unlock (&mutex_map_lru);
+     }
     }
    }
 // {{{
@@ -201,6 +222,8 @@ void Local_cache::pop_farthest () {
 void Local_cache::boundaries_update (uint64_t low, uint64_t upp) {
  auto low_i = map_spatial->lower_bound (low);
  auto upp_i = map_spatial->upper_bound (upp);
+ this->boundary_low = low;
+ this->boundary_upp = upp;
 
  if (low_i != map_spatial->end() and low_i != map_spatial->begin()) {
   for_each (map_spatial->begin(), low_i, [&] (std::pair<uint64_t, disk_page_t> it) {
@@ -211,6 +234,12 @@ void Local_cache::boundaries_update (uint64_t low, uint64_t upp) {
    pthread_mutex_lock (&mutex_map_spatial);
    map_spatial->erase (it.first);
    pthread_mutex_unlock (&mutex_map_spatial);
+
+   if (policy & orthrus::LRU) {
+    pthread_mutex_lock (&mutex_map_lru);
+    map_lru->erase (it.first);
+    pthread_mutex_unlock (&mutex_map_lru);
+   }
   });
  }  
  if (upp_i != map_spatial->end() and upp_i != map_spatial->begin())  {
@@ -222,6 +251,12 @@ void Local_cache::boundaries_update (uint64_t low, uint64_t upp) {
    pthread_mutex_lock (&mutex_map_spatial);
    map_spatial->erase (it.first);
    pthread_mutex_unlock (&mutex_map_spatial);
+
+   if (policy & orthrus::LRU) {
+    pthread_mutex_lock (&mutex_map_lru);
+    map_lru->erase (it.first);
+    pthread_mutex_unlock (&mutex_map_lru);
+   }
   });
  }
 }

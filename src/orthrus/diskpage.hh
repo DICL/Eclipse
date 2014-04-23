@@ -13,30 +13,31 @@
 
 class disk_page_t {
  public:
-  disk_page_t () {}
+  disk_page_t () : index (0), time (0), size (0), data (nullptr)  {}
   disk_page_t (const char * in) { deserialize (in); }
-  disk_page_t (const disk_page_t& that) { *this = that; }
+  disk_page_t (const disk_page_t& that) : disk_page_t () { *this = that; }
   disk_page_t& operator= (const disk_page_t& that) {
    index = that.index;
    time  = that.time;
    size  = that.size;
-   memcpy (this->data, that.data, size);
+   set_data (that.data);
    return *this;
   }
   ~disk_page_t () { delete this->data; }
    
-  uint64_t get_index () { return index; }
-  uint64_t get_time ()  { return time; } 
-  size_t   get_size ()  { return size; } 
+  uint64_t get_index () const { return index; }
+  uint64_t get_time ()  const { return time; } 
+  size_t   get_size ()  const { return size; } 
   char*    get_data ()  { return data; } 
 
   disk_page_t& set_index (uint64_t i) { index = i; return *this; }
   disk_page_t& set_time  (uint64_t i) { time  = i; return *this; }
   disk_page_t& set_size  (size_t i)   { size = i; return *this; }
   disk_page_t& set_data  (const char* in) { 
-   if (size > 0) {
-    if (data == NULL) data = new char [size];
-    strncpy (data, in, size);
+   if (size > 0 && in != nullptr) {
+    if (data != nullptr) delete data;       //! Delete previous data pointed 
+    data = new char [size];              //! Copy new data
+    memcpy (data, in, size);
    }
    return *this; 
   }
