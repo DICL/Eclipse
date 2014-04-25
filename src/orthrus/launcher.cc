@@ -89,7 +89,7 @@ int main(int argc, const char *argv[])
 	}
 
 	// run the file server
-	afileserver.run_server(dhtport);
+	afileserver.run_server(dhtport, master_address);
 
 	//orthrus.close ();
 	return 0;

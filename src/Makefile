@@ -12,6 +12,10 @@ ECLIPSE_DEP += $(MR_HOME)/file_distributor/filepeer.hh
 ECLIPSE_DEP += $(MR_HOME)/file_distributor/filebridge.hh 
 ECLIPSE_DEP += $(MR_HOME)/file_distributor/messagebuffer.hh 
 ECLIPSE_DEP += $(MR_HOME)/file_distributor/file_connclient.hh 
+ECLIPSE_DEP += $(MR_HOME)/orthrus/histogram.hh 
+CACHESERVER_DEP = $(MR_HOME)/orthrus/histogram.hh
+CACHESERVER_DEP += $(MR_HOME)/orthrus/cacheserver.cc
+CACHESERVER_DEP += $(MR_HOME)/orthrus/cacheclient.hh
 DHT_FLAG = -I $(MR_HOME)/DHT/
 DHT_FLAG += -I $(MR_HOME)/common/ 
 DHT_FLAG += $(DHT_OBJ)
@@ -23,7 +27,7 @@ CCFLAGS = -Wall
 all:
 	echo Type ether: [make nfs], [make hdfs], [make dht] [make clean]
 
-dht: $(MR_HOME)/make_version/master_dht $(MR_HOME)/make_version/slave_dht $(MR_HOME)/make_version/client_dht $(MR_HOME)/make_version/mcc_dht $(MR_HOME)/bin/fd_core $(MR_HOME)/common/hash.o $(MR_HOME)/bin/eclipse
+dht: $(MR_HOME)/make_version/master_dht $(MR_HOME)/make_version/slave_dht $(MR_HOME)/make_version/client_dht $(MR_HOME)/make_version/mcc_dht $(MR_HOME)/bin/fd_core $(MR_HOME)/common/hash.o $(MR_HOME)/bin/eclipse $(MR_HOME)/bin/cacheserver
 	touch $(MR_HOME)/make_version/dht_mode
 
 nfs: $(MR_HOME)/make_version/master_nfs_hdfs $(MR_HOME)/make_version/slave_nfs_hdfs $(MR_HOME)/make_version/client_nfs_hdfs $(MR_HOME)/make_version/mcc_nfs $(MR_HOME)/common/hash.o
@@ -81,8 +85,11 @@ $(MR_HOME)/make_version/mcc_dht: $(MR_HOME)/mcc/dht/mcc.cc $(MR_HOME)/mcc/dht/mc
 	touch $(MR_HOME)/make_version/mcc
 	touch $(MR_HOME)/make_version/mcc_dht
 
-$(MR_HOME)/bin/eclipse: $(MR_DEF) $(MR_HOME)/orthrus/launcher.cc $(MR_HOME)/orthrus/orthrus.hh $(MR_HOME)/common/utils.o $(MR_HOME)/common/hash.o $(ECLIPSE_DEP) $(MR_DEF)
+$(MR_HOME)/bin/eclipse: $(MR_DEF) $(MR_HOME)/orthrus/launcher.cc $(MR_HOME)/orthrus/orthrus.hh $(MR_HOME)/common/utils.o $(MR_HOME)/common/hash.o $(ECLIPSE_DEP)
 	g++ -g $(CCFLAGS) -std=c++11 $(MR_HOME)/orthrus/launcher.cc -I $(MR_HOME) -I $(MR_HOME)/common -I $(MR_HOME)/orthrus $(MR_HOME)/common/utils.o $(MR_HOME)/common/hash.o -o $(MR_HOME)/bin/eclipse
+
+$(MR_HOME)/bin/cacheserver: $(MR_DEF) $(CACHESERVER_DEP)
+	g++ $(CCFLAGS) $(MR_HOME)/orthrus/cacheserver.cc -I $(MR_HOME) -I $(MR_HOME)/common -o $(MR_HOME)/bin/cacheserver
 
 #$(MR_HOME)/bin/fileserver: $(MR_HOME)/file_distributor/fileserver.cc $(MR_HOME)/file_distributor/fileserver.hh $(MR_DEF)
 #	g++ $(CCFLAGS) $(MR_HOME)/file_distributor/fileserver.cc -o $(MR_HOME)/bin/fileserver -I $(MR_HOME) 
@@ -128,3 +135,4 @@ clean:
 	rm -f $(MR_HOME)/DHT/DHTclient.o
 	rm -f $(MR_HOME)/make_version/*
 	rm -f $(MR_HOME)/bin/fd_core
+	rm -f $(MR_HOME)/bin/cacheserver

@@ -112,6 +112,7 @@ int main(int argc, char** argv)
 
 	nodelistfile.open(filepath.c_str());
 	nodelistfile>>token;
+
 	while(!nodelistfile.eof())
 	{
 		nodelist.push_back(token);
@@ -253,6 +254,7 @@ int open_server(int port)
 		cout<<"[master]Listening failed"<<endl;
 		return -1;
 	}
+
 	return serverfd;
 }
 

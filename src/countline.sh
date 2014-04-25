@@ -50,4 +50,6 @@ file_distributor/filepeer.hh \
 file_distributor/file_connclient.hh \
 file_distributor/messagebuffer.hh \
 \
-orthrus/launcher.cc
+orthrus/launcher.cc \
+orthrus/cacheserver.cc \
+orthrus/histogram.hh

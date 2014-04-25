@@ -12,58 +12,60 @@ using namespace std;
 
 class filebridge
 {
-private:
-	int id; // this id will be sent to peer to link this filebridge
-	int dstid; // the bridge id of remote peer, -1 as default, positive value when the dsttype is PEER
-	int remain; // bytes remained until complete transmission
-	int progress; // bytes progressed during transmission
-	int writefilefd;
-	char buf[BUF_SIZE];
-	string dataname; // the key of the data which is used as input of hash function
-	bridgetype srctype; // PEER, DISK, CACHE or CLIENT
-	bridgetype dsttype; // PEER, DISK, CACHE or CLIENT
-	datatype dtype; // RAW, INTERMEDIATE, OUTPUT
-	filepeer* dstpeer; // destination peer
-	file_connclient* dstclient; // destination client. should be set in the constructor either to an real object or NULL pointer
-	fstream readfilestream;
-	string filename; // [jobindex(if it is intermediate)] + [dataname]
+	private:
+		int id; // this id will be sent to peer to link this filebridge
+		int dstid; // the bridge id of remote peer, -1 as default, positive value when the dsttype is PEER
+		int remain; // bytes remained until complete transmission
+		int progress; // bytes progressed during transmission
+		int writefilefd;
+		char buf[BUF_SIZE];
+		string dataname; // the key of the data which is used as input of hash function
+		bridgetype srctype; // PEER, DISK, CACHE or CLIENT
+		bridgetype dsttype; // PEER, DISK, CACHE or CLIENT
+		datatype dtype; // RAW, INTERMEDIATE, OUTPUT
+		filepeer* dstpeer; // destination peer
+		file_connclient* dstclient; // destination client. should be set in the constructor either to an real object or NULL pointer
+		fstream readfilestream;
+		string filename; // [jobindex(if it is intermediate)] + [dataname]
 
-public:
-	filebridge(int anid);
-	~filebridge();
+		string cachebuffer;
 
-	void set_dstpeer(filepeer* apeer);
-	void set_role(file_role arole);
-	void set_dataname(string aname);
-	void set_filename(string aname);
-	void set_dtype(datatype atype);
-	void set_remain(int num);
-	void set_progress(int num);
-	void set_srctype(bridgetype atype);
-	void set_dsttype(bridgetype atype);
-	void set_id(int num);
-	void set_dstid(int num);
-	void set_dstclient(file_connclient* aclient);
+	public:
+		filebridge(int anid);
+		~filebridge();
 
-	int get_id();
-	int get_dstid();
-	int get_remain();
-	int get_progress();
-	filepeer* get_dstpeer();
-	datatype get_dtype();
-	file_role get_role();
-	string get_dataname();
-	string get_filename();
-	file_connclient* get_dstclient();
-	bridgetype get_srctype();
-	bridgetype get_dsttype();
+		void set_dstpeer(filepeer* apeer);
+		void set_role(file_role arole);
+		void set_dataname(string aname);
+		void set_filename(string aname);
+		void set_dtype(datatype atype);
+		void set_remain(int num);
+		void set_progress(int num);
+		void set_srctype(bridgetype atype);
+		void set_dsttype(bridgetype atype);
+		void set_id(int num);
+		void set_dstid(int num);
+		void set_dstclient(file_connclient* aclient);
 
-	void open_readfile(string fname);
-	void open_writefile(string fname);
-	void write_record(string record, char* write_buf);
-	bool read_record(string * record);
-	// void send_record();
-	// void prep_send(char* source);
+		int get_id();
+		int get_dstid();
+		int get_remain();
+		int get_progress();
+		filepeer* get_dstpeer();
+		datatype get_dtype();
+		file_role get_role();
+		string get_dataname();
+		string get_filename();
+		file_connclient* get_dstclient();
+		bridgetype get_srctype();
+		bridgetype get_dsttype();
+
+		void open_readfile(string fname);
+		void open_writefile(string fname);
+		void write_record(string record, char* write_buf);
+		bool read_record(string * record);
+		// void send_record();
+		// void prep_send(char* source);
 };
 
 filebridge::filebridge(int anid)
@@ -225,27 +227,27 @@ bool filebridge::read_record(string * record)
 }
 
 /*
-void filebridge::send_record()
-{
-	int written_bytes;
-	written_bytes = write(this->fd, buf+progress, remain);
+   void filebridge::send_record()
+   {
+   int written_bytes;
+   written_bytes = write(this->fd, buf+progress, remain);
 
-	if(written_bytes > 0)
-	{
-		progress += written_bytes;
-		remain -= written_bytes;
-	}
-	return;
-}
+   if(written_bytes > 0)
+   {
+   progress += written_bytes;
+   remain -= written_bytes;
+   }
+   return;
+   }
 
-void filebridge::prep_send(char* source)
-{
-	memset(buf, 0, BUF_SIZE);
-	strcpy(buf, source);
-	remain = BUF_CUT*(strlen(buf)/BUF_CUT+1); // same as nbwrite
-	progress = 0;
-}
-*/
+   void filebridge::prep_send(char* source)
+   {
+   memset(buf, 0, BUF_SIZE);
+   strcpy(buf, source);
+   remain = BUF_CUT*(strlen(buf)/BUF_CUT+1); // same as nbwrite
+   progress = 0;
+   }
+   */
 
 file_connclient* filebridge::get_dstclient()
 {

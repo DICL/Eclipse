@@ -25,6 +25,9 @@ done
 
 if [ -e $MR_HOME/make_version/dht_mode ]
 then
+	echo "Launching cache server"
+	$MR_HOME/bin/cacheserver &
+
 	i=0
 	for line in `cat nodelist.conf`
 	do

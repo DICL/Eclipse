@@ -2,6 +2,7 @@
 #define __FILEPEER__
 
 #include <iostream>
+#include <vector>
 
 using namespace std;
 

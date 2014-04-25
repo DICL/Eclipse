@@ -12,6 +12,7 @@
 #include <sys/unistd.h>
 #include <arpa/inet.h>
 #include "file_connclient.hh"
+#include <orthrus/histogram.hh>
 #include "messagebuffer.hh"
 #include "filepeer.hh"
 #include "filebridge.hh"
@@ -23,9 +24,11 @@ class fileserver // each slave node has an object of fileserver
 {
 	private:
 		int serverfd;
+		int cacheserverfd;
 		int ipcfd;
 		int fbidclock;
 		string localhostname;
+		histogram* thehistogram;
 		vector<string> nodelist;
 		vector<filepeer*> peers;
 		vector<file_connclient*> clients;
@@ -38,17 +41,18 @@ class fileserver // each slave node has an object of fileserver
 		fileserver();
 		filepeer* find_peer(string address);
 		filebridge* find_bridge(int id);
-		int run_server(int port);
+		int run_server(int port, string master_address);
 };
 
 fileserver::fileserver()
 {
 	this->serverfd = -1;
+	this->cacheserverfd = -1;
 	this->ipcfd = -1;
 	this->fbidclock = 0; // fb id starts from 0
 }
 
-int fileserver::run_server(int port)
+int fileserver::run_server(int port, string master_address)
 {
 	// read hostname from hostname file
 	ifstream hostfile;
@@ -89,7 +93,40 @@ int fileserver::run_server(int port)
 		}
 	}
 
-	// listen connections from peers and complete the eclipse network
+	// connect to cacheserver
+	{
+		cacheserverfd = -1;
+		struct sockaddr_in serveraddr;
+		struct hostent *hp;
+
+		// SOCK_STREAM -> tcp
+		cacheserverfd = socket(AF_INET, SOCK_STREAM, 0);
+		if(cacheserverfd < 0)
+		{
+			cout<<"[fileserver]Openning socket failed"<<endl;
+			exit(1);
+		}
+
+		hp = gethostbyname(master_address.c_str());
+
+		memset((void*) &serveraddr, 0, sizeof(struct sockaddr));
+		serveraddr.sin_family = AF_INET;
+		memcpy(&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
+		serveraddr.sin_port = htons(port);
+
+		while(connect(cacheserverfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0)
+		{
+			cout<<"[fileserver]Cannot connect to the cache server. Retrying..."<<endl;
+			//cout<<"\thost name: "<<nodelist[i]<<endl;
+			sleep(1);
+
+			continue;
+		}
+
+		fcntl(cacheserverfd, F_SETFL, O_NONBLOCK);
+	}
+
+	// connect to other peer eclipse nodes
 	for(int i = 0; i < networkidx; i++)
 	{
 		int clientfd = -1;
@@ -117,11 +154,14 @@ int fileserver::run_server(int port)
 		memcpy(&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
 		serveraddr.sin_port = htons(port);
 
-		if(connect(clientfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0)
+		while(connect(clientfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0)
 		{
-			//cout<<"[fileserver]Cannot connect. Retrying..."<<endl;
+			cout<<"[fileserver]Cannot connect. Retrying..."<<endl;
+
+			// sleep for a second
+			sleep(1);
+
 			//cout<<"\thost name: "<<nodelist[i]<<endl;
-			i--;
 			continue;
 		}
 
@@ -164,7 +204,7 @@ int fileserver::run_server(int port)
 		return -1;
 	}
 
-	// connect to other peer eclipse nodes
+	// listen connections from peers and complete the eclipse network
 	for(int i = networkidx + 1; (unsigned) i < nodelist.size(); i++)
 	{
 		struct sockaddr_in connaddr;
@@ -227,7 +267,10 @@ int fileserver::run_server(int port)
 
 	tmpfd = -1;
 
-	// start loop which listen to connections and signals from clients and peers
+	// initialize the histogram
+	thehistogram = new histogram(nodelist.size(), HASHLENGTH);
+
+	// start main loop which listen to connections and signals from clients and peers
 	while(1)
 	{
 		// local clients
@@ -622,7 +665,7 @@ int fileserver::run_server(int port)
 
 							memset(write_buf, 0, BUF_SIZE);
 							strcpy(write_buf, message.c_str());
-							
+
 //cout<<endl;
 //cout<<"write from: "<<localhostname<<endl;
 //cout<<"write to: "<<address<<endl;
@@ -799,7 +842,7 @@ int fileserver::run_server(int port)
 						thebridge->open_writefile(filename);
 						thebridge->write_record(record, write_buf);
 
-cout<<"record written: "<<record<<endl;
+						cout<<"record written: "<<record<<endl;
 
 						stringstream ss;
 						string message;
@@ -864,7 +907,7 @@ cout<<"record written: "<<record<<endl;
 						thebridge->open_writefile(filename);
 						thebridge->write_record(record, write_buf);
 
-cout<<"record written: "<<record<<endl;
+						cout<<"record written: "<<record<<endl;
 
 						stringstream ss;
 						string message;
@@ -883,7 +926,7 @@ cout<<"record written: "<<record<<endl;
 						else
 						{
 							if(nbwritebuf(peers[i]->get_fd(),
-									write_buf, peers[i]->msgbuf.back()) <= 0)
+										write_buf, peers[i]->msgbuf.back()) <= 0)
 							{
 								peers[i]->msgbuf.push_back(new messagebuffer());
 							}
@@ -911,8 +954,8 @@ cout<<"record written: "<<record<<endl;
 							break;
 						}
 					}
-if(bridgeindex == -1)
-cout<<"bridge not found with that index"<<endl;
+					if(bridgeindex == -1)
+						cout<<"bridge not found with that index"<<endl;
 
 					dsttype = bridges[bridgeindex]->get_dsttype();
 
@@ -969,9 +1012,9 @@ cout<<"bridge not found with that index"<<endl;
 							break;
 						}
 					}
-if(bridgeindex == -1)
-cout<<"bridge not found with that index"<<endl;
-					
+					if(bridgeindex == -1)
+						cout<<"bridge not found with that index"<<endl;
+
 					dsttype = bridges[bridgeindex]->get_dsttype();
 
 					if(dsttype == CLIENT)
@@ -979,7 +1022,7 @@ cout<<"bridge not found with that index"<<endl;
 						file_connclient* theclient = bridges[bridgeindex]->get_dstclient();
 
 						// clear the clients and bridges
-						
+
 						for(int j = 0; (unsigned)j < clients.size(); j++)
 						{
 							if(clients[j] == theclient)
@@ -1251,7 +1294,7 @@ cout<<"bridge not found with that index"<<endl;
 //cout<<"to: "<<peers[i]->get_address()<<endl;
 
 				if(nbwritebuf(peers[i]->get_fd(), write_buf,
-					peers[i]->msgbuf.front()->get_remain(), peers[i]->msgbuf.front()) > 0) // successfully transmitted
+							peers[i]->msgbuf.front()->get_remain(), peers[i]->msgbuf.front()) > 0) // successfully transmitted
 				{
 					delete peers[i]->msgbuf.front();
 					peers[i]->msgbuf.erase(peers[i]->msgbuf.begin());
@@ -1268,7 +1311,6 @@ cout<<"bridge not found with that index"<<endl;
 		{
 			while(clients[i]->msgbuf.size() > 1)
 			{
-
 				if(clients[i]->msgbuf.front()->is_end())
 				{
 					close(clients[i]->get_fd());
@@ -1283,7 +1325,7 @@ cout<<"bridge not found with that index"<<endl;
 					strcpy(write_buf, clients[i]->msgbuf.front()->get_message().c_str());
 
 					if(nbwritebuf(clients[i]->get_fd(), write_buf,
-						clients[i]->msgbuf.front()->get_remain(), clients[i]->msgbuf.front()) > 0) // successfully transmitted
+								clients[i]->msgbuf.front()->get_remain(), clients[i]->msgbuf.front()) > 0) // successfully transmitted
 					{
 						delete clients[i]->msgbuf.front();
 						clients[i]->msgbuf.erase(clients[i]->msgbuf.begin());
@@ -1293,6 +1335,20 @@ cout<<"bridge not found with that index"<<endl;
 						break;
 					}
 				}
+			}
+		}
+
+		// listen signal from cache server
+		{
+			int readbytes;
+			readbytes = nbread(cacheserverfd, read_buf);
+			if(readbytes > 0)
+			{
+				// do something here
+			}
+			else if(readbytes == 0)
+			{
+				cout<<"[fileserver]Connection from cache server disconnected."<<endl;
 			}
 		}
 	}
@@ -1307,7 +1363,7 @@ filepeer* fileserver::find_peer(string address)
 			return peers[i];
 	}
 
-	cout<<"[fileserver]Debugging: no such a peer. in find_peer()"<<endl;
+	cout<<"[fileserver]Debugging: No such a peer. in find_peer()"<<endl;
 	return NULL;
 }
 
@@ -1319,7 +1375,7 @@ filebridge* fileserver::find_bridge(int id)
 			return bridges[i];
 	}
 
-	cout<<"[fileserver]Debugging: no such a bridge. in find_bridge(), id: "<<id<<endl;
+	cout<<"[fileserver]Debugging: No such a bridge. in find_bridge(), id: "<<id<<endl;
 	return NULL;
 }
 
