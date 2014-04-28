@@ -5,6 +5,7 @@
 #include <fstream>
 #include <fcntl.h>
 #include <mapreduce/definitions.hh>
+#include <orthrus/dataentry.hh>
 #include "filepeer.hh"
 #include "file_connclient.hh"
 
@@ -15,8 +16,7 @@ class filebridge
 	private:
 		int id; // this id will be sent to peer to link this filebridge
 		int dstid; // the bridge id of remote peer, -1 as default, positive value when the dsttype is PEER
-		int remain; // bytes remained until complete transmission
-		int progress; // bytes progressed during transmission
+		int writeid;
 		int writefilefd;
 		char buf[BUF_SIZE];
 		string dataname; // the key of the data which is used as input of hash function
@@ -25,6 +25,8 @@ class filebridge
 		datatype dtype; // RAW, INTERMEDIATE, OUTPUT
 		filepeer* dstpeer; // destination peer
 		file_connclient* dstclient; // destination client. should be set in the constructor either to an real object or NULL pointer
+		entrywriter* dstentrywriter; // when this is not null, data should be written to the entry
+		entryreader* srcentryreader; // when the srctype is CACHE, srcentryreader should be set and it should read data from cache
 		fstream readfilestream;
 		string filename; // [jobindex(if it is intermediate)] + [dataname]
 
@@ -39,18 +41,18 @@ class filebridge
 		void set_dataname(string aname);
 		void set_filename(string aname);
 		void set_dtype(datatype atype);
-		void set_remain(int num);
-		void set_progress(int num);
 		void set_srctype(bridgetype atype);
 		void set_dsttype(bridgetype atype);
 		void set_id(int num);
 		void set_dstid(int num);
 		void set_dstclient(file_connclient* aclient);
+		void set_entryreader(entryreader* areader);
+		void set_entrywriter(entrywriter* awriter);
+		void set_writeid(int num);
 
 		int get_id();
 		int get_dstid();
-		int get_remain();
-		int get_progress();
+		int get_writeid();
 		filepeer* get_dstpeer();
 		datatype get_dtype();
 		file_role get_role();
@@ -59,11 +61,13 @@ class filebridge
 		file_connclient* get_dstclient();
 		bridgetype get_srctype();
 		bridgetype get_dsttype();
+		entryreader* get_entryreader();
+		entrywriter* get_entrywriter();
 
 		void open_readfile(string fname);
 		void open_writefile(string fname);
-		void write_record(string record, char* write_buf);
-		bool read_record(string * record);
+		void write_record(string& record, char* write_buf);
+		bool read_record(string* record);
 		// void send_record();
 		// void prep_send(char* source);
 };
@@ -72,11 +76,12 @@ filebridge::filebridge(int anid)
 {
 	id = anid;
 	dstid = -1;
-	remain = 0;
-	progress = 0;
+	writeid = -1;
 	writefilefd = -1;
 	dstpeer = NULL;
 	dstclient = NULL;
+	srcentryreader = NULL;
+	dstentrywriter = NULL;
 }
 
 filebridge::~filebridge()
@@ -84,6 +89,16 @@ filebridge::~filebridge()
 	// clear up all things
 	readfilestream.close();
 	close(this->writefilefd);
+}
+
+void filebridge::set_entryreader(entryreader* areader)
+{
+	srcentryreader = areader;
+}
+
+void filebridge::set_entrywriter(entrywriter* awriter)
+{
+	dstentrywriter = awriter;
 }
 
 void filebridge::set_dstpeer(filepeer* apeer)
@@ -126,26 +141,6 @@ datatype filebridge::get_dtype()
 	return dtype;
 }
 
-int filebridge::get_remain()
-{
-	return this->remain;
-}
-
-int filebridge::get_progress()
-{
-	return this->progress;
-}
-
-void filebridge::set_remain(int num)
-{
-	this->remain = num;
-}
-
-void filebridge::set_progress(int num)
-{
-	this->progress = num;
-}
-
 void filebridge::set_filename(string aname)
 {
 	this->filename = aname;
@@ -154,6 +149,16 @@ void filebridge::set_filename(string aname)
 string filebridge::get_filename()
 {
 	return this->filename;
+}
+
+entryreader* filebridge::get_entryreader()
+{
+	return srcentryreader;
+}
+
+entrywriter* filebridge::get_entrywriter()
+{
+	return dstentrywriter;
 }
 
 void filebridge::open_readfile(string fname)
@@ -180,8 +185,9 @@ void filebridge::open_writefile(string fname)
 	return;
 }
 
-void filebridge::write_record(string record, char* write_buf)
+void filebridge::write_record(string& record, char* write_buf)
 {
+	/*
 	struct flock alock;
 	struct flock ulock;
 
@@ -200,6 +206,7 @@ void filebridge::write_record(string record, char* write_buf)
 
 	// acquire file lock
 	fcntl(this->writefilefd, F_SETLKW, &alock);
+	*/
 
 	// critical section
 	{
@@ -213,11 +220,13 @@ void filebridge::write_record(string record, char* write_buf)
 			cout<<"[filebridge]Writing to write file failed"<<endl;
 	}
 
+	/*
 	// release file lock
 	fcntl(this->writefilefd, F_SETLK, &ulock);
+	*/
 }
 
-bool filebridge::read_record(string * record)
+bool filebridge::read_record(string* record)
 {
 	getline(this->readfilestream, *record);
 	if(this->readfilestream.eof())
@@ -302,6 +311,16 @@ file_role filebridge::get_role()
 void filebridge::set_dstclient(file_connclient* aclient)
 {
 	this->dstclient = aclient;
+}
+
+int filebridge::get_writeid()
+{
+	return writeid;
+}
+
+void filebridge::set_writeid(int num)
+{
+	writeid = num; 
 }
 
 #endif

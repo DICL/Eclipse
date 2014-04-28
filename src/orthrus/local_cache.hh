@@ -38,6 +38,7 @@ namespace orthrus {
 class Local_cache {
  protected:
   typedef map<uint64_t, disk_page_t> MAP;
+  typedef map<string, disk_page_t> SMAP; // map for string match
 
  public:
   Local_cache ();
@@ -58,7 +59,9 @@ class Local_cache {
 
   //----------PUBLIC METHODS----------------------//
   bool insert (uint64_t, disk_page_t&);
+  bool insert (string, uint64_t, disk_page_t&);
   disk_page_t lookup (uint64_t) throw (std::out_of_range);
+  disk_page_t* lookup (string);
 
   bool is_disk_page_belonging (const disk_page_t&);
   uint64_t get_local_center ();
@@ -71,6 +74,7 @@ class Local_cache {
 
  protected:
   MAP *map_spatial, *map_lru;
+  SMAP *map_key;
   int policy;
   size_t size_max_bytes, size_current_bytes, count;
   uint64_t boundary_low, boundary_upp, ema;
@@ -78,6 +82,7 @@ class Local_cache {
   pthread_mutex_t mutex_queue_low, mutex_queue_upp;
 
   void pop_farthest ();
+  void pop_oldest ();
 };
 
 #endif

@@ -10,6 +10,7 @@ using namespace orthrus;
 Local_cache::Local_cache () {
  map_spatial = new Local_cache::MAP ();
  map_lru     = new Local_cache::MAP ();
+ map_key	 = new Local_cache::SMAP ();
  size_current_bytes = 0;
  policy = NOTHING;
 
@@ -21,6 +22,7 @@ Local_cache::Local_cache () {
 // ----------------------------------------------- 
 Local_cache::~Local_cache () { 
  delete map_spatial; 
+ delete map_key; 
  delete map_lru; 
 }
 // ----------------------------------------------- 
@@ -101,6 +103,68 @@ bool Local_cache::insert (uint64_t idx, disk_page_t& dp) {
 
  return true;
 }
+
+bool Local_cache::insert (string key, uint64_t idx, disk_page_t& dp)
+{
+	auto it = map_key->find(key);
+	bool found_same = (it != map_key->end());
+	bool does_new_dp_fits = ((size_current_bytes + dp.get_size()) > size_max_bytes);
+	dp.set_time (this->count++);
+
+	// if the disk page is larger than the cache size, return false
+	if(size_max_bytes < dp.get_size())
+		return false;
+
+	if(does_new_dp_fits)
+	{
+		if(found_same)
+		{
+			if(policy & orthrus::LRU)
+			{
+				map_lru->erase(it);
+				map_lru->insert(*it); // :TODO: //std::swap (it, map_lru->begin());
+			}
+		}
+		else
+		{
+			map_spatial->insert(std::make_pair(idx, dp));
+			map_key->insert(std::make_pair(key, dp));
+
+			if(policy & orthrus::LRU)
+			{
+				map_lru->insert(std::make_pair(idx, dp));
+			}
+		}
+	}
+	else // if the cache is full
+	{
+		while()
+			pop_oldest();
+		if(found_same)
+		{
+			if(policy & orthrus::LRU)
+			{
+				map_lru->erase(--map_lru->begin().base());
+				map_lru->erase(idx);
+			}
+		}
+		else
+		{
+			map_spatial->insert (std::make_pair (idx, dp));
+
+			if (policy & orthrus::LRU)
+			{
+				map_lru->insert (std::make_pair (idx, dp));
+			}
+			pop_farthest ();
+		}
+	}
+
+	size_current_bytes += dp.get_size();
+
+	return true;
+}
+
 //}}}
 // lookup {{{
 //                                -- Vicente Bolea
@@ -111,6 +175,10 @@ disk_page_t Local_cache::lookup (uint64_t idx) throw (std::out_of_range) {
   return (*victim).second;
  else 
   throw std::out_of_range ("Not found");
+}
+
+disk_page_t* Local_cache::lookup (string)
+{
 }
 //}}}
 // Is_disk_page_belonging {{{

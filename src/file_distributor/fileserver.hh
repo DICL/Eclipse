@@ -13,9 +13,12 @@
 #include <arpa/inet.h>
 #include "file_connclient.hh"
 #include <orthrus/histogram.hh>
+#include <orthrus/cache.hh>
+#include <orthrus/dataentry.hh>
 #include "messagebuffer.hh"
 #include "filepeer.hh"
 #include "filebridge.hh"
+#include "writecount.hh"
 #include <sys/fcntl.h>
 
 using namespace std;
@@ -29,18 +32,22 @@ class fileserver // each slave node has an object of fileserver
 		int fbidclock;
 		string localhostname;
 		histogram* thehistogram;
+		cache* thecache;
 		vector<string> nodelist;
 		vector<filepeer*> peers;
 		vector<file_connclient*> clients;
+		vector<file_connclient*> waitingclients;
 		vector<filebridge*> bridges;
+		vector<writecount*> writecounts;
 
 		char read_buf[BUF_SIZE];
 		char write_buf[BUF_SIZE];
 
 	public:
 		fileserver();
-		filepeer* find_peer(string address);
+		filepeer* find_peer(string& address);
 		filebridge* find_bridge(int id);
+		writecount* find_writecount(int id);
 		int run_server(int port, string master_address);
 };
 
@@ -51,6 +58,7 @@ fileserver::fileserver()
 	this->ipcfd = -1;
 	this->fbidclock = 0; // fb id starts from 0
 }
+
 
 int fileserver::run_server(int port, string master_address)
 {
@@ -268,7 +276,10 @@ int fileserver::run_server(int port, string master_address)
 	tmpfd = -1;
 
 	// initialize the histogram
-	thehistogram = new histogram(nodelist.size(), HASHLENGTH);
+	thehistogram = new histogram(nodelist.size());
+
+	// initialize the local cache
+	thecache = new cache(CACHESIZE);
 
 	// start main loop which listen to connections and signals from clients and peers
 	while(1)
@@ -322,43 +333,133 @@ int fileserver::run_server(int port, string master_address)
 
 						filename = token; // file name is name same as the dataname(key)
 
-						// determine the location of data
+						// determine the cache location of data
 						memset(read_buf, 0, BUF_SIZE);
 						strcpy(read_buf, filename.c_str());
 
-						uint32_t hashvalue = h(read_buf, HASHLENGTH);
-						hashvalue = hashvalue%nodelist.size();
+						int index;
+						unsigned hashvalue = h(read_buf, HASHLENGTH);
+						index = thehistogram->get_index(hashvalue);
 
-						address = nodelist[hashvalue];
+						address = nodelist[index];
 
 						filebridge* thebridge = new filebridge(fbidclock++);
 						bridges.push_back(thebridge);
 
-						if(localhostname == address)
+						if(address == localhostname) // local cache data
 						{
-							thebridge->set_srctype(DISK);
-							thebridge->set_dsttype(CLIENT);
-							thebridge->set_dstclient(clients[i]);
-							thebridge->set_dataname(filename);
-							thebridge->set_filename(filename);
-							thebridge->set_dtype(RAW);
+							dataentry* theentry = thecache->lookup(filename);
+							if(theentry == NULL) // when data is not in cache
+							{
+								// set a entry writer
+								dataentry* newentry = new dataentry(filename, hashvalue);
+								thecache->new_entry(newentry);
+								entrywriter* thewriter = new entrywriter(newentry);
 
-							// open read file and start sending data to client
-							thebridge->open_readfile(filename);
+								// determine the DHT file location
+								hashvalue = hashvalue%nodelist.size();
+
+								address = nodelist[hashvalue];
+
+								if(localhostname == address)
+								{
+									// 1. read data from disk 
+									// 2. store it in the cache 
+									// 3. send it to client
+
+									thebridge->set_srctype(DISK);
+									thebridge->set_dsttype(CLIENT);
+									thebridge->set_entrywriter(thewriter);
+									thebridge->set_dstclient(clients[i]);
+									thebridge->set_dataname(filename);
+									thebridge->set_filename(filename);
+									thebridge->set_dtype(RAW);
+
+									// open read file and start sending data to client
+									thebridge->open_readfile(filename);
+								}
+								else // remote DHT peer
+								{
+									// 1. request to the DHT peer (read from peer)
+									// 2. store it in the cache
+									// 3. send it to client
+
+									thebridge->set_srctype(PEER);
+									thebridge->set_dsttype(CLIENT);
+									thebridge->set_entrywriter(thewriter);
+									thebridge->set_dstclient(clients[i]);
+									thebridge->set_dataname(filename);
+									thebridge->set_filename(filename);
+									thebridge->set_dtype(RAW);
+
+									// send message to the target peer
+									string message;
+									stringstream ss;
+									ss << "RDread ";
+									ss << filename;
+									ss << " ";
+									ss << thebridge->get_id();
+									message = ss.str();
+
+									memset(write_buf, 0, BUF_SIZE);
+									strcpy(write_buf, message.c_str());
+
+//cout<<endl;
+//cout<<"write from: "<<localhostname<<endl;
+//cout<<"write to: "<<address<<endl;
+//cout<<"message: "<<write_buf<<endl;
+//cout<<endl;
+
+									filepeer* thepeer = find_peer(address);
+
+									if(thepeer->msgbuf.size() > 1)
+									{
+										thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
+										thepeer->msgbuf.push_back(new messagebuffer());
+									}
+									else
+									{
+										if(nbwritebuf(thepeer->get_fd(),
+													write_buf, thepeer->msgbuf.back()) <= 0)
+										{
+											thepeer->msgbuf.push_back(new messagebuffer());
+										}
+									}
+								}
+							}
+							else // when the data is in the cache
+							{
+								// 1. read from cache
+								// 2. and send it to client
+								
+								// set a entry reader
+								entryreader* thereader = new entryreader(theentry);
+
+								thebridge->set_srctype(CACHE);
+								thebridge->set_dsttype(CLIENT);
+								thebridge->set_entryreader(thereader);
+								thebridge->set_dstclient(clients[i]);
+								thebridge->set_dataname(filename);
+								thebridge->set_filename(filename);
+								thebridge->set_dtype(RAW);
+							}
 						}
-						else // distant
+						else // remote cache peer
 						{
+							// 1. request to the remote cache peer
+							// 2. send it to clienet
+							
 							thebridge->set_srctype(PEER);
 							thebridge->set_dsttype(CLIENT);
 							thebridge->set_dstclient(clients[i]);
 							thebridge->set_dataname(filename);
 							thebridge->set_filename(filename);
 							thebridge->set_dtype(RAW);
-
+							
 							// send message to the target peer
 							string message;
 							stringstream ss;
-							ss << "Rread ";
+							ss << "RCread ";
 							ss << filename;
 							ss << " ";
 							ss << thebridge->get_id();
@@ -382,17 +483,12 @@ int fileserver::run_server(int port, string master_address)
 							}
 							else
 							{
-//cout<<endl;
-//cout<<"from: "<<localhostname<<endl;
-//cout<<"to: "<<thepeer->get_address()<<endl;
 								if(nbwritebuf(thepeer->get_fd(),
 											write_buf, thepeer->msgbuf.back()) <= 0)
 								{
 									thepeer->msgbuf.push_back(new messagebuffer());
 								}
 							}
-
-							//nbwrite(find_peer(address)->get_fd(), write_buf);
 						}
 					}
 					else if(strncmp(token, "Iread", 5) == 0)
@@ -491,12 +587,17 @@ int fileserver::run_server(int port, string master_address)
 						string dataname;
 						string record;
 						string address;
+						int writeid;
 						char* token2;
 						char* buf;
 						clients[i]->set_role(WRITE);
 
 						buf = read_buf;
 						buf += strlen(token) + 1;
+
+						token = strtok(NULL, " "); // <- write id
+						buf += strlen(token) + 1; // keeps track of record position
+						writeid = atoi(token);
 
 						token = strtok(NULL, " "); // <- file name
 						buf += strlen(token) + 1; // keeps track of record position
@@ -507,6 +608,20 @@ int fileserver::run_server(int port, string master_address)
 						token2 = strtok(NULL, "_"); // <- data name
 						dataname = token2;
 						record = buf; // following data is record to be written
+
+						// register the write id
+						writecount* thecount = find_writecount(writeid);
+
+						if(thecount == NULL)
+						{
+							thecount = new writecount(writeid);
+							writecounts.push_back(thecount);
+							thecount->increment();
+						}
+						else // the count exist
+						{
+							thecount->increment();
+						}
 
 						// determine the location of data by dataname(key)
 						memset(read_buf, 0, BUF_SIZE);
@@ -541,6 +656,8 @@ int fileserver::run_server(int port, string master_address)
 								clients.erase(clients.begin()+i);
 								i--;
 							}
+
+							thecount->decrement();
 						}
 						else // distant
 						{
@@ -549,8 +666,9 @@ int fileserver::run_server(int port, string master_address)
 							// set up the bridge
 							thebridge->set_srctype(PEER); // source of Ewrite
 							thebridge->set_dsttype(CLIENT); // destination of Ewrite
-							thebridge->set_dstclient(clients[i]);
+							thebridge->set_dstclient(NULL);
 							thebridge->set_dtype(INTERMEDIATE);
+							thebridge->set_writeid(writeid);
 
 							// send message along with the record to the target peer
 							string message;
@@ -589,6 +707,20 @@ int fileserver::run_server(int port, string master_address)
 									thepeer->msgbuf.push_back(new messagebuffer());
 								}
 							}
+
+							// clear the client
+							if(clients[i]->msgbuf.size() > 1)
+							{
+								clients[i]->msgbuf.back()->set_endbuffer(clients[i]->get_fd());
+								clients[i]->msgbuf.push_back(new messagebuffer());
+							}
+							else
+							{
+								close(clients[i]->get_fd());
+								delete clients[i];
+								clients.erase(clients.begin()+i);
+								i--;
+							}
 						}
 					}
 					else if(strncmp(token, "Owrite", 6) == 0)
@@ -596,17 +728,36 @@ int fileserver::run_server(int port, string master_address)
 						// determine the candidate eclipse node which will have the data
 						string record;
 						string address;
+						int writeid;
 						char* buf;
 						clients[i]->set_role(WRITE);
 
 						buf = read_buf;
 						buf += strlen(token) + 1;
 
+						token = strtok(NULL, " "); // <- write id
+						buf += strlen(token) + 1; // keeps track of record position
+						writeid = atoi(token);
+
 						token = strtok(NULL, " "); // <- file name
 						buf += strlen(token) + 1; // keeps track of record position
 
 						filename = token;
 						record = buf; // following data is record to be written
+
+						// register the write id
+						writecount* thecount = find_writecount(writeid);
+
+						if(thecount == NULL)
+						{
+							thecount = new writecount(writeid);
+							writecounts.push_back(thecount);
+							thecount->increment();
+						}
+						else // the count exist
+						{
+							thecount->increment();
+						}
 
 						// determine the location of data by dataname(key)
 						memset(read_buf, 0, BUF_SIZE);
@@ -641,6 +792,8 @@ int fileserver::run_server(int port, string master_address)
 								clients.erase(clients.begin()+i);
 								i--;
 							}
+
+							thecount->decrement();
 						}
 						else // distant
 						{
@@ -649,8 +802,9 @@ int fileserver::run_server(int port, string master_address)
 							// set up the bridge
 							thebridge->set_srctype(PEER); // source of Ewrite
 							thebridge->set_dsttype(CLIENT); // destination of Ewrite
-							thebridge->set_dstclient(clients[i]);
+							thebridge->set_dstclient(NULL);
 							thebridge->set_dtype(INTERMEDIATE);
+							thebridge->set_writeid(writeid);
 
 							// send message along with the record to the target peer
 							string message;
@@ -690,7 +844,72 @@ int fileserver::run_server(int port, string master_address)
 								}
 							}
 
+							// clear the client
+							if(clients[i]->msgbuf.size() > 1)
+							{
+								clients[i]->msgbuf.back()->set_endbuffer(clients[i]->get_fd());
+								clients[i]->msgbuf.push_back(new messagebuffer());
+							}
+							else
+							{
+								close(clients[i]->get_fd());
+								delete clients[i];
+								clients.erase(clients.begin()+i);
+								i--;
+							}
+
 							//nbwrite(find_peer(address)->get_fd(), write_buf);
+						}
+					}
+					else if(strncmp(token, "Wwrite", 6) == 0)
+					{
+						int writeid;
+						int countindex = -1;
+						token = strtok(NULL, " "); // <- write id
+						writeid = atoi(token);
+
+						writecount* thecount = NULL;
+
+						for(int j = 0; (unsigned)j < writecounts.size(); j++)
+						{
+							if(writecounts[j]->get_id() == writeid)
+							{
+								thecount = writecounts[j];
+								countindex = j;
+							}
+						}
+
+						if(thecount == NULL)
+						{
+							// close the client
+							close(clients[i]->get_fd());
+							delete clients[i];
+							clients.erase(clients.begin()+i);
+							i--;
+						}
+						else
+						{
+							if(thecount->get_count() == 0) // the writing is already cleared
+							{
+								// close the client
+								close(clients[i]->get_fd());
+								delete clients[i];
+								clients.erase(clients.begin()+i);
+								i--;
+
+								delete thecount;
+								writecounts.erase(writecounts.begin()+countindex);
+							}
+							else if(thecount->get_count() > 0)
+							{
+								clients[i]->set_writeid(writeid);
+								waitingclients.push_back(clients[i]);
+								clients.erase(clients.begin()+i);
+							}
+							else
+							{
+								cout<<"[fileserver]Debugging: An abnormal write count."<<endl;
+							}
 						}
 					}
 					else if(strncmp(token, "stop", 4) == 0)
@@ -734,7 +953,7 @@ int fileserver::run_server(int port, string master_address)
 
 			if(readbytes > 0)
 			{
-				if(strncmp(read_buf, "Rread", 5) == 0)
+				if(strncmp(read_buf, "RCread", 6) == 0)
 				{
 					string address;
 					string filename;
@@ -747,27 +966,140 @@ int fileserver::run_server(int port, string master_address)
 					token = strtok(NULL, " "); // <- dstid
 					dstid = atoi(token);
 
-					// if the target is cache
-					{
+					dataentry* theentry = thecache->lookup(filename);
 
+					filebridge* thebridge = new filebridge(fbidclock++);
+					bridges.push_back(thebridge);
+
+					if(theentry == NULL) // when data is not in cache
+					{
+						// determine hash value from file name
+						memset(read_buf, 0, BUF_SIZE);
+						strcpy(read_buf, filename.c_str());
+						unsigned hashvalue = h(read_buf, HASHLENGTH);
+
+						// set a entry writer
+						dataentry* newentry = new dataentry(filename, hashvalue);
+						thecache->new_entry(newentry);
+						entrywriter* thewriter = new entrywriter(newentry);
+
+						// determine the DHT file location
+						hashvalue = hashvalue%nodelist.size();
+
+						address = nodelist[hashvalue];
+
+						if(localhostname == address) // local DHT data
+						{
+							// 1. read data from disk
+							// 2. store it in the cache
+							// 3. send it to peer
+
+							thebridge->set_srctype(DISK);
+							thebridge->set_dsttype(PEER);
+							thebridge->set_entrywriter(thewriter);
+							thebridge->set_dstpeer(peers[i]);
+							thebridge->set_dstid(dstid);
+							thebridge->set_dataname(filename);
+							thebridge->set_filename(filename);
+							thebridge->set_dtype(RAW);
+
+							// open read file and start sending data to peer
+							thebridge->open_readfile(filename);
+						}
+						else // remote DHT peer
+						{
+							// 1. request to the DHT peer (read from peer)
+							// 2. store it in the cache
+							// 3. send it to client
+
+							thebridge->set_srctype(PEER);
+							thebridge->set_dsttype(PEER);
+							thebridge->set_entrywriter(thewriter);
+							thebridge->set_dstpeer(peers[i]);
+							thebridge->set_dstid(dstid);
+							thebridge->set_dataname(filename);
+							thebridge->set_filename(filename);
+							thebridge->set_dtype(RAW);
+
+							// send message to the target peer
+							string message;
+							stringstream ss;
+							ss << "RDread ";
+							ss << filename;
+							ss << " ";
+							ss << thebridge->get_id();
+							message = ss.str();
+
+							memset(write_buf, 0, BUF_SIZE);
+							strcpy(write_buf, message.c_str());
+
+//cout<<endl;
+//cout<<"write from: "<<localhostname<<endl;
+//cout<<"write to: "<<address<<endl;
+//cout<<"message: "<<write_buf<<endl;
+//cout<<endl;
+
+							filepeer* thepeer = find_peer(address);
+
+							if(thepeer->msgbuf.size() > 1)
+							{
+								thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
+								thepeer->msgbuf.push_back(new messagebuffer());
+							}
+							else
+							{
+								if(nbwritebuf(thepeer->get_fd(),
+											write_buf, thepeer->msgbuf.back()) <= 0)
+								{
+									thepeer->msgbuf.push_back(new messagebuffer());
+								}
+							}
+						}
 					}
-
-					// if the target is disk
+					else // when the data is in the cache
 					{
-						filebridge* thebridge = new filebridge(fbidclock++);
-						bridges.push_back(thebridge);
+						// 1. read from cache
+						// 2. and send it to peer
 
-						thebridge->set_srctype(DISK);
+						// set a entry reader
+						entryreader* thereader = new entryreader(theentry);
+
+						thebridge->set_srctype(CACHE);
 						thebridge->set_dsttype(PEER);
-						thebridge->set_dstid(dstid);
+						thebridge->set_entryreader(thereader);
 						thebridge->set_dstpeer(peers[i]);
+						thebridge->set_dstid(dstid);
 						thebridge->set_dataname(filename);
 						thebridge->set_filename(filename);
 						thebridge->set_dtype(RAW);
-
-						// open read file and start sending data to client
-						thebridge->open_readfile(filename);
 					}
+				}
+				else if(strncmp(read_buf, "RDread", 6) == 0)
+				{
+					string address;
+					string filename;
+					int dstid;
+					char* token;
+
+					token = strtok(read_buf, " "); // <- message type
+					token = strtok(NULL, " "); // <- filename
+					filename = token;
+					token = strtok(NULL, " "); // <- dstid
+					dstid = atoi(token);
+
+					filebridge* thebridge = new filebridge(fbidclock++);
+					bridges.push_back(thebridge);
+
+					thebridge->set_srctype(DISK);
+					thebridge->set_dsttype(PEER);
+					thebridge->set_dstid(dstid);
+					thebridge->set_dstpeer(peers[i]);
+					thebridge->set_dataname(filename);
+					thebridge->set_filename(filename);
+					thebridge->set_dtype(RAW);
+
+					// open read file and start sending data to client
+					thebridge->open_readfile(filename);
 				}
 				else if(strncmp(read_buf, "Iread", 5) == 0)
 				{
@@ -779,7 +1111,7 @@ int fileserver::run_server(int port, string master_address)
 					token = strtok(read_buf, " "); // <- message type
 					token = strtok(NULL, " "); // <- filename
 					filename = token;
-					cout<<"Iread file name: "<<filename<<endl;
+//cout<<"Iread file name: "<<filename<<endl;
 					token = strtok(NULL, " "); // <- dstid
 					dstid = atoi(token);
 
@@ -842,7 +1174,7 @@ int fileserver::run_server(int port, string master_address)
 						thebridge->open_writefile(filename);
 						thebridge->write_record(record, write_buf);
 
-						cout<<"record written: "<<record<<endl;
+//cout<<"record written: "<<record<<endl;
 
 						stringstream ss;
 						string message;
@@ -907,7 +1239,7 @@ int fileserver::run_server(int port, string master_address)
 						thebridge->open_writefile(filename);
 						thebridge->write_record(record, write_buf);
 
-						cout<<"record written: "<<record<<endl;
+//cout<<"record written: "<<record<<endl;
 
 						stringstream ss;
 						string message;
@@ -961,9 +1293,17 @@ int fileserver::run_server(int port, string master_address)
 
 					if(dsttype == CLIENT)
 					{
+						// finish write to cache if writing was ongoing
+						entrywriter* thewriter = bridges[bridgeindex]->get_entrywriter();
+						if(thewriter != NULL)
+						{
+							thewriter->complete();
+							delete thewriter;
+						}
+
 						file_connclient* theclient = bridges[bridgeindex]->get_dstclient();
 
-						// clear the clients and bridges
+						// clear the client and bridge
 						for(int j = 0; (unsigned)j < clients.size(); j++)
 						{
 							if(clients[j] == theclient)
@@ -986,11 +1326,51 @@ int fileserver::run_server(int port, string master_address)
 						delete bridges[bridgeindex];
 						bridges.erase(bridges.begin()+bridgeindex);
 					}
-					else if(dsttype == PEER) // stroes the data into cache and send data to target node
+					else if(dsttype == PEER) // stores the data into cache and send data to target node
 					{
-						// do nothing for now
+						// finish write to cache if writing was ongoing
+						entrywriter* thewriter = bridges[bridgeindex]->get_entrywriter();
+						if(thewriter != NULL)
+						{
+							thewriter->complete();
+							delete thewriter;
+						}
+
+						string message;
+						stringstream ss;
+						ss << "Eread ";
+						ss << bridges[bridgeindex]->get_dstid();
+						message = ss.str();
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, message.c_str());
+
+//cout<<endl;
+//cout<<"write from: "<<localhostname<<endl;
+//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
+//cout<<"message: "<<write_buf<<endl;
+//cout<<endl;
+
+						filepeer* thepeer = bridges[bridgeindex]->get_dstpeer();
+
+						if(thepeer->msgbuf.size() > 1)
+						{
+							thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
+							thepeer->msgbuf.push_back(new messagebuffer());
+						}
+						else
+						{
+							if(nbwritebuf(thepeer->get_fd(),
+									write_buf, thepeer->msgbuf.back()) <= 0)
+							{
+								thepeer->msgbuf.push_back(new messagebuffer());
+							}
+						}
+
+						// clear the bridge
+						delete bridges[bridgeindex];
+						bridges.erase(bridges.begin()+bridgeindex);
 					}
-					cout<<"end of read"<<endl;
+//cout<<"end of read"<<endl;
 				}
 				else if(strncmp(read_buf, "Ewrite", 6) == 0)
 				{
@@ -1019,29 +1399,16 @@ int fileserver::run_server(int port, string master_address)
 
 					if(dsttype == CLIENT)
 					{
-						file_connclient* theclient = bridges[bridgeindex]->get_dstclient();
-
-						// clear the clients and bridges
-
-						for(int j = 0; (unsigned)j < clients.size(); j++)
+						// clear the write count
+						writecount* thecount = find_writecount(bridges[bridgeindex]->get_writeid());
+						if(thecount == NULL)
 						{
-							if(clients[j] == theclient)
-							{
-								if(theclient->msgbuf.size() > 1)
-								{
-									theclient->msgbuf.back()->set_endbuffer(theclient->get_fd());
-									theclient->msgbuf.push_back(new messagebuffer());
-								}
-								else
-								{
-									close(clients[j]->get_fd());
-									delete clients[j];
-									clients.erase(clients.begin()+j);
-								}
-								break;
-							}
+							cout<<"[fileserver]Unexpected NULL pointer from find_writecount()."<<endl;
+							exit(1);
 						}
+						thecount->decrement();
 
+						// clear the and bridge
 						delete bridges[bridgeindex];
 						bridges.erase(bridges.begin()+bridgeindex);
 					}
@@ -1078,6 +1445,13 @@ int fileserver::run_server(int port, string master_address)
 
 					if(dsttype == CLIENT)
 					{
+						// write to cache if writing was ongoing
+						entrywriter* thewriter = thebridge->get_entrywriter();
+						if(thewriter != NULL)
+						{
+							thewriter->write_record(record);
+						}
+
 						file_connclient* theclient = thebridge->get_dstclient();
 						memset(write_buf, 0, BUF_SIZE);
 						strcpy(write_buf, record.c_str()); // send only the record
@@ -1109,7 +1483,46 @@ int fileserver::run_server(int port, string master_address)
 					}
 					else if(dsttype == PEER) // stores the data into cache and send data to target node
 					{
-						// do nothing for now
+						// write to cache if writing was ongoing
+						entrywriter* thewriter = thebridge->get_entrywriter();
+						if(thewriter != NULL)
+						{
+							thewriter->write_record(record);
+						}
+
+						string message;
+						stringstream ss;
+						ss << thebridge->get_dstid();
+						message = ss.str();
+						message.append(" ");
+						message.append(record);
+
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, message.c_str());
+
+//cout<<endl;
+//cout<<"write from: "<<localhostname<<endl;
+//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
+//cout<<"message: "<<write_buf<<endl;
+//cout<<endl;
+						filepeer* thepeer = thebridge->get_dstpeer();
+
+						if(thepeer->msgbuf.size() > 1)
+						{
+							thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
+							thepeer->msgbuf.push_back(new messagebuffer());
+						}
+						else
+						{
+//cout<<endl;
+//cout<<"from: "<<localhostname<<endl;
+//cout<<"to: "<<thepeer->get_address()<<endl;
+							if(nbwritebuf(thepeer->get_fd(),
+										write_buf, thepeer->msgbuf.back()) <= 0)
+							{
+								thepeer->msgbuf.push_back(new messagebuffer());
+							}
+						}
 					}
 				}
 			}
@@ -1128,7 +1541,151 @@ int fileserver::run_server(int port, string master_address)
 		{
 			if(bridges[i]->get_srctype() == CACHE)
 			{
-				// do nothing for now. there is no such a case currently
+				bool ret;
+				string record;
+				entryreader* thereader = bridges[i]->get_entryreader();
+				ret = thereader->read_record(record);
+
+				if(ret) // successfully read
+				{
+					if(bridges[i]->get_dsttype() == CLIENT)
+					{
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, record.c_str());
+
+//cout<<endl;
+//cout<<"write from: "<<localhostname<<endl;
+//cout<<"write to a client"<<endl;
+//cout<<"message: "<<write_buf<<endl;
+//cout<<endl;
+
+						file_connclient* theclient = bridges[i]->get_dstclient();
+						if(theclient->msgbuf.size() > 1)
+						{
+							theclient->msgbuf.back()->set_buffer(write_buf, theclient->get_fd());
+							theclient->msgbuf.push_back(new messagebuffer());
+						}
+						else
+						{
+//cout<<endl;
+//cout<<"from: "<<localhostname<<endl;
+//cout<<"to: client"<<endl;
+							if(nbwritebuf(theclient->get_fd(),
+										write_buf, theclient->msgbuf.back()) <= 0)
+							{
+								theclient->msgbuf.push_back(new messagebuffer());
+							}
+						}
+					}
+					else if(bridges[i]->get_dsttype() == PEER)
+					{
+						stringstream ss;
+						string message;
+						ss << bridges[i]->get_dstid();
+						message = ss.str();
+						message.append(" ");
+						message.append(record);
+
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, message.c_str());
+
+//cout<<endl;
+//cout<<"write from: "<<localhostname<<endl;
+//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
+//cout<<"message: "<<write_buf<<endl;
+//cout<<endl;
+
+						filepeer* thepeer = bridges[i]->get_dstpeer();
+
+						if(thepeer->msgbuf.size() > 1)
+						{
+							thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
+							thepeer->msgbuf.push_back(new messagebuffer());
+						}
+						else
+						{
+//cout<<endl;
+//cout<<"from: "<<localhostname<<endl;
+//cout<<"to: "<<thepeer->get_address()<<endl;
+							if(nbwritebuf(thepeer->get_fd(),
+										write_buf, thepeer->msgbuf.back()) <= 0)
+							{
+								thepeer->msgbuf.push_back(new messagebuffer());
+							}
+						}
+					}
+				}
+				else // no more record
+				{
+					delete thereader;
+
+					if(bridges[i]->get_dsttype() == CLIENT)
+					{
+						file_connclient* theclient = bridges[i]->get_dstclient();
+						if(theclient->msgbuf.size() > 1)
+						{
+							theclient->msgbuf.back()->set_endbuffer(theclient->get_fd());
+							theclient->msgbuf.push_back(new messagebuffer());
+						}
+						else
+						{
+							for(int j = 0; (unsigned)j < clients.size(); j++)
+							{
+								if(clients[j] == theclient)
+								{
+									close(theclient->get_fd());
+									delete theclient;
+									clients.erase(clients.begin()+j);
+									break;
+								}
+							}
+						}
+
+						delete bridges[i];
+						bridges.erase(bridges.begin()+i);
+						i--;
+					}
+					else if(bridges[i]->get_dsttype() == PEER)
+					{
+						stringstream ss;
+						string message;
+						ss << "Eread ";
+						ss << bridges[i]->get_dstid();
+						message = ss.str();
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, message.c_str());
+
+//cout<<endl;
+//cout<<"write from: "<<localhostname<<endl;
+//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
+//cout<<"message: "<<write_buf<<endl;
+//cout<<endl;
+
+						filepeer* thepeer = bridges[i]->get_dstpeer();
+
+						if(thepeer->msgbuf.size() > 1)
+						{
+							thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
+							thepeer->msgbuf.push_back(new messagebuffer());
+						}
+						else
+						{
+//cout<<endl;
+//cout<<"from: "<<localhostname<<endl;
+//cout<<"to: "<<thepeer->get_address()<<endl;
+							if(nbwritebuf(thepeer->get_fd(),
+										write_buf, thepeer->msgbuf.back()) <= 0)
+							{
+								thepeer->msgbuf.push_back(new messagebuffer());
+							}
+						}
+						//nbwrite(bridges[i]->get_dstpeer()->get_fd(), write_buf);
+
+						delete bridges[i];
+						bridges.erase(bridges.begin()+i);
+						i--;
+					}
+				}
 			}
 			else if(bridges[i]->get_srctype() == DISK)
 			{
@@ -1137,6 +1694,13 @@ int fileserver::run_server(int port, string master_address)
 				is_success = bridges[i]->read_record(&record);
 				if(is_success) // some remaining record
 				{
+					// write to cache if writing was ongoing
+					entrywriter* thewriter = bridges[i]->get_entrywriter();
+					if(thewriter != NULL)
+					{
+						thewriter->write_record(record);
+					}
+
 					if(bridges[i]->get_dsttype() == CLIENT)
 					{
 						memset(write_buf, 0, BUF_SIZE);
@@ -1210,6 +1774,13 @@ int fileserver::run_server(int port, string master_address)
 				}
 				else // end of data(file)
 				{
+					// write to cache if writing was ongoing
+					entrywriter* thewriter = bridges[i]->get_entrywriter();
+					if(thewriter != NULL)
+					{
+						thewriter->complete();
+						delete thewriter;
+					}
 					if(bridges[i]->get_dsttype() == CLIENT)
 					{
 						file_connclient* theclient = bridges[i]->get_dstclient();
@@ -1338,6 +1909,55 @@ int fileserver::run_server(int port, string master_address)
 			}
 		}
 
+		for(int i = 0; (unsigned)i < waitingclients.size(); i++)
+		{
+			int writeid;
+			int countindex = -1;
+			writeid = waitingclients[i]->get_writeid();
+
+			writecount* thecount = NULL;
+
+			for(int j = 0; (unsigned)j < writecounts.size(); j++)
+			{
+				if(writecounts[j]->get_id() == writeid)
+				{
+					thecount = writecounts[j];
+					countindex = j;
+				}
+			}
+
+			if(thecount == NULL)
+			{
+				// close the client
+				close(waitingclients[i]->get_fd());
+				delete waitingclients[i];
+				waitingclients.erase(waitingclients.begin()+i);
+				i--;
+			}
+			else
+			{
+				if(thecount->get_count() == 0) // the writing is already cleared
+				{
+					// close the client
+					close(waitingclients[i]->get_fd());
+					delete waitingclients[i];
+					waitingclients.erase(waitingclients.begin()+i);
+					i--;
+
+					delete thecount;
+					writecounts.erase(writecounts.begin()+countindex);
+				}
+				else if(thecount->get_count() > 0)
+				{
+					continue;
+				}
+				else
+				{
+					cout<<"[fileserver]Debugging: An abnormal write count."<<endl;
+				}
+			}
+		}
+
 		// listen signal from cache server
 		{
 			int readbytes;
@@ -1351,11 +1971,13 @@ int fileserver::run_server(int port, string master_address)
 				cout<<"[fileserver]Connection from cache server disconnected."<<endl;
 			}
 		}
+
+		thecache->update_size();
 	}
 	return 0;
 }
 
-filepeer* fileserver::find_peer(string address)
+filepeer* fileserver::find_peer(string& address)
 {
 	for(int i = 0; (unsigned)i < peers.size(); i++)
 	{
@@ -1376,6 +1998,17 @@ filebridge* fileserver::find_bridge(int id)
 	}
 
 	cout<<"[fileserver]Debugging: No such a bridge. in find_bridge(), id: "<<id<<endl;
+	return NULL;
+}
+
+writecount* fileserver::find_writecount(int id)
+{
+	for(int i = 0; (unsigned)i < writecounts.size(); i++)
+	{
+		if(writecounts[i]->get_id() == id)
+			return writecounts[i];
+	}
+
 	return NULL;
 }
 

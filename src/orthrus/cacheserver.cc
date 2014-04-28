@@ -126,7 +126,7 @@ int main(int argc, char** argv)
 	}
 
 	// initialize the histogram
-	thehistogram = new histogram(nodelist.size(), HASHLENGTH);
+	thehistogram = new histogram(nodelist.size());
 
 	// a main iteration loop
 	while(1)

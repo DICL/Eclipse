@@ -26,9 +26,9 @@ private:
 public:
 	fileclient();
 	~fileclient();
-	bool write_record(string filename, string data, datatype atype); // append mode, write a record
+	bool write_record(int writeid, string filename, string data, datatype atype); // append mode, write a record
 	void close_server(); // this function is used to notify the server that writing is done
-	void wait_write(); // wait until write is done
+	void wait_write(int writeid); // wait until write is done
 	bool read_attach(string filename, datatype atype); // connect to read file
 	bool read_record(string* record); // read sentences from connected file(after read_attach())
 };
@@ -102,7 +102,7 @@ int fileclient::connect_to_server()
 }
 
 // close should be done exclusively with close_server() function
-bool fileclient::write_record(string filename, string data, datatype atype)
+bool fileclient::write_record(int writeid, string filename, string data, datatype atype)
 {
 	// connect to the fileserver
 	this->serverfd = connect_to_server();
@@ -122,6 +122,11 @@ bool fileclient::write_record(string filename, string data, datatype atype)
 		cout<<"[fileclient]An invalid output type"<<endl;
 		return false;
 	}
+
+	stringstream ss;
+	ss << writeid;
+	str.append(ss.str());
+	str.append(" ");
 	str.append(filename);
 	str.append(" ");
 	str.append(data);
@@ -153,12 +158,26 @@ void fileclient::close_server()
 	close(this->serverfd);
 }
 
-void fileclient::wait_write() // wait until write is done
+void fileclient::wait_write(int writeid) // wait until write is done
 {
+	// connect to the fileserver
+	this->serverfd = connect_to_server();
+
+	// generate request string
+	string str = "Wwrite "; // waiting message
+	stringstream ss;
+	ss << writeid;
+	str.append(ss.str());
+
+	// send the message to the fileserver
+	memset(write_buf, 0, BUF_SIZE);
+	strcpy(write_buf, str.c_str());
+	nbwrite(serverfd, write_buf);
+
 	int read_bytes;
 	while(1)
 	{
-		read_bytes = read(this->serverfd, read_buf, BUF_CUT);  // use BUF_CUT as read size exceptively
+		read_bytes = read(serverfd, read_buf, BUF_CUT);  // use BUF_CUT as read size exceptively
 		if(read_bytes > 0)
 		{
 			cout<<"[fileclient]Unexpected message while waiting close of socket during the write"<<endl;
@@ -167,6 +186,8 @@ void fileclient::wait_write() // wait until write is done
 		{
 			break;
 		}
+		// sleeps for 1 milli second
+		usleep(1000);
 	}
 	close(this->serverfd);
 	return;

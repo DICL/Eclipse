@@ -13,8 +13,10 @@ using namespace std;
 #define IPC_PATH "/scratch/youngmoon01/socketfile"
 #define HDMR_PATH "/user/youngmoon01/mr_storage/"
 #define LIB_PATH "/home/youngmoon01/MRR/src/"
-#define BUF_SIZE (4*1024) // 4 KB sized buffer
+#define BUF_SIZE (4*1024) // 4 KB sized buffer. determines maximum size of a record
 #define STREAM_BUF_SIZE 1000
+#define CACHESIZE (512*1024*1024) // 512 MB
+#define BLOCKSIZE (4*1024) // 4 KB sized block <- should be multiple of BUF_SIZE
 // #define BUF_SIZE (512*1024) // 512 KB sized buffer
 #define BUF_CUT 32
 #define TASK_SLOT 4
@@ -28,7 +30,7 @@ using namespace std;
 
 #define RAVENLEADER "192.168.1.201"
 #define ADDRESSPREFIX "192.168.1."
-#define HASHLENGTH 6
+#define HASHLENGTH 10
 
 #define BACKLOG 16384
 

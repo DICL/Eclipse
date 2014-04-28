@@ -25,6 +25,7 @@ char write_buf[BUF_SIZE];
 int port = -1;
 int dhtport = -1;
 int masterfd = -1;
+int writeidclock = 0;
 bool master_is_set = false;
 char master_address[BUF_SIZE];
 string localhostname;
@@ -34,6 +35,8 @@ vector<slave_task*> running_tasks; // a vector of running tasks
 int main(int argc, char** argv)
 {
 	// initialize data structures from setup.conf
+	writeidclock = 0;
+
 	ifstream conf;
 	string token;
 	string confpath = LIB_PATH;
@@ -522,10 +525,11 @@ void launch_task(slave_task* atask)
 		// pass all arguments
 		char** args;
 		int count;
+		stringstream ss;
 		stringstream ss1;
 		stringstream ss2;
 
-		// origianl arguments + pipe fds + task type
+		// origianl arguments + write id + pipe fds + task type
 		count = atask->get_argcount();
 		args = new char*[count+4];
 
@@ -534,38 +538,51 @@ void launch_task(slave_task* atask)
 		{
 			args[i] = new char[strlen(atask->get_argvalues()[i])+1];
 			strcpy(args[i], atask->get_argvalues()[i]);
+			args[i][strlen(atask->get_argvalues()[i])] = 0;
 		}
+
+		// pass write id
+		ss << writeidclock++;
+
+		args[count] = new char[ss.str().length()+1];
+		strcpy(args[count], ss.str().c_str());
+		args[count][ss.str().length()] = 0;
 
 		// pass pipe fds
 		ss1<<fd2[0];
 		ss2<<fd1[1];
-		args[count] = new char[ss1.str().length()+1];
-		args[count+1] = new char[ss2.str().length()+1];
-		strcpy(args[count], ss1.str().c_str());
-		strcpy(args[count+1], ss2.str().c_str());
+
+		args[count+1] = new char[ss1.str().length()+1];
+		args[count+2] = new char[ss2.str().length()+1];
+		strcpy(args[count+1], ss1.str().c_str());
+		strcpy(args[count+2], ss2.str().c_str());
+		args[count+1][ss1.str().length()] = 0;
+		args[count+2][ss2.str().length()] = 0;
 
 		// pass task type
 		if(atask->get_taskrole() == MAP)
 		{
-			args[count+2] = new char[4];
-			strcpy(args[count+2], "MAP");
+			args[count+3] = new char[4];
+			strcpy(args[count+3], "MAP");
+			args[count+3][3] = 0;
 			//args[count+2] = "MAP";
 		}
 		else if(atask->get_taskrole() == REDUCE)
 		{
-			args[count+2] = new char[6];
-			strcpy(args[count+2], "REDUCE");
+			args[count+3] = new char[7];
+			strcpy(args[count+3], "REDUCE");
+			args[count+3][6] = 0;
 			//args[count+2] = "REDUCE";
 		}
 		else
 		{
 			cout<<"[slave]Debugging: the role of the task is not defined in launch_task() function"<<endl;
-			args[count+2] = new char[4];
-			strcpy(args[count+2], "JOB");
+			args[count+3] = new char[4];
+			strcpy(args[count+3], "JOB");
 			//args[count+2] = "JOB";
 		}
 		// pass null to last parameter
-		args[count+3] = NULL;
+		args[count+4] = NULL;
 
 		// launch the task with the passed arguments
 		while(execv(args[0], args) == -1)

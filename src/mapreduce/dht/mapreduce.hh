@@ -82,6 +82,7 @@ string outputpath = "default_output";
 // variables for task role
 string jobdirpath;
 int taskid;
+int writeid;
 int pipefd[2]; // pipe fd when the role is map task or reduce task
 //DHTclient* dhtclient;
 fileclient readfileclient;
@@ -276,10 +277,11 @@ void init_mapreduce(int argc, char** argv)
 		// run the dht client
 		//dhtclient = new DHTclient(RAVENLEADER, dhtport);
 
-		// process pipe arguments
+		// process pipe arguments and write id
+		writeid = atoi(argv[argc-4]); // write id
 		pipefd[0] = atoi(argv[argc-3]); // read fd
 		pipefd[1] = atoi(argv[argc-2]); // write fd
-		argcount = argc - 3;
+		argcount = argc - 4;
 
 		// request the task configuration
 		memset(write_buf, 0, BUF_SIZE);
@@ -504,6 +506,8 @@ void summ_mapreduce()
 			}
 		}
 
+		writefileclient.wait_write(writeid);
+
 		// send complete message
 		memset(write_buf, 0, BUF_SIZE);
 		strcpy(write_buf, "complete");
@@ -570,6 +574,8 @@ cout<<"[mapreduce]close failed"<<endl;
 				inside_reduce = false;
 			}
 		}
+
+		writefileclient.wait_write(writeid);
 
 		// send complete message
 		memset(write_buf, 0, BUF_SIZE);
@@ -744,8 +750,8 @@ void write_keyvalue(string key, string value)
 		rst.append(" ");
 		rst.append(value);
 
-		writefileclient.write_record(keyfile, rst, INTERMEDIATE);
-		writefileclient.wait_write();
+		writefileclient.write_record(writeid, keyfile, rst, INTERMEDIATE);
+		writefileclient.close_server();
 	}
 	else
 	{
@@ -951,8 +957,7 @@ void write_output(string record) // this user function can be used anywhere but 
 	address = nodelist[hashvalue];
 	*/
 
-	writefileclient.write_record(outputpath, record, OUTPUT);
-	writefileclient.wait_write();
+	writefileclient.write_record(writeid, outputpath, record, OUTPUT);
 }
 
 int get_jobid()

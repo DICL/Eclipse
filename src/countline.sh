@@ -43,6 +43,7 @@ slave/slave_task.hh \
 \
 common/fileclient.hh \
 \
+file_distributor/writecount.hh \
 file_distributor/fd_core.cc \
 file_distributor/fileserver.hh \
 file_distributor/filebridge.hh \
@@ -52,4 +53,7 @@ file_distributor/messagebuffer.hh \
 \
 orthrus/launcher.cc \
 orthrus/cacheserver.cc \
-orthrus/histogram.hh
+orthrus/histogram.hh \
+orthrus/datablock.hh \
+orthrus/dataentry.hh \
+orthrus/cache.hh
