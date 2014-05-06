@@ -13,6 +13,7 @@ class histogram
 	private:
 		int numbin; // number of bin -> number of nodes
 		// int digit; // number of digits to represent the problem space
+		unsigned* querycount; // the data access count to each 
 		unsigned* boundaries; // the index of end point of each node
 
 	public:
@@ -23,6 +24,7 @@ class histogram
 		void initialize(); // partition the problem space equally to each bin
 		unsigned get_boundary(int index);
 		int get_index(unsigned query); // return the dedicated node index of query
+		int count_query(unsigned query);
 
 		void set_numbin(int num);
 		int get_numbin();
@@ -38,6 +40,7 @@ histogram::histogram(int num)
 {
 	numbin = num;
 	boundaries = new unsigned[num];
+	querycount = new unsigned[num];
 	
 	this->initialize();
 }
@@ -46,6 +49,8 @@ histogram::~histogram()
 {
 	if(boundaries != NULL)
 		delete boundaries;
+	if(querycount != NULL)
+		delete querycount;
 }
 
 void histogram::initialize()
@@ -53,9 +58,13 @@ void histogram::initialize()
 	unsigned max = MAX_INT;
 
 	for(int i = 0; i < numbin-1; i++)
+	{
 		boundaries[i] = (int)(((double)max/(double)numbin)*((double)(i+1)));
+		querycount[i] = 0;
+	}
 
 	boundaries[numbin-1] = max;
+	querycount[numbin-1] = 0;
 }
 
 void histogram::set_numbin(int num)
@@ -65,6 +74,10 @@ void histogram::set_numbin(int num)
 	if(boundaries != NULL)
 		delete boundaries;
 	boundaries = new unsigned[num];
+
+	if(querycount != NULL)
+		delete querycount;
+	querycount = new unsigned[num];
 }
 
 int histogram::get_numbin()
@@ -83,6 +96,21 @@ unsigned histogram::get_boundary(int index) // the index starts from 0
 	{
 		return boundaries[index];
 	}
+}
+
+int histogram::count_query(unsigned query)
+{
+	for(int i = 0; i < numbin; i++)
+	{
+		if(query <= boundaries[i])
+		{
+			querycount[i]++;
+			return i;
+		}
+	}
+
+	cout<<"[histogram]Debugging: Cannot find index of requested query."<<endl;
+	return -1;
 }
 
 int histogram::get_index(unsigned query)

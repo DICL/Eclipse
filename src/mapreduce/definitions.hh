@@ -13,7 +13,7 @@ using namespace std;
 #define IPC_PATH "/scratch/youngmoon01/socketfile"
 #define HDMR_PATH "/user/youngmoon01/mr_storage/"
 #define LIB_PATH "/home/youngmoon01/MRR/src/"
-#define BUF_SIZE (4*1024) // 4 KB sized buffer. determines maximum size of a record
+#define BUF_SIZE (4*1024) // 1 KB sized buffer. determines maximum size of a record
 #define STREAM_BUF_SIZE 1000
 #define CACHESIZE (512*1024*1024) // 512 MB
 #define BLOCKSIZE (4*1024) // 4 KB sized block <- should be multiple of BUF_SIZE
@@ -144,9 +144,7 @@ int nbwrite(int fd, char* buf, char* contents) // when the content should be spe
 		}
 
 		// sleep 1 milli seconds to prevent busy waiting
-		usleep(1000);
-cout<<"does this delay"<<endl;
-usleep(100000);
+		//usleep(1000);
 	}
 	if(written_bytes != BUF_CUT*((int)strlen(buf)/BUF_CUT+1))
 	{
@@ -163,9 +161,7 @@ usleep(100000);
 			}
 
 			// sleep 1 milli seconds to prevent busy waiting
-			usleep(1000);
-cout<<"does this delay"<<endl;
-usleep(100000);
+			//usleep(1000);
 		}
 	}
 	return written_bytes;
@@ -230,7 +226,7 @@ int nbwrite(int fd, char* buf) // when the content is already on the buffer
 		}
 
 		// sleep 1 milli seconds to prevent busy waiting
-		usleep(1000);
+		//usleep(1000);
 	}
 	if(written_bytes != BUF_CUT*((int)strlen(buf)/BUF_CUT+1))
 	{
@@ -247,7 +243,7 @@ int nbwrite(int fd, char* buf) // when the content is already on the buffer
 			}
 
 			// sleep 1 milli seconds to prevent busy waiting
-			usleep(1000);
+			//usleep(1000);
 		}
 	}
 	return written_bytes;
@@ -320,7 +316,7 @@ int nbread(int fd, char* buf)
 				else if(readbytes < 0)
 				{
 					// sleep 1 milli seconds to prevent busy waiting
-					usleep(1000);
+					//usleep(1000);
 					continue;
 				}
 				else
@@ -328,9 +324,14 @@ int nbread(int fd, char* buf)
 					total_readbytes += readbytes;
 
 					if(buf[total_readbytes-1] != 0 || total_readbytes%BUF_CUT != 0)
+					{
+						//usleep(1000);
 						continue;
+					}
 					else
+					{
 						return total_readbytes;
+					}
 				}
 			}
 		}

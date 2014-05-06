@@ -117,7 +117,7 @@ class entryreader
 		entryreader();
 		entryreader(dataentry* entry);
 		void set_targetentry(dataentry* entry);
-		bool read_record(string& target); // return false when it reaches end of data
+		bool read_record(char* buf); // return false when it reaches end of data
 };
 
 entryreader::entryreader()
@@ -145,9 +145,9 @@ void entryreader::set_targetentry(dataentry* entry)
 	entry->lock_entry();
 }
 
-bool entryreader::read_record(string& target)
+bool entryreader::read_record(char* buf)
 {
-	int ret = targetentry->datablocks[blockindex]->read_record(pos, target);
+	int ret = targetentry->datablocks[blockindex]->read_record(pos, buf);
 
 	if(ret < 0) // no more data in current block
 	{
@@ -156,7 +156,7 @@ bool entryreader::read_record(string& target)
 
 		if((unsigned)blockindex < targetentry->datablocks.size()) // next block exist
 		{
-			ret = targetentry->datablocks[blockindex]->read_record(pos, target);
+			ret = targetentry->datablocks[blockindex]->read_record(pos, buf);
 			if(ret < 0) // first read must succeed from next block
 			{
 				cout<<"[entryreader]Debugging: Unexpected response from read_record()."<<endl;

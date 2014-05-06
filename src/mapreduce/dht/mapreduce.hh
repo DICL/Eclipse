@@ -228,6 +228,7 @@ void init_mapreduce(int argc, char** argv)
 					else if(readbytes < 0)
 					{
 						continue;
+						usleep(1000);
 					}
 					else // reply arrived
 					{
@@ -467,7 +468,6 @@ void summ_mapreduce()
 				}
 			}
 		}
-
 		exit(0);
 	}
 	else if(role == MAP) // map task
@@ -548,6 +548,10 @@ cout<<"[mapreduce]close failed"<<endl;
 				}
 				else // all other messages are ignored
 					continue;
+			}
+			else
+			{
+				usleep(1000);
 			}
 
 			// sleeps for 0.0001 seconds. change this if necessary

@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/unistd.h>
+#include <netdb.h>
 #include <arpa/inet.h>
 #include "file_connclient.hh"
 #include <orthrus/histogram.hh>
@@ -62,6 +63,8 @@ fileserver::fileserver()
 
 int fileserver::run_server(int port, string master_address)
 {
+	int buffersize = 8388608;
+
 	// read hostname from hostname file
 	ifstream hostfile;
 	string token;
@@ -125,13 +128,16 @@ int fileserver::run_server(int port, string master_address)
 		while(connect(cacheserverfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0)
 		{
 			cout<<"[fileserver]Cannot connect to the cache server. Retrying..."<<endl;
+
 			//cout<<"\thost name: "<<nodelist[i]<<endl;
-			sleep(1);
+			usleep(100000);
 
 			continue;
 		}
 
 		fcntl(cacheserverfd, F_SETFL, O_NONBLOCK);
+		setsockopt(cacheserverfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t)sizeof(buffersize));
+		setsockopt(cacheserverfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t)sizeof(buffersize));
 	}
 
 	// connect to other peer eclipse nodes
@@ -139,7 +145,7 @@ int fileserver::run_server(int port, string master_address)
 	{
 		int clientfd = -1;
 		struct sockaddr_in serveraddr;
-		struct hostent *hp;
+		struct hostent *hp = NULL;
 
 		// SOCK_STREAM -> tcp
 		clientfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -164,10 +170,10 @@ int fileserver::run_server(int port, string master_address)
 
 		while(connect(clientfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0)
 		{
-			cout<<"[fileserver]Cannot connect. Retrying..."<<endl;
+			cout<<"[fileserver]Cannot connect to: "<<nodelist[i]<<endl;
+			cout<<"Retrying..."<<endl;
 
-			// sleep for a second
-			sleep(1);
+			usleep(100000);
 
 			//cout<<"\thost name: "<<nodelist[i]<<endl;
 			continue;
@@ -178,6 +184,8 @@ int fileserver::run_server(int port, string master_address)
 
 		// set the peer fd as nonblocking mode
 		fcntl(clientfd, F_SETFL, O_NONBLOCK);
+		setsockopt(clientfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t)sizeof(buffersize));
+		setsockopt(clientfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t)sizeof(buffersize));
 	}
 
 	// socket open for listen
@@ -227,12 +235,18 @@ int fileserver::run_server(int port, string master_address)
 
 			// set the peer fd as nonblocking mode
 			fcntl(tmpfd, F_SETFL, O_NONBLOCK);
+			setsockopt(tmpfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t)sizeof(buffersize));
+			setsockopt(tmpfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t)sizeof(buffersize));
 		}
-		else // connection failed
+		else if(tmpfd < 0)// connection failed
 		{
 			// retry with same index
 			i--;
 			continue;
+		}
+		else
+		{
+			cout<<"connection closed......................."<<endl;
 		}
 	}
 
@@ -272,6 +286,10 @@ int fileserver::run_server(int port, string master_address)
 	// set the server fd and ipc fd as nonblocking mode
 	fcntl(ipcfd, F_SETFL, O_NONBLOCK);
 	fcntl(serverfd, F_SETFL, O_NONBLOCK);
+	setsockopt(ipcfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t)sizeof(buffersize));
+	setsockopt(ipcfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t)sizeof(buffersize));
+	setsockopt(serverfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t)sizeof(buffersize));
+	setsockopt(serverfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t)sizeof(buffersize));
 
 	tmpfd = -1;
 
@@ -281,30 +299,69 @@ int fileserver::run_server(int port, string master_address)
 	// initialize the local cache
 	thecache = new cache(CACHESIZE);
 
+
+struct timeval time_start;
+struct timeval time_end;
+struct timeval time_start2;
+struct timeval time_end2;;
+gettimeofday(&time_start, NULL);
+gettimeofday(&time_end, NULL);
+unsigned timeslot1 = 0;
+unsigned timeslot2 = 0;
+unsigned timeslot3 = 0;
+unsigned timeslot4 = 0;
+unsigned timeslot5 = 0;
+unsigned timeslot6 = 0;
+unsigned timeslot7 = 0;
+unsigned timeslot8 = 0;
+unsigned milli1 = 0;
+unsigned milli2 = 0;
+unsigned milli3 = 0;
+unsigned milli4 = 0;
+unsigned milli5 = 0;
+unsigned milli6 = 0;
+unsigned milli7 = 0;
+unsigned milli8 = 0;
+
+int s = peers[0]->get_fd();
+int bsize = 0;
+int rn;
+rn = sizeof(int);
+getsockopt(s, SOL_SOCKET, SO_SNDBUF, &bsize, (socklen_t *)&rn);
+cout<<"buffer size: "<<bsize<<endl;
+
 	// start main loop which listen to connections and signals from clients and peers
 	while(1)
 	{
-		// local clients
-		tmpfd = accept(ipcfd, NULL, NULL);
-		if(tmpfd > 0) // new file client is connected
-		{
-			// create new clients
-			this->clients.push_back(new file_connclient(tmpfd));
+gettimeofday(&time_start2, NULL);
+			// local clients
+			tmpfd = accept(ipcfd, NULL, NULL);
+			if(tmpfd > 0) // new file client is connected
+			{
+				// create new clients
+				this->clients.push_back(new file_connclient(tmpfd));
 
-			// set socket to be non-blocking socket to avoid deadlock
-			fcntl(tmpfd, F_SETFL, O_NONBLOCK);
-		}
+				// set socket to be non-blocking socket to avoid deadlock
+				fcntl(tmpfd, F_SETFL, O_NONBLOCK);
+				setsockopt(tmpfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t)sizeof(buffersize));
+				setsockopt(tmpfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t)sizeof(buffersize));
+			}
 
-		// remote client
-		tmpfd = accept(serverfd, NULL, NULL);
-		if(tmpfd > 0) // new file client is connected
-		{
-			// create new clients
-			this->clients.push_back(new file_connclient(tmpfd));
+			// remote client
+			tmpfd = accept(serverfd, NULL, NULL);
+			if(tmpfd > 0) // new file client is connected
+			{
+				// create new clients
+				this->clients.push_back(new file_connclient(tmpfd));
 
-			// set socket to be non-blocking socket to avoid deadlock
-			fcntl(tmpfd, F_SETFL, O_NONBLOCK);
-		}
+				// set socket to be non-blocking socket to avoid deadlock
+				fcntl(tmpfd, F_SETFL, O_NONBLOCK);
+				setsockopt(tmpfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t)sizeof(buffersize));
+				setsockopt(tmpfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t)sizeof(buffersize));
+			}
+gettimeofday(&time_end2, NULL);
+timeslot1 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
+gettimeofday(&time_start2, NULL);
 
 		for(int i = 0; (unsigned)i < this->clients.size(); i++)
 		{
@@ -940,7 +997,6 @@ int fileserver::run_server(int port, string master_address)
 				// do nothing as default
 			}
 		}
-
 		// receives read/write request or data stream
 		for(int i = 0; (unsigned)i < peers.size(); i++)
 		{
@@ -1535,6 +1591,13 @@ int fileserver::run_server(int port, string master_address)
 				peers[i]->set_fd(-1);
 			}
 		}
+gettimeofday(&time_end2, NULL);
+timeslot3 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
+gettimeofday(&time_start2, NULL);
+gettimeofday(&time_end2, NULL);
+timeslot2 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
+gettimeofday(&time_start2, NULL);
+
 
 		// process reading from the disk or cache and send the data to peer or client
 		for(int i = 0; (unsigned)i < bridges.size(); i++)
@@ -1542,23 +1605,36 @@ int fileserver::run_server(int port, string master_address)
 			if(bridges[i]->get_srctype() == CACHE)
 			{
 				bool ret;
-				string record;
-				entryreader* thereader = bridges[i]->get_entryreader();
-				ret = thereader->read_record(record);
-
+				memset(write_buf, 0, BUF_SIZE);
+		
+				if(bridges[i]->get_dsttype() == CLIENT)
+				{
+					ret = bridges[i]->get_entryreader()->read_record(write_buf);
+				}
+				else if(bridges[i]->get_dsttype() == PEER)
+				{
+					unsigned position;
+					stringstream ss;
+					string message;
+					ss << bridges[i]->get_dstid();
+					message = ss.str();
+					message.append(" ");
+					strcpy(write_buf, message.c_str());
+					position = strlen(write_buf);
+		
+					ret = bridges[i]->get_entryreader()->read_record(write_buf+position);
+				}
+		
 				if(ret) // successfully read
 				{
 					if(bridges[i]->get_dsttype() == CLIENT)
 					{
-						memset(write_buf, 0, BUF_SIZE);
-						strcpy(write_buf, record.c_str());
-
-//cout<<endl;
-//cout<<"write from: "<<localhostname<<endl;
-//cout<<"write to a client"<<endl;
-//cout<<"message: "<<write_buf<<endl;
-//cout<<endl;
-
+						//cout<<endl;
+						//cout<<"write from: "<<localhostname<<endl;
+						//cout<<"write to a client"<<endl;
+						//cout<<"message: "<<write_buf<<endl;
+						//cout<<endl;
+		
 						file_connclient* theclient = bridges[i]->get_dstclient();
 						if(theclient->msgbuf.size() > 1)
 						{
@@ -1567,9 +1643,9 @@ int fileserver::run_server(int port, string master_address)
 						}
 						else
 						{
-//cout<<endl;
-//cout<<"from: "<<localhostname<<endl;
-//cout<<"to: client"<<endl;
+							//cout<<endl;
+							//cout<<"from: "<<localhostname<<endl;
+							//cout<<"to: client"<<endl;
 							if(nbwritebuf(theclient->get_fd(),
 										write_buf, theclient->msgbuf.back()) <= 0)
 							{
@@ -1579,24 +1655,14 @@ int fileserver::run_server(int port, string master_address)
 					}
 					else if(bridges[i]->get_dsttype() == PEER)
 					{
-						stringstream ss;
-						string message;
-						ss << bridges[i]->get_dstid();
-						message = ss.str();
-						message.append(" ");
-						message.append(record);
-
-						memset(write_buf, 0, BUF_SIZE);
-						strcpy(write_buf, message.c_str());
-
-//cout<<endl;
-//cout<<"write from: "<<localhostname<<endl;
-//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
-//cout<<"message: "<<write_buf<<endl;
-//cout<<endl;
-
+						//cout<<endl;
+						//cout<<"write from: "<<localhostname<<endl;
+						//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
+						//cout<<"message: "<<write_buf<<endl;
+						//cout<<endl;
+		
 						filepeer* thepeer = bridges[i]->get_dstpeer();
-
+		
 						if(thepeer->msgbuf.size() > 1)
 						{
 							thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
@@ -1604,9 +1670,9 @@ int fileserver::run_server(int port, string master_address)
 						}
 						else
 						{
-//cout<<endl;
-//cout<<"from: "<<localhostname<<endl;
-//cout<<"to: "<<thepeer->get_address()<<endl;
+							//cout<<endl;
+							//cout<<"from: "<<localhostname<<endl;
+							//cout<<"to: "<<thepeer->get_address()<<endl;
 							if(nbwritebuf(thepeer->get_fd(),
 										write_buf, thepeer->msgbuf.back()) <= 0)
 							{
@@ -1617,8 +1683,8 @@ int fileserver::run_server(int port, string master_address)
 				}
 				else // no more record
 				{
-					delete thereader;
-
+					delete bridges[i]->get_entryreader();
+		
 					if(bridges[i]->get_dsttype() == CLIENT)
 					{
 						file_connclient* theclient = bridges[i]->get_dstclient();
@@ -1640,7 +1706,7 @@ int fileserver::run_server(int port, string master_address)
 								}
 							}
 						}
-
+		
 						delete bridges[i];
 						bridges.erase(bridges.begin()+i);
 						i--;
@@ -1654,15 +1720,15 @@ int fileserver::run_server(int port, string master_address)
 						message = ss.str();
 						memset(write_buf, 0, BUF_SIZE);
 						strcpy(write_buf, message.c_str());
-
-//cout<<endl;
-//cout<<"write from: "<<localhostname<<endl;
-//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
-//cout<<"message: "<<write_buf<<endl;
-//cout<<endl;
-
+		
+						//cout<<endl;
+						//cout<<"write from: "<<localhostname<<endl;
+						//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
+						//cout<<"message: "<<write_buf<<endl;
+						//cout<<endl;
+		
 						filepeer* thepeer = bridges[i]->get_dstpeer();
-
+		
 						if(thepeer->msgbuf.size() > 1)
 						{
 							thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
@@ -1670,9 +1736,9 @@ int fileserver::run_server(int port, string master_address)
 						}
 						else
 						{
-//cout<<endl;
-//cout<<"from: "<<localhostname<<endl;
-//cout<<"to: "<<thepeer->get_address()<<endl;
+							//cout<<endl;
+							//cout<<"from: "<<localhostname<<endl;
+							//cout<<"to: "<<thepeer->get_address()<<endl;
 							if(nbwritebuf(thepeer->get_fd(),
 										write_buf, thepeer->msgbuf.back()) <= 0)
 							{
@@ -1680,7 +1746,7 @@ int fileserver::run_server(int port, string master_address)
 							}
 						}
 						//nbwrite(bridges[i]->get_dstpeer()->get_fd(), write_buf);
-
+		
 						delete bridges[i];
 						bridges.erase(bridges.begin()+i);
 						i--;
@@ -1700,18 +1766,18 @@ int fileserver::run_server(int port, string master_address)
 					{
 						thewriter->write_record(record);
 					}
-
+		
 					if(bridges[i]->get_dsttype() == CLIENT)
 					{
 						memset(write_buf, 0, BUF_SIZE);
 						strcpy(write_buf, record.c_str());
-
-//cout<<endl;
-//cout<<"write from: "<<localhostname<<endl;
-//cout<<"write to a client"<<endl;
-//cout<<"message: "<<write_buf<<endl;
-//cout<<endl;
-
+		
+						//cout<<endl;
+						//cout<<"write from: "<<localhostname<<endl;
+						//cout<<"write to a client"<<endl;
+						//cout<<"message: "<<write_buf<<endl;
+						//cout<<endl;
+		
 						file_connclient* theclient = bridges[i]->get_dstclient();
 						if(theclient->msgbuf.size() > 1)
 						{
@@ -1720,16 +1786,16 @@ int fileserver::run_server(int port, string master_address)
 						}
 						else
 						{
-//cout<<endl;
-//cout<<"from: "<<localhostname<<endl;
-//cout<<"to: client"<<endl;
+							//cout<<endl;
+							//cout<<"from: "<<localhostname<<endl;
+							//cout<<"to: client"<<endl;
 							if(nbwritebuf(theclient->get_fd(),
 										write_buf, theclient->msgbuf.back()) <= 0)
 							{
 								theclient->msgbuf.push_back(new messagebuffer());
 							}
 						}
-
+		
 						//nbwrite(bridges[i]->get_dstclient()->get_fd(), write_buf);
 					}
 					else if(bridges[i]->get_dsttype() == PEER)
@@ -1740,18 +1806,18 @@ int fileserver::run_server(int port, string master_address)
 						message = ss.str();
 						message.append(" ");
 						message.append(record);
-
+		
 						memset(write_buf, 0, BUF_SIZE);
 						strcpy(write_buf, message.c_str());
-
-//cout<<endl;
-//cout<<"write from: "<<localhostname<<endl;
-//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
-//cout<<"message: "<<write_buf<<endl;
-//cout<<endl;
-
+		
+						//cout<<endl;
+						//cout<<"write from: "<<localhostname<<endl;
+						//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
+						//cout<<"message: "<<write_buf<<endl;
+						//cout<<endl;
+		
 						filepeer* thepeer = bridges[i]->get_dstpeer();
-
+		
 						if(thepeer->msgbuf.size() > 1)
 						{
 							thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
@@ -1759,16 +1825,16 @@ int fileserver::run_server(int port, string master_address)
 						}
 						else
 						{
-//cout<<endl;
-//cout<<"from: "<<localhostname<<endl;
-//cout<<"to: "<<thepeer->get_address()<<endl;
+							//cout<<endl;
+							//cout<<"from: "<<localhostname<<endl;
+							//cout<<"to: "<<thepeer->get_address()<<endl;
 							if(nbwritebuf(thepeer->get_fd(),
 										write_buf, thepeer->msgbuf.back()) <= 0)
 							{
 								thepeer->msgbuf.push_back(new messagebuffer());
 							}
 						}
-
+		
 						//nbwrite(bridges[i]->get_dstpeer()->get_fd(), write_buf);
 					}
 				}
@@ -1817,11 +1883,11 @@ int fileserver::run_server(int port, string master_address)
 						memset(write_buf, 0, BUF_SIZE);
 						strcpy(write_buf, message.c_str());
 
-//cout<<endl;
-//cout<<"write from: "<<localhostname<<endl;
-//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
-//cout<<"message: "<<write_buf<<endl;
-//cout<<endl;
+						//cout<<endl;
+						//cout<<"write from: "<<localhostname<<endl;
+						//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
+						//cout<<"message: "<<write_buf<<endl;
+						//cout<<endl;
 
 						filepeer* thepeer = bridges[i]->get_dstpeer();
 
@@ -1832,9 +1898,9 @@ int fileserver::run_server(int port, string master_address)
 						}
 						else
 						{
-//cout<<endl;
-//cout<<"from: "<<localhostname<<endl;
-//cout<<"to: "<<thepeer->get_address()<<endl;
+							//cout<<endl;
+							//cout<<"from: "<<localhostname<<endl;
+							//cout<<"to: "<<thepeer->get_address()<<endl;
 							if(nbwritebuf(thepeer->get_fd(),
 										write_buf, thepeer->msgbuf.back()) <= 0)
 							{
@@ -1850,6 +1916,9 @@ int fileserver::run_server(int port, string master_address)
 				}
 			}
 		}
+gettimeofday(&time_end2, NULL);
+timeslot4 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
+gettimeofday(&time_start2, NULL);
 
 		// process buffered stream through peers
 		for(int i = 0; (unsigned)i < peers.size(); i++)
@@ -1876,6 +1945,9 @@ int fileserver::run_server(int port, string master_address)
 				}
 			}
 		}
+gettimeofday(&time_end2, NULL);
+timeslot5 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
+gettimeofday(&time_start2, NULL);
 
 		// process buffered stream through clients
 		for(int i = 0; (unsigned)i < clients.size(); i++)
@@ -1908,6 +1980,9 @@ int fileserver::run_server(int port, string master_address)
 				}
 			}
 		}
+gettimeofday(&time_end2, NULL);
+timeslot6 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
+gettimeofday(&time_start2, NULL);
 
 		for(int i = 0; (unsigned)i < waitingclients.size(); i++)
 		{
@@ -1957,6 +2032,9 @@ int fileserver::run_server(int port, string master_address)
 				}
 			}
 		}
+gettimeofday(&time_end2, NULL);
+timeslot7 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
+gettimeofday(&time_start2, NULL);
 
 		// listen signal from cache server
 		{
@@ -1971,8 +2049,50 @@ int fileserver::run_server(int port, string master_address)
 				cout<<"[fileserver]Connection from cache server disconnected."<<endl;
 			}
 		}
+gettimeofday(&time_end2, NULL);
+timeslot8 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
+gettimeofday(&time_start2, NULL);
 
 		thecache->update_size();
+
+
+	milli1 += timeslot1/1000;
+	milli2 += timeslot2/1000;
+	milli3 += timeslot3/1000;
+	milli4 += timeslot4/1000;
+	milli5 += timeslot5/1000;
+	milli6 += timeslot6/1000;
+	milli7 += timeslot7/1000;
+	milli8 += timeslot8/1000;
+
+	timeslot1 = timeslot1%1000;
+	timeslot2 = timeslot2%1000;
+	timeslot3 = timeslot3%1000;
+	timeslot4 = timeslot4%1000;
+	timeslot5 = timeslot5%1000;
+	timeslot6 = timeslot6%1000;
+	timeslot7 = timeslot7%1000;
+	timeslot8 = timeslot8%1000;
+
+
+
+
+		gettimeofday(&time_end, NULL);
+		if(time_end.tv_sec - time_start.tv_sec > 20.0)
+		{
+			cout<<"Cache size["<<localhostname<<"]: "<<thecache->get_size()<<endl;
+			cout<<"------------------TIME SLOT------------------"<<endl;
+			cout<<"time slot1: "<<milli1<<" msec"<<endl;
+			cout<<"time slot2: "<<milli2<<" msec"<<endl;
+			cout<<"time slot3: "<<milli3<<" msec"<<endl;
+			cout<<"time slot4: "<<milli4<<" msec"<<endl;
+			cout<<"time slot5: "<<milli5<<" msec"<<endl;
+			cout<<"time slot6: "<<milli6<<" msec"<<endl;
+			cout<<"time slot7: "<<milli7<<" msec"<<endl;
+			cout<<"time slot8: "<<milli8<<" msec"<<endl;
+			cout<<"---------------------------------------------"<<endl;
+			gettimeofday(&time_start, NULL);
+		}
 	}
 	return 0;
 }

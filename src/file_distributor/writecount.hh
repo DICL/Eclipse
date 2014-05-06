@@ -8,8 +8,8 @@ using namespace std;
 class writecount
 {
 	private:
+		vector<int> peerids;
 		int writeid;
-		int count;
 
 	public:
 		writecount(int anid);
@@ -25,19 +25,6 @@ class writecount
 writecount::writecount(int anid)
 {
 	writeid = anid;
-	count = 0;
-}
-
-int writecount::increment()
-{
-	count++;
-	return count;
-}
-
-int writecount::decrement()
-{
-	count--;
-	return count;
 }
 
 int writecount::get_count()
@@ -59,5 +46,14 @@ void writecount::set_id(int num)
 {
 	writeid = num;
 }
+
+class peerwritecount
+{
+	priavet:
+		int peerid;
+		int writeid;
+		int count;
+	public:
+};
 
 #endif

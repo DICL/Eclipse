@@ -26,6 +26,7 @@ class cache
 		void new_entry(dataentry* entry); // a zero-sized entry is added as the most recent entry
 
 		void update_size(); // this function should be called periodically
+		unsigned get_size();
 		bool try_fit_size();
 };
 
@@ -122,6 +123,10 @@ bool cache::try_fit_size()
 }
 
 
+unsigned cache::get_size()
+{
+	return size;
+}
 
 
 #endif

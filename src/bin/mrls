@@ -4,7 +4,18 @@ i=1
 for line in `cat $MR_HOME/nodelist.conf`
 do
 	echo -e "\033[0;32mSlave$i:\033[0m"
-	ssh $line ls -a $DHT_PATH
+	if (( $# > 0 ))
+	then
+		if [ $1 == "all" ]
+		then
+			ssh $line ls -a $DHT_PATH
+		else
+			ssh $line ls $DHT_PATH
+		fi
+	else
+		ssh $line ls $DHT_PATH
+	fi
+
 	echo
 	(( i++ ))
 done

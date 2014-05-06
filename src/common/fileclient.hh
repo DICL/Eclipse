@@ -59,6 +59,7 @@ fileclient::~fileclient()
 int fileclient::connect_to_server()
 {
 	int fd;
+	int buffersize = 8388608;
 	struct sockaddr_un serveraddr;
 
 	// SOCK_STREAM -> tcp
@@ -88,6 +89,8 @@ int fileclient::connect_to_server()
 
 	// set socket to be nonblocking
 	fcntl(fd, F_SETFL, O_NONBLOCK);
+	setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t)sizeof(buffersize));
+	setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t)sizeof(buffersize));
 
 //gettimeofday(&time_end, NULL);
 //elapsed = 1000000.0*(time_end.tv_sec - time_start.tv_sec);
