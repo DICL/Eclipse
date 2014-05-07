@@ -12,6 +12,7 @@ ECLIPSE_DEP += $(MR_HOME)/file_distributor/filepeer.hh
 ECLIPSE_DEP += $(MR_HOME)/file_distributor/filebridge.hh 
 ECLIPSE_DEP += $(MR_HOME)/file_distributor/messagebuffer.hh 
 ECLIPSE_DEP += $(MR_HOME)/file_distributor/file_connclient.hh 
+ECLIPSE_DEP += $(MR_HOME)/file_distributor/writecount.hh 
 ECLIPSE_DEP += $(MR_HOME)/orthrus/histogram.hh 
 ECLIPSE_DEP += $(MR_HOME)/orthrus/cache.hh 
 ECLIPSE_DEP += $(MR_HOME)/orthrus/datablock.hh 
@@ -24,7 +25,7 @@ DHT_FLAG += -I $(MR_HOME)/common/
 DHT_FLAG += $(DHT_OBJ)
 DHT_FLAG += -L $(MR_HOME)/common/
 DHT_FLAG += -lmrr
-CCFLAGS = -Wall
+CCFLAGS = -Wall -g
 
 
 all:

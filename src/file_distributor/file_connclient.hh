@@ -5,6 +5,7 @@
 #include <fstream>
 #include <fcntl.h>
 #include "messagebuffer.hh"
+#include "writecount.hh"
 #include <mapreduce/definitions.hh>
 
 using namespace std;
