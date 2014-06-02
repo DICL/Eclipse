@@ -22,7 +22,6 @@ do
 	(( i++ ))
 done
 
-
 if [ -e $MR_HOME/make_version/dht_mode ]
 then
 	echo "Launching cache server"

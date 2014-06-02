@@ -21,16 +21,18 @@ private:
 	int serverfd;
 	char read_buf[BUF_SIZE];
 	char write_buf[BUF_SIZE];
-	int connect_to_server(); // returns fd of file server
+	//writebuffer* wbuffer;
 
 public:
 	fileclient();
 	~fileclient();
-	bool write_record(int writeid, string filename, string data, datatype atype); // append mode, write a record
+	bool write_record(int writeid, string filename, string data); // append mode, write a record
 	void close_server(); // this function is used to notify the server that writing is done
 	void wait_write(int writeid); // wait until write is done
 	bool read_attach(string filename, datatype atype); // connect to read file
-	bool read_record(string* record); // read sentences from connected file(after read_attach())
+	bool read_record(string& record); // read sentences from connected file(after read_attach())
+	int connect_to_server(); // returns fd of file server
+
 };
 
 fileclient::fileclient()
@@ -59,7 +61,7 @@ fileclient::~fileclient()
 int fileclient::connect_to_server()
 {
 	int fd;
-	int buffersize = 8388608;
+	int buffersize = 8388608; // 8 MB buffer
 	struct sockaddr_un serveraddr;
 
 	// SOCK_STREAM -> tcp
@@ -101,30 +103,15 @@ int fileclient::connect_to_server()
 
 
 //cout<<"the connect is straggler"<<endl;
+	this->serverfd = fd;
 	return fd;
 }
 
 // close should be done exclusively with close_server() function
-bool fileclient::write_record(int writeid, string filename, string data, datatype atype)
+bool fileclient::write_record(int writeid, string filename, string data)
 {
-	// connect to the fileserver
-	this->serverfd = connect_to_server();
-
 	// generate request string to send file server
-	string str;
-	if(atype == INTERMEDIATE)
-	{
-		str = "Iwrite ";
-	}
-	else if(atype == OUTPUT)
-	{
-		str = "Owrite ";
-	}
-	else // atype <- OUTPUT
-	{
-		cout<<"[fileclient]An invalid output type"<<endl;
-		return false;
-	}
+	string str = "write ";
 
 	stringstream ss;
 	ss << writeid;
@@ -163,9 +150,6 @@ void fileclient::close_server()
 
 void fileclient::wait_write(int writeid) // wait until write is done
 {
-	// connect to the fileserver
-	this->serverfd = connect_to_server();
-
 	// generate request string
 	string str = "Wwrite "; // waiting message
 	stringstream ss;
@@ -208,10 +192,9 @@ bool fileclient::read_attach(string filename, datatype atype)
 	{
 		str = "Iread ";
 	}
-	else
+	else // atype <- OUTPUT
 	{
-		cout<<"[fileclient]Invalid read data type"<<endl;
-		return false;
+		cout<<"[fileclient]Unexpected datatype in the read_attach()"<<endl;
 	}
 	str.append(filename);
 
@@ -223,7 +206,7 @@ bool fileclient::read_attach(string filename, datatype atype)
 	return true;
 }
 
-bool fileclient::read_record(string* record) // read through the socket with blocking way
+bool fileclient::read_record(string& record) // read through the socket with blocking way
 {
 	int readbytes;
 	while(1)
@@ -231,10 +214,11 @@ bool fileclient::read_record(string* record) // read through the socket with blo
 		readbytes = nbread(this->serverfd, this->read_buf);
 		if(readbytes == 0) // when reaches end of file
 		{
+cout<<"[fileclient]: Eread received"<<endl;
 			close_server();
 
 			// return empty string
-			*record = "";
+			record = "";
 //cout<<"\033[0;32m\tconnection is closed in read_record\033[0m"<<endl;
 			return false;
 		}
@@ -244,7 +228,7 @@ bool fileclient::read_record(string* record) // read through the socket with blo
 		}
 		else // successful read
 		{
-			*record = this->read_buf;
+			record = this->read_buf;
 //cout<<"\033[0;32m\trecord received in client: \033[0m"<<*record<<endl;
 //cout<<"\033[0;32m\treadbytes: \033[0m"<<readbytes<<endl;
 			return true;

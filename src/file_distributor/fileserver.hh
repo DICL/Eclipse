@@ -63,7 +63,7 @@ fileserver::fileserver()
 
 int fileserver::run_server(int port, string master_address)
 {
-	int buffersize = 8388608;
+	int buffersize = 8388608; // 8 MB buffer size
 
 	// read hostname from hostname file
 	ifstream hostfile;
@@ -300,34 +300,34 @@ int fileserver::run_server(int port, string master_address)
 	thecache = new cache(CACHESIZE);
 
 
-struct timeval time_start;
-struct timeval time_end;
-struct timeval time_start2;
-struct timeval time_end2;;
-gettimeofday(&time_start, NULL);
-gettimeofday(&time_end, NULL);
-unsigned timeslot1 = 0;
-unsigned timeslot2 = 0;
-unsigned timeslot3 = 0;
-unsigned timeslot4 = 0;
-unsigned timeslot5 = 0;
-unsigned timeslot6 = 0;
-unsigned timeslot7 = 0;
-unsigned timeslot8 = 0;
-unsigned milli1 = 0;
-unsigned milli2 = 0;
-unsigned milli3 = 0;
-unsigned milli4 = 0;
-unsigned milli5 = 0;
-unsigned milli6 = 0;
-unsigned milli7 = 0;
-unsigned milli8 = 0;
+//struct timeval time_start;
+//struct timeval time_end;
+//struct timeval time_start2;
+//struct timeval time_end2;;
+//gettimeofday(&time_start, NULL);
+//gettimeofday(&time_end, NULL);
+//unsigned timeslot1 = 0;
+//unsigned timeslot2 = 0;
+//unsigned timeslot3 = 0;
+//unsigned timeslot4 = 0;
+//unsigned timeslot5 = 0;
+//unsigned timeslot6 = 0;
+//unsigned timeslot7 = 0;
+//unsigned timeslot8 = 0;
+//unsigned milli1 = 0;
+//unsigned milli2 = 0;
+//unsigned milli3 = 0;
+//unsigned milli4 = 0;
+//unsigned milli5 = 0;
+//unsigned milli6 = 0;
+//unsigned milli7 = 0;
+//unsigned milli8 = 0;
 
 
 	// start main loop which listen to connections and signals from clients and peers
 	while(1)
 	{
-gettimeofday(&time_start2, NULL);
+//gettimeofday(&time_start2, NULL);
 
 		// local clients
 		tmpfd = accept(ipcfd, NULL, NULL);
@@ -355,9 +355,9 @@ gettimeofday(&time_start2, NULL);
 			setsockopt(tmpfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t)sizeof(buffersize));
 		}
 
-gettimeofday(&time_end2, NULL);
-timeslot1 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
-gettimeofday(&time_start2, NULL);
+//gettimeofday(&time_end2, NULL);
+//timeslot1 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
+//gettimeofday(&time_start2, NULL);
 
 		for(int i = 0; (unsigned)i < this->clients.size(); i++)
 		{
@@ -371,6 +371,7 @@ gettimeofday(&time_start2, NULL);
 					char* token;
 					string filename;
 
+					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, read_buf);
 
 					token = strtok(read_buf, " "); // <- read or write
@@ -379,12 +380,13 @@ gettimeofday(&time_start2, NULL);
 					if(strncmp(token, "Rread", 5) == 0)
 					{
 						// determine the candidate eclipse node which will have the data
-						clients[i]->set_role(READ);
 						string address;
+
+						clients[i]->set_role(READ);
 
 						token = strtok(NULL, " "); // <- file name
 
-						filename = token; // file name is name same as the dataname(key)
+						filename = token; // file name is same as the dataname(key)
 
 						// determine the cache location of data
 						memset(read_buf, 0, BUF_SIZE);
@@ -548,22 +550,17 @@ gettimeofday(&time_start2, NULL);
 					else if(strncmp(token, "Iread", 5) == 0)
 					{
 						// determine the candidate eclipse node which will have the data
-						string dataname;
 						string address;
-						char* token2;
 
 						clients[i]->set_role(READ);
 
 						token = strtok(NULL, " "); // <- file name
+
 						filename = token;
-						token2 = strtok(token, "_"); // <- .job
-						token2 = strtok(NULL, "_"); // <- job index
-						token2 = strtok(NULL, "_"); // <- data name
-						dataname = token2;
 
 						// determine the location of data by dataname(key)
 						memset(read_buf, 0, BUF_SIZE);
-						strcpy(read_buf, dataname.c_str());
+						strcpy(read_buf, filename.c_str());
 
 						uint32_t hashvalue = h(read_buf, HASHLENGTH);
 						hashvalue = hashvalue%nodelist.size();
@@ -578,7 +575,7 @@ gettimeofday(&time_start2, NULL);
 							thebridge->set_srctype(DISK);
 							thebridge->set_dsttype(CLIENT);
 							thebridge->set_dstclient(clients[i]);
-							thebridge->set_dataname(dataname);
+							thebridge->set_dataname(filename);
 							thebridge->set_filename(filename);
 							thebridge->set_dtype(INTERMEDIATE);
 
@@ -590,7 +587,7 @@ gettimeofday(&time_start2, NULL);
 							thebridge->set_srctype(PEER);
 							thebridge->set_dsttype(CLIENT);
 							thebridge->set_dstclient(clients[i]);
-							thebridge->set_dataname(dataname);
+							thebridge->set_dataname(filename);
 							thebridge->set_filename(filename);
 							thebridge->set_dtype(INTERMEDIATE);
 
@@ -630,145 +627,10 @@ gettimeofday(&time_start2, NULL);
 									thepeer->msgbuf.push_back(new messagebuffer());
 								}
 							}
-
-
 							//nbwrite(find_peer(address)->get_fd(), write_buf);
 						}
 					}
-					else if(strncmp(token, "Iwrite", 6) == 0)
-					{
-						// determine the candidate eclipse node which will have the data
-						string dataname;
-						string record;
-						string address;
-						int writeid;
-						char* token2;
-						char* buf;
-						clients[i]->set_role(WRITE);
-
-						buf = read_buf;
-						buf += strlen(token) + 1;
-
-						token = strtok(NULL, " "); // <- write id
-						buf += strlen(token) + 1; // keeps track of record position
-						writeid = atoi(token);
-
-						token = strtok(NULL, " "); // <- file name
-						buf += strlen(token) + 1; // keeps track of record position
-
-						filename = token;
-						token2 = strtok(token, "_"); // <- .job 
-						token2 = strtok(NULL, "_"); // <- jobindex
-						token2 = strtok(NULL, "_"); // <- data name
-						dataname = token2;
-						record = buf; // following data is record to be written
-
-						// register the write id
-						writecount* thecount = find_writecount(writeid, NULL);
-
-						if(thecount == NULL)
-						{
-							thecount = new writecount(writeid);
-							writecounts.push_back(thecount);
-						}
-
-						// determine the location of data by dataname(key)
-						memset(read_buf, 0, BUF_SIZE);
-						strcpy(read_buf, dataname.c_str());
-
-						uint32_t hashvalue = h(read_buf, HASHLENGTH);
-						hashvalue = hashvalue%nodelist.size();
-
-						address = nodelist[hashvalue];
-
-						filebridge* thebridge = new filebridge(fbidclock++);
-						// bridges.push_back(thebridge);
-
-						if(localhostname == address)
-						{
-							// open write file to write data to disk
-							thebridge->open_writefile(filename);
-							thebridge->write_record(record, write_buf);
-
-							delete thebridge;
-
-							// clear the client
-							close(clients[i]->get_fd());
-							delete clients[i];
-							clients.erase(clients.begin()+i);
-							i--;
-						}
-						else // distant
-						{
-/*
-							bridges.push_back(thebridge);
-
-							// set up the bridge
-							thebridge->set_srctype(PEER); // source of Ewrite
-							thebridge->set_dsttype(CLIENT); // destination of Ewrite
-							thebridge->set_dstclient(NULL);
-							thebridge->set_dtype(INTERMEDIATE);
-							thebridge->set_writeid(writeid);
-*/
-
-							// send message along with the record to the target peer
-							string message;
-							stringstream ss;
-							ss << "Iwrite ";
-							ss << filename;
-							ss << " ";
-							ss << record;
-							message = ss.str();
-
-							memset(write_buf, 0, BUF_SIZE);
-							strcpy(write_buf, message.c_str());
-
-//cout<<endl;
-//cout<<"write from: "<<localhostname<<endl;
-//cout<<"write to: "<<address<<endl;
-//cout<<"message: "<<write_buf<<endl;
-//cout<<endl;
-
-							filepeer* thepeer;
-							int peeridx = -1;
-
-							for(int j = 0; (unsigned)j < peers.size(); j++)
-							{
-								if(peers[j]->get_address() == address)
-								{ 
-									thepeer = peers[j];
-									peeridx = j;
-								}
-							}
-
-							thecount->add_peer(peeridx);
-
-							if(thepeer->msgbuf.size() > 1)
-							{
-								thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
-								thepeer->msgbuf.push_back(new messagebuffer());
-							}
-							else
-							{
-//cout<<endl;
-//cout<<"from: "<<localhostname<<endl;
-//cout<<"to: "<<thepeer->get_address()<<endl;
-								if(nbwritebuf(thepeer->get_fd(),
-											write_buf, thepeer->msgbuf.back()) <= 0)
-								{
-									thepeer->msgbuf.push_back(new messagebuffer());
-								}
-							}
-
-							// clear the client and bridge
-							delete thebridge;
-							close(clients[i]->get_fd());
-							delete clients[i];
-							clients.erase(clients.begin()+i);
-							i--;
-						}
-					}
-					else if(strncmp(token, "Owrite", 6) == 0)
+					else if(strncmp(token, "write", 5) == 0)
 					{
 						// determine the candidate eclipse node which will have the data
 						string record;
@@ -808,22 +670,16 @@ gettimeofday(&time_start2, NULL);
 
 						address = nodelist[hashvalue];
 
-						filebridge* thebridge = new filebridge(fbidclock++);
 						// bridges.push_back(thebridge);
 
 						if(localhostname == address)
 						{
 							// open write file to write data to disk
+							filebridge* thebridge = new filebridge(fbidclock++);
 							thebridge->open_writefile(filename);
 							thebridge->write_record(record, write_buf);
 
 							delete thebridge;
-
-							// clear the client
-							close(clients[i]->get_fd());
-							delete clients[i];
-							clients.erase(clients.begin()+i);
-							i--;
 						}
 						else // distant
 						{
@@ -841,7 +697,7 @@ gettimeofday(&time_start2, NULL);
 							// send message along with the record to the target peer
 							string message;
 							stringstream ss;
-							ss << "Owrite ";
+							ss << "write ";
 							ss << filename;
 							ss << " ";
 							ss << record;
@@ -886,15 +742,6 @@ gettimeofday(&time_start2, NULL);
 									thepeer->msgbuf.push_back(new messagebuffer());
 								}
 							}
-
-							// clear the client and bridge
-							delete thebridge;
-							close(clients[i]->get_fd());
-							delete clients[i];
-							clients.erase(clients.begin()+i);
-							i--;
-
-							//nbwrite(find_peer(address)->get_fd(), write_buf);
 						}
 					}
 					else if(strncmp(token, "Wwrite", 6) == 0)
@@ -969,6 +816,7 @@ gettimeofday(&time_start2, NULL);
 							clients[i]->set_writeid(writeid);
 							waitingclients.push_back(clients[i]);
 							clients.erase(clients.begin()+i);
+							i--;
 						}
 					}
 					else if(strncmp(token, "stop", 4) == 0)
@@ -1004,17 +852,212 @@ gettimeofday(&time_start2, NULL);
 					char* token;
 					string filename;
 
+					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, read_buf);
 
 					token = strtok(read_buf, " "); // <- read or write
 
 					// The message is either: Iwrite(intermediate), Owrite(output)
-					if(strncmp(token, "Iwrite", 6) == 0)
+					if(strncmp(token, "write", 5) == 0)
 					{
+						// determine the candidate eclipse node which will have the data
+						string record;
+						string address;
+						int writeid;
+						char* buf;
+
+						buf = read_buf;
+						buf += strlen(token) + 1;
+
+						token = strtok(NULL, " "); // <- write id
+						buf += strlen(token) + 1; // keeps track of record position
+						writeid = atoi(token);
+
+						token = strtok(NULL, " "); // <- file name
+						buf += strlen(token) + 1; // keeps track of record position
+
+						filename = token;
+						record = buf; // following data is record to be written
+
+						// register the write id
+						writecount* thecount = find_writecount(writeid, NULL);
+
+						if(thecount == NULL)
+						{
+							thecount = new writecount(writeid);
+							writecounts.push_back(thecount);
+						}
+
+						// determine the location of data by dataname(key)
+						memset(read_buf, 0, BUF_SIZE);
+						strcpy(read_buf, filename.c_str());
+
+						uint32_t hashvalue = h(read_buf, HASHLENGTH);
+						hashvalue = hashvalue%nodelist.size();
+
+						address = nodelist[hashvalue];
+
+						// bridges.push_back(thebridge);
+
+						if(localhostname == address)
+						{
+							// open write file to write data to disk
+							filebridge* thebridge = new filebridge(fbidclock++);
+							thebridge->open_writefile(filename);
+							thebridge->write_record(record, write_buf);
+
+							delete thebridge;
+						}
+						else // distant
+						{
+							/*
+							   bridges.push_back(thebridge);
+
+							// set up the bridge
+							thebridge->set_srctype(PEER); // source of Ewrite
+							thebridge->set_dsttype(CLIENT); // destination of Ewrite
+							thebridge->set_dstclient(NULL);
+							thebridge->set_dtype(INTERMEDIATE);
+							thebridge->set_writeid(writeid);
+							*/
+
+							// send message along with the record to the target peer
+							string message;
+							stringstream ss;
+							ss << "write ";
+							ss << filename;
+							ss << " ";
+							ss << record;
+							message = ss.str();
+
+							memset(write_buf, 0, BUF_SIZE);
+							strcpy(write_buf, message.c_str());
+
+//cout<<endl;
+//cout<<"write from: "<<localhostname<<endl;
+//cout<<"write to: "<<address<<endl;
+//cout<<"message: "<<write_buf<<endl;
+//cout<<endl;
+
+							filepeer* thepeer;
+							int peeridx = -1;
+
+							for(int j = 0; (unsigned)j < peers.size(); j++)
+							{
+								if(peers[j]->get_address() == address)
+								{ 
+									thepeer = peers[j];
+									peeridx = j;
+								}
+							}
+
+							thecount->add_peer(peeridx);
+
+							if(thepeer->msgbuf.size() > 1)
+							{
+								thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
+								thepeer->msgbuf.push_back(new messagebuffer());
+								//continue; // escape the loop acceleration
+							}
+							else
+							{
+//cout<<endl;
+//cout<<"from: "<<localhostname<<endl;
+//cout<<"to: "<<thepeer->get_address()<<endl;
+								if(nbwritebuf(thepeer->get_fd(),
+											write_buf, thepeer->msgbuf.back()) <= 0)
+								{
+									thepeer->msgbuf.push_back(new messagebuffer());
+									//continue; // escape the loop acceleration
+								}
+							}
+						}
 					}
+					else if(strncmp(token, "Wwrite", 6) == 0)
+					{
+						int writeid;
+						int countindex = -1;
+						token = strtok(NULL, " "); // <- write id
+						writeid = atoi(token);
+
+						writecount* thecount = NULL;
+
+						for(int j = 0; (unsigned)j < writecounts.size(); j++)
+						{
+							if(writecounts[j]->get_id() == writeid)
+							{
+								thecount = writecounts[j];
+								countindex = j;
+							}
+						}
+
+						if(thecount == NULL)
+						{
+							// close the client
+							close(clients[i]->get_fd());
+							delete clients[i];
+							clients.erase(clients.begin()+i);
+							i--;
+						}
+						else if(thecount->peerids.size() == 0)
+						{
+							// clear the count
+							delete thecount;
+							writecounts.erase(writecounts.begin()+countindex);
+
+							// close the client
+							close(clients[i]->get_fd());
+							delete clients[i];
+							clients.erase(clients.begin()+i);
+							i--;
+						}
+						else
+						{
+							for(int j = 0; (unsigned)j < thecount->peerids.size(); j++)
+							{
+								filepeer* thepeer = peers[thecount->peerids[j]];
+
+								// send message to the target peer
+								string message;
+								stringstream ss;
+								ss << "Wack ";
+								ss << thecount->get_id();
+								message = ss.str();
+
+								memset(write_buf, 0, BUF_SIZE);
+								strcpy(write_buf, message.c_str());
+
+								if(thepeer->msgbuf.size() > 1)
+								{
+									thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
+									thepeer->msgbuf.push_back(new messagebuffer());
+								}
+								else
+								{
+									if(nbwritebuf(thepeer->get_fd(), 
+												write_buf, thepeer->msgbuf.back()) <= 0)
+									{
+										thepeer->msgbuf.push_back(new messagebuffer());
+									}
+								}
+							}
+
+							clients[i]->set_writeid(writeid);
+							waitingclients.push_back(clients[i]);
+							clients.erase(clients.begin()+i);
+							i--;
+						}
+					}
+
+					// enable loop acceleration
+					//i--;
+					//continue;
 				}
 			}
 		}
+//gettimeofday(&time_end2, NULL);
+//timeslot2 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
+//gettimeofday(&time_start2, NULL);
 
 		// receives read/write request or data stream
 		for(int i = 0; (unsigned)i < peers.size(); i++)
@@ -1120,6 +1163,7 @@ gettimeofday(&time_start2, NULL);
 							{
 								thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
 								thepeer->msgbuf.push_back(new messagebuffer());
+								//continue; // escape the acceleration loop
 							}
 							else
 							{
@@ -1127,6 +1171,7 @@ gettimeofday(&time_start2, NULL);
 											write_buf, thepeer->msgbuf.back()) <= 0)
 								{
 									thepeer->msgbuf.push_back(new messagebuffer());
+									//continue; // escape the acceleration loop
 								}
 							}
 						}
@@ -1212,44 +1257,7 @@ gettimeofday(&time_start2, NULL);
 						thebridge->open_readfile(filename);
 					}
 				}
-				else if(strncmp(read_buf, "Iwrite", 6) == 0)
-				{
-					string record;
-					string address;
-					string filename;
-					char* token;
-					char* buf;
-
-					buf = read_buf;
-
-					token = strtok(read_buf, " "); // <- message type
-					buf += strlen(token) + 1;
-					token = strtok(NULL, " "); // <- filename
-					buf += strlen(token) + 1;
-
-					filename = token;
-
-					record = buf;
-
-					filebridge* thebridge = new filebridge(fbidclock++);
-
-					// if the target is cache
-					{
-
-					}
-
-					// if the target is disk
-					{
-						thebridge->open_writefile(filename);
-						thebridge->write_record(record, write_buf);
-
-//cout<<"record written: "<<record<<endl;
-
-						// clear the bridge
-						delete thebridge;
-					}
-				}
-				else if(strncmp(read_buf, "Owrite", 6) == 0)
+				else if(strncmp(read_buf, "write", 5) == 0)
 				{
 					string record;
 					string address;
@@ -1268,7 +1276,6 @@ gettimeofday(&time_start2, NULL);
 
 					record = buf;
 
-					filebridge* thebridge = new filebridge(fbidclock++);
 
 					// if the target is cache
 					{
@@ -1277,6 +1284,7 @@ gettimeofday(&time_start2, NULL);
 
 					// if the target is disk
 					{
+						filebridge* thebridge = new filebridge(fbidclock++);
 						thebridge->open_writefile(filename);
 						thebridge->write_record(record, write_buf);
 
@@ -1415,12 +1423,14 @@ gettimeofday(&time_start2, NULL);
 					{
 						peers[i]->msgbuf.back()->set_buffer(write_buf, peers[i]->get_fd());
 						peers[i]->msgbuf.push_back(new messagebuffer());
+						//continue; // escape acceleration loop
 					}
 					else
 					{
 						if(nbwritebuf(peers[i]->get_fd(), write_buf, peers[i]->msgbuf.back()) <= 0)
 						{
 							peers[i]->msgbuf.push_back(new messagebuffer());
+							//continue; // escape acceleration loop
 						}
 					}
 				}
@@ -1463,7 +1473,6 @@ gettimeofday(&time_start2, NULL);
 						delete writecounts[countidx];
 						writecounts.erase(writecounts.begin()+countidx);
 					}
-
 				}
 /*
 				else if(strncmp(read_buf, "Ewrite", 6) == 0)
@@ -1562,6 +1571,7 @@ gettimeofday(&time_start2, NULL);
 						{
 							theclient->msgbuf.back()->set_buffer(write_buf, theclient->get_fd());
 							theclient->msgbuf.push_back(new messagebuffer());
+							//continue; // escape acceleration loop
 						}
 						else
 						{
@@ -1572,6 +1582,7 @@ gettimeofday(&time_start2, NULL);
 										write_buf, theclient->msgbuf.back()) <= 0)
 							{
 								theclient->msgbuf.push_back(new messagebuffer());
+								//continue; // escape acceleration loop
 							}
 						}
 
@@ -1607,6 +1618,7 @@ gettimeofday(&time_start2, NULL);
 						{
 							thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
 							thepeer->msgbuf.push_back(new messagebuffer());
+							//continue; // escape acceleration loop
 						}
 						else
 						{
@@ -1617,14 +1629,15 @@ gettimeofday(&time_start2, NULL);
 										write_buf, thepeer->msgbuf.back()) <= 0)
 							{
 								thepeer->msgbuf.push_back(new messagebuffer());
+								//continue; // escape acceleration loop
 							}
 						}
 					}
 				}
 
-				// enforce loop iteration to boost readint from the peer
-				i--;
-				continue;
+				// enable loop acceleration
+				//i--;
+				//continue;
 			}
 			else if(readbytes == 0)
 			{
@@ -1635,51 +1648,51 @@ gettimeofday(&time_start2, NULL);
 				peers[i]->set_fd(-1);
 			}
 		}
-gettimeofday(&time_end2, NULL);
-timeslot3 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
-gettimeofday(&time_start2, NULL);
-gettimeofday(&time_end2, NULL);
-timeslot2 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
-gettimeofday(&time_start2, NULL);
-
+//gettimeofday(&time_end2, NULL);
+//timeslot3 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
+//gettimeofday(&time_start2, NULL);
 
 		// process reading from the disk or cache and send the data to peer or client
 		for(int i = 0; (unsigned)i < bridges.size(); i++)
 		{
-			for(int accel = 0; accel < 1000; accel++) // accelerate the reading speed by 1000
-			{
+			//for(int accel = 0; accel < 1000; accel++) // accelerate the reading speed by 1000
+			//{
 				if(bridges[i]->get_srctype() == CACHE)
 				{
 					bool ret;
+					string record;
 					memset(write_buf, 0, BUF_SIZE);
 
 					if(bridges[i]->get_dsttype() == CLIENT)
 					{
-						ret = bridges[i]->get_entryreader()->read_record(write_buf);
+						ret = bridges[i]->get_entryreader()->read_record(record);
+
+						strcpy(write_buf, record.c_str());
 					}
 					else if(bridges[i]->get_dsttype() == PEER)
 					{
-						unsigned position;
 						stringstream ss;
 						string message;
 						ss << bridges[i]->get_dstid();
 						message = ss.str();
 						message.append(" ");
-						strcpy(write_buf, message.c_str());
-						position = strlen(write_buf);
 
-						ret = bridges[i]->get_entryreader()->read_record(write_buf+position);
+						ret = bridges[i]->get_entryreader()->read_record(record);
+
+						message.append(record);
+
+						strcpy(write_buf, message.c_str());
 					}
 
 					if(ret) // successfully read
 					{
 						if(bridges[i]->get_dsttype() == CLIENT)
 						{
-							//cout<<endl;
-							//cout<<"write from: "<<localhostname<<endl;
-							//cout<<"write to a client"<<endl;
-							//cout<<"message: "<<write_buf<<endl;
-							//cout<<endl;
+//cout<<endl;
+//cout<<"write from: "<<localhostname<<endl;
+//cout<<"write to a client"<<endl;
+//cout<<"message: "<<write_buf<<endl;
+//cout<<endl;
 
 							file_connclient* theclient = bridges[i]->get_dstclient();
 							if(theclient->msgbuf.size() > 1)
@@ -1689,9 +1702,9 @@ gettimeofday(&time_start2, NULL);
 							}
 							else
 							{
-								//cout<<endl;
-								//cout<<"from: "<<localhostname<<endl;
-								//cout<<"to: client"<<endl;
+//cout<<endl;
+//cout<<"from: "<<localhostname<<endl;
+//cout<<"to: client"<<endl;
 								if(nbwritebuf(theclient->get_fd(),
 											write_buf, theclient->msgbuf.back()) <= 0)
 								{
@@ -1701,11 +1714,11 @@ gettimeofday(&time_start2, NULL);
 						}
 						else if(bridges[i]->get_dsttype() == PEER)
 						{
-							//cout<<endl;
-							//cout<<"write from: "<<localhostname<<endl;
-							//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
-							//cout<<"message: "<<write_buf<<endl;
-							//cout<<endl;
+//cout<<endl;
+//cout<<"write from: "<<localhostname<<endl;
+//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
+//cout<<"message: "<<write_buf<<endl;
+//cout<<endl;
 
 							filepeer* thepeer = bridges[i]->get_dstpeer();
 
@@ -1716,13 +1729,18 @@ gettimeofday(&time_start2, NULL);
 							}
 							else
 							{
-								//cout<<endl;
-								//cout<<"from: "<<localhostname<<endl;
-								//cout<<"to: "<<thepeer->get_address()<<endl;
-								if(nbwritebuf(thepeer->get_fd(),
-											write_buf, thepeer->msgbuf.back()) <= 0)
+//cout<<endl;
+//cout<<"from: "<<localhostname<<endl;
+//cout<<"to: "<<thepeer->get_address()<<endl;
+								int ret = nbwritebuf(thepeer->get_fd(), write_buf, thepeer->msgbuf.back());
+//								if(ret = nbwritebuf(thepeer->get_fd(),
+//											write_buf, thepeer->msgbuf.back()) <= 0)
+								if(ret <= 0)
 								{
 									thepeer->msgbuf.push_back(new messagebuffer());
+								}
+								else
+								{
 								}
 							}
 						}
@@ -1755,23 +1773,22 @@ gettimeofday(&time_start2, NULL);
 
 							delete bridges[i];
 							bridges.erase(bridges.begin()+i);
-							i--;
 						}
 						else if(bridges[i]->get_dsttype() == PEER)
 						{
-							stringstream ss;
-							string message;
-							ss << "Eread ";
-							ss << bridges[i]->get_dstid();
-							message = ss.str();
+							stringstream ss1;
+							string message1;
+							ss1 << "Eread ";
+							ss1 << bridges[i]->get_dstid();
+							message1 = ss1.str();
 							memset(write_buf, 0, BUF_SIZE);
-							strcpy(write_buf, message.c_str());
+							strcpy(write_buf, message1.c_str());
 
-							//cout<<endl;
-							//cout<<"write from: "<<localhostname<<endl;
-							//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
-							//cout<<"message: "<<write_buf<<endl;
-							//cout<<endl;
+//cout<<endl;
+//cout<<"write from: "<<localhostname<<endl;
+//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
+//cout<<"message: "<<write_buf<<endl;
+//cout<<endl;
 
 							filepeer* thepeer = bridges[i]->get_dstpeer();
 
@@ -1782,30 +1799,33 @@ gettimeofday(&time_start2, NULL);
 							}
 							else
 							{
-								//cout<<endl;
-								//cout<<"from: "<<localhostname<<endl;
-								//cout<<"to: "<<thepeer->get_address()<<endl;
+//cout<<endl;
+//cout<<"from: "<<localhostname<<endl;
+//cout<<"to: "<<thepeer->get_address()<<endl;
 								if(nbwritebuf(thepeer->get_fd(),
 											write_buf, thepeer->msgbuf.back()) <= 0)
 								{
 									thepeer->msgbuf.push_back(new messagebuffer());
+								}
+								else
+								{
 								}
 							}
 							//nbwrite(bridges[i]->get_dstpeer()->get_fd(), write_buf);
 
 							delete bridges[i];
 							bridges.erase(bridges.begin()+i);
-							i--;
 						}
 						// break the accel loop
-						break;
+						//break;
 					}
 				}
 				else if(bridges[i]->get_srctype() == DISK)
 				{
 					bool is_success;
 					string record;
-					is_success = bridges[i]->read_record(&record);
+					is_success = bridges[i]->read_record(record);
+
 					if(is_success) // some remaining record
 					{
 						// write to cache if writing was ongoing
@@ -1820,11 +1840,11 @@ gettimeofday(&time_start2, NULL);
 							memset(write_buf, 0, BUF_SIZE);
 							strcpy(write_buf, record.c_str());
 
-							//cout<<endl;
-							//cout<<"write from: "<<localhostname<<endl;
-							//cout<<"write to a client"<<endl;
-							//cout<<"message: "<<write_buf<<endl;
-							//cout<<endl;
+//cout<<endl;
+//cout<<"write from: "<<localhostname<<endl;
+//cout<<"write to a client"<<endl;
+//cout<<"message: "<<write_buf<<endl;
+//cout<<endl;
 
 							file_connclient* theclient = bridges[i]->get_dstclient();
 							if(theclient->msgbuf.size() > 1)
@@ -1834,9 +1854,9 @@ gettimeofday(&time_start2, NULL);
 							}
 							else
 							{
-								//cout<<endl;
-								//cout<<"from: "<<localhostname<<endl;
-								//cout<<"to: client"<<endl;
+//cout<<endl;
+//cout<<"from: "<<localhostname<<endl;
+//cout<<"to: client"<<endl;
 								if(nbwritebuf(theclient->get_fd(),
 											write_buf, theclient->msgbuf.back()) <= 0)
 								{
@@ -1858,11 +1878,11 @@ gettimeofday(&time_start2, NULL);
 							memset(write_buf, 0, BUF_SIZE);
 							strcpy(write_buf, message.c_str());
 
-							//cout<<endl;
-							//cout<<"write from: "<<localhostname<<endl;
-							//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
-							//cout<<"message: "<<write_buf<<endl;
-							//cout<<endl;
+//cout<<endl;
+//cout<<"write from: "<<localhostname<<endl;
+//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
+//cout<<"message: "<<write_buf<<endl;
+//cout<<endl;
 
 							filepeer* thepeer = bridges[i]->get_dstpeer();
 
@@ -1873,9 +1893,9 @@ gettimeofday(&time_start2, NULL);
 							}
 							else
 							{
-								//cout<<endl;
-								//cout<<"from: "<<localhostname<<endl;
-								//cout<<"to: "<<thepeer->get_address()<<endl;
+//cout<<endl;
+//cout<<"from: "<<localhostname<<endl;
+//cout<<"to: "<<thepeer->get_address()<<endl;
 								if(nbwritebuf(thepeer->get_fd(),
 											write_buf, thepeer->msgbuf.back()) <= 0)
 								{
@@ -1919,7 +1939,6 @@ gettimeofday(&time_start2, NULL);
 
 							delete bridges[i];
 							bridges.erase(bridges.begin()+i);
-							i--;
 						}
 						else if(bridges[i]->get_dsttype() == PEER)
 						{
@@ -1931,11 +1950,11 @@ gettimeofday(&time_start2, NULL);
 							memset(write_buf, 0, BUF_SIZE);
 							strcpy(write_buf, message.c_str());
 
-							//cout<<endl;
-							//cout<<"write from: "<<localhostname<<endl;
-							//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
-							//cout<<"message: "<<write_buf<<endl;
-							//cout<<endl;
+//cout<<endl;
+//cout<<"write from: "<<localhostname<<endl;
+//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
+//cout<<"message: "<<write_buf<<endl;
+//cout<<endl;
 
 							filepeer* thepeer = bridges[i]->get_dstpeer();
 
@@ -1946,9 +1965,9 @@ gettimeofday(&time_start2, NULL);
 							}
 							else
 							{
-								//cout<<endl;
-								//cout<<"from: "<<localhostname<<endl;
-								//cout<<"to: "<<thepeer->get_address()<<endl;
+//cout<<endl;
+//cout<<"from: "<<localhostname<<endl;
+//cout<<"to: "<<thepeer->get_address()<<endl;
 								if(nbwritebuf(thepeer->get_fd(),
 											write_buf, thepeer->msgbuf.back()) <= 0)
 								{
@@ -1959,18 +1978,17 @@ gettimeofday(&time_start2, NULL);
 
 							delete bridges[i];
 							bridges.erase(bridges.begin()+i);
-							i--;
 						}
 
 						// break the accel loop
-						break;
+						//break;
 					}
 				}
-			}
+			//}
 		}
-gettimeofday(&time_end2, NULL);
-timeslot4 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
-gettimeofday(&time_start2, NULL);
+//gettimeofday(&time_end2, NULL);
+//timeslot4 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
+//gettimeofday(&time_start2, NULL);
 
 		// process buffered stream through peers
 		for(int i = 0; (unsigned)i < peers.size(); i++)
@@ -1997,9 +2015,9 @@ gettimeofday(&time_start2, NULL);
 				}
 			}
 		}
-gettimeofday(&time_end2, NULL);
-timeslot5 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
-gettimeofday(&time_start2, NULL);
+//gettimeofday(&time_end2, NULL);
+//timeslot5 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
+//gettimeofday(&time_start2, NULL);
 
 		// process buffered stream through clients
 		for(int i = 0; (unsigned)i < clients.size(); i++)
@@ -2032,9 +2050,9 @@ gettimeofday(&time_start2, NULL);
 				}
 			}
 		}
-gettimeofday(&time_end2, NULL);
-timeslot6 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
-gettimeofday(&time_start2, NULL);
+//gettimeofday(&time_end2, NULL);
+//timeslot6 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
+//gettimeofday(&time_start2, NULL);
 
 /*
 		for(int i = 0; (unsigned)i < waitingclients.size(); i++)
@@ -2100,54 +2118,60 @@ gettimeofday(&time_start2, NULL);
 				cout<<"[fileserver]Connection from cache server disconnected."<<endl;
 			}
 		}
-gettimeofday(&time_end2, NULL);
-timeslot7 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
-gettimeofday(&time_start2, NULL);
+//gettimeofday(&time_end2, NULL);
+//timeslot7 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
+//gettimeofday(&time_start2, NULL);
 
 		thecache->update_size();
 
-gettimeofday(&time_end2, NULL);
-timeslot8 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
-gettimeofday(&time_start2, NULL);
+//gettimeofday(&time_end2, NULL);
+//timeslot8 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
+//gettimeofday(&time_start2, NULL);
 
 
-	milli1 += timeslot1/1000;
-	milli2 += timeslot2/1000;
-	milli3 += timeslot3/1000;
-	milli4 += timeslot4/1000;
-	milli5 += timeslot5/1000;
-	milli6 += timeslot6/1000;
-	milli7 += timeslot7/1000;
-	milli8 += timeslot8/1000;
+//	milli1 += timeslot1/1000;
+//	milli2 += timeslot2/1000;
+//	milli3 += timeslot3/1000;
+//	milli4 += timeslot4/1000;
+//	milli5 += timeslot5/1000;
+//	milli6 += timeslot6/1000;
+//	milli7 += timeslot7/1000;
+//	milli8 += timeslot8/1000;
 
-	timeslot1 = timeslot1%1000;
-	timeslot2 = timeslot2%1000;
-	timeslot3 = timeslot3%1000;
-	timeslot4 = timeslot4%1000;
-	timeslot5 = timeslot5%1000;
-	timeslot6 = timeslot6%1000;
-	timeslot7 = timeslot7%1000;
-	timeslot8 = timeslot8%1000;
-
-
+//	timeslot1 = timeslot1%1000;
+//	timeslot2 = timeslot2%1000;
+//	timeslot3 = timeslot3%1000;
+//	timeslot4 = timeslot4%1000;
+//	timeslot5 = timeslot5%1000;
+//	timeslot6 = timeslot6%1000;
+//	timeslot7 = timeslot7%1000;
+//	timeslot8 = timeslot8%1000;
 
 
-		gettimeofday(&time_end, NULL);
-		if(time_end.tv_sec - time_start.tv_sec > 20.0)
-		{
-			cout<<"Cache size["<<localhostname<<"]: "<<thecache->get_size()<<endl;
-			cout<<"------------------TIME SLOT------------------"<<endl;
-			cout<<"time slot1: "<<milli1<<" msec"<<endl;
-			cout<<"time slot2: "<<milli2<<" msec"<<endl;
-			cout<<"time slot3: "<<milli3<<" msec"<<endl;
-			cout<<"time slot4: "<<milli4<<" msec"<<endl;
-			cout<<"time slot5: "<<milli5<<" msec"<<endl;
-			cout<<"time slot6: "<<milli6<<" msec"<<endl;
-			cout<<"time slot7: "<<milli7<<" msec"<<endl;
-			cout<<"time slot8: "<<milli8<<" msec"<<endl;
-			cout<<"---------------------------------------------"<<endl;
-			gettimeofday(&time_start, NULL);
-		}
+
+
+//		gettimeofday(&time_end, NULL);
+//		if(time_end.tv_sec - time_start.tv_sec > 20.0)
+//		{
+//			cout<<"Cache size["<<localhostname<<"]: "<<thecache->get_size()<<endl;
+//			cout<<"------------------TIME SLOT------------------"<<endl;
+//			cout<<"time slot1: "<<milli1<<" msec"<<endl;
+//			cout<<"time slot2: "<<milli2<<" msec"<<endl;
+//			cout<<"time slot3: "<<milli3<<" msec"<<endl;
+//			cout<<"time slot4: "<<milli4<<" msec"<<endl;
+//			cout<<"time slot5: "<<milli5<<" msec"<<endl;
+//			cout<<"time slot6: "<<milli6<<" msec"<<endl;
+//			cout<<"time slot7: "<<milli7<<" msec"<<endl;
+//			cout<<"time slot8: "<<milli8<<" msec"<<endl;
+//			cout<<"---------------------------------------------"<<endl;
+
+//			cout<<"---------------------------------------------"<<endl;
+//			cout<<"# clients: "<<clients.size()<<endl;
+//			cout<<"# counts: "<<writecounts.size()<<endl;
+//			cout<<"# bridges: "<<bridges.size()<<endl;
+//			cout<<"---------------------------------------------"<<endl;
+			//gettimeofday(&time_start, NULL);
+//		}
 	}
 	return 0;
 }

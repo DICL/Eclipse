@@ -117,7 +117,7 @@ class entryreader
 		entryreader();
 		entryreader(dataentry* entry);
 		void set_targetentry(dataentry* entry);
-		bool read_record(char* buf); // return false when it reaches end of data
+		bool read_record(string& record); // return false when it reaches end of data
 };
 
 entryreader::entryreader()
@@ -145,9 +145,9 @@ void entryreader::set_targetentry(dataentry* entry)
 	entry->lock_entry();
 }
 
-bool entryreader::read_record(char* buf)
+bool entryreader::read_record(string& record)
 {
-	int ret = targetentry->datablocks[blockindex]->read_record(pos, buf);
+	int ret = targetentry->datablocks[blockindex]->read_record(pos, record);
 
 	if(ret < 0) // no more data in current block
 	{
@@ -156,7 +156,8 @@ bool entryreader::read_record(char* buf)
 
 		if((unsigned)blockindex < targetentry->datablocks.size()) // next block exist
 		{
-			ret = targetentry->datablocks[blockindex]->read_record(pos, buf);
+			ret = targetentry->datablocks[blockindex]->read_record(pos, record);
+
 			if(ret < 0) // first read must succeed from next block
 			{
 				cout<<"[entryreader]Debugging: Unexpected response from read_record()."<<endl;
@@ -190,7 +191,7 @@ class entrywriter
 		entrywriter();
 		entrywriter(dataentry* entry);
 		void set_targetentry(dataentry* entry);
-		bool write_record(string& record);
+		bool write_record(string record);
 		void complete(); // unlock the entry and unmark as it is not being written
 };
 
@@ -215,7 +216,7 @@ void entrywriter::set_targetentry(dataentry* entry)
 	entry->mark_being_written();
 }
 
-bool entrywriter::write_record(string& record)
+bool entrywriter::write_record(string record)
 {
 	if(targetentry->datablocks.size() == 0) // if no block exist for this entry
 		targetentry->datablocks.push_back(new datablock());

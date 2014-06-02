@@ -18,7 +18,7 @@ class filebridge
 		int dstid; // the bridge id of remote peer, -1 as default, positive value when the dsttype is PEER
 		int writeid;
 		int writefilefd;
-		char buf[BUF_SIZE];
+		char read_buf[BUF_SIZE]; // this is not for reading message from other connection, but for buffering reading file
 		string dataname; // the key of the data which is used as input of hash function
 		bridgetype srctype; // PEER, DISK, CACHE or CLIENT
 		bridgetype dsttype; // PEER, DISK, CACHE or CLIENT
@@ -29,8 +29,6 @@ class filebridge
 		entryreader* srcentryreader; // when the srctype is CACHE, srcentryreader should be set and it should read data from cache
 		fstream readfilestream;
 		string filename; // [jobindex(if it is intermediate)] + [dataname]
-
-		string cachebuffer;
 
 	public:
 		filebridge(int anid);
@@ -67,9 +65,7 @@ class filebridge
 		void open_readfile(string fname);
 		void open_writefile(string fname);
 		void write_record(string& record, char* write_buf);
-		bool read_record(string* record);
-		// void send_record();
-		// void prep_send(char* source);
+		bool read_record(string& record); // reads next records and appends records until length reaches BUF_THRESHOLD.
 };
 
 filebridge::filebridge(int anid)
@@ -175,6 +171,19 @@ void filebridge::open_readfile(string fname)
 	return;
 }
 
+bool filebridge::read_record(string& record) // reads next records and appends records until length reaches BUF_THRESHOLD.
+{
+	string nextrecord;
+	getline(this->readfilestream, nextrecord);
+
+	record = nextrecord;
+
+	if(this->readfilestream.eof())
+		return false;
+	else
+		return true;
+}
+
 void filebridge::open_writefile(string fname)
 {
 	string fpath = DHT_PATH;
@@ -225,38 +234,6 @@ void filebridge::write_record(string& record, char* write_buf)
 	fcntl(this->writefilefd, F_SETLK, &ulock);
 	*/
 }
-
-bool filebridge::read_record(string* record)
-{
-	getline(this->readfilestream, *record);
-	if(this->readfilestream.eof())
-		return false;
-	else
-		return true;
-}
-
-/*
-   void filebridge::send_record()
-   {
-   int written_bytes;
-   written_bytes = write(this->fd, buf+progress, remain);
-
-   if(written_bytes > 0)
-   {
-   progress += written_bytes;
-   remain -= written_bytes;
-   }
-   return;
-   }
-
-   void filebridge::prep_send(char* source)
-   {
-   memset(buf, 0, BUF_SIZE);
-   strcpy(buf, source);
-   remain = BUF_CUT*(strlen(buf)/BUF_CUT+1); // same as nbwrite
-   progress = 0;
-   }
-   */
 
 file_connclient* filebridge::get_dstclient()
 {

@@ -13,12 +13,12 @@ using namespace std;
 #define IPC_PATH "/scratch/youngmoon01/socketfile"
 #define HDMR_PATH "/user/youngmoon01/mr_storage/"
 #define LIB_PATH "/home/youngmoon01/MRR/src/"
-#define BUF_SIZE (4*1024) // 1 KB sized buffer. determines maximum size of a record
-#define STREAM_BUF_SIZE 1000
+#define BUF_SIZE (4*1024) // 4 KB sized buffer. determines maximum size of a record
+#define BUF_THRESHOLD (1*1024) // the buffer flush threshold is set to 1 KB
+#define BUF_CUT 64
 #define CACHESIZE (512*1024*1024) // 512 MB
-#define BLOCKSIZE (4*1024) // 4 KB sized block <- should be multiple of BUF_SIZE
+#define BLOCKSIZE (16*1024) // 16 KB sized block <- should be multiple of BUF_SIZE
 // #define BUF_SIZE (512*1024) // 512 KB sized buffer
-#define BUF_CUT 32
 #define TASK_SLOT 4
 #define HDFS_PATH "/home/youngmoon01/hadoop-2.2.0/include/"
 #define JAVA_LIB "/home/youngmoon01/jdk1.7.0_17/jre/lib/amd64/server/"
@@ -103,7 +103,7 @@ int nbwrite(int fd, char* buf, char* contents) // when the content should be spe
 	{
 		if(errno == EAGAIN)
 		{
-			cout<<"\twrite function failed due to EAGAIN, retrying..."<<endl;
+			// do nothing as default
 		}
 		else if(errno == EBADF)
 		{
@@ -144,7 +144,7 @@ int nbwrite(int fd, char* buf, char* contents) // when the content should be spe
 		}
 
 		// sleep 1 milli seconds to prevent busy waiting
-		//usleep(1000);
+		usleep(1000);
 	}
 	if(written_bytes != BUF_CUT*((int)strlen(buf)/BUF_CUT+1))
 	{
@@ -161,7 +161,7 @@ int nbwrite(int fd, char* buf, char* contents) // when the content should be spe
 			}
 
 			// sleep 1 milli seconds to prevent busy waiting
-			//usleep(1000);
+			usleep(1000);
 		}
 	}
 	return written_bytes;
@@ -175,8 +175,7 @@ int nbwrite(int fd, char* buf) // when the content is already on the buffer
 	{
 		if(errno == EAGAIN)
 		{
-			cout<<"\twrite function failed due to EAGAIN, retrying..."<<endl;
-			sleep(1);
+			// do nothing as default
 		}
 		else if(errno == EBADF)
 		{
@@ -226,7 +225,7 @@ int nbwrite(int fd, char* buf) // when the content is already on the buffer
 		}
 
 		// sleep 1 milli seconds to prevent busy waiting
-		//usleep(1000);
+		usleep(1000);
 	}
 	if(written_bytes != BUF_CUT*((int)strlen(buf)/BUF_CUT+1))
 	{
@@ -243,7 +242,7 @@ int nbwrite(int fd, char* buf) // when the content is already on the buffer
 			}
 
 			// sleep 1 milli seconds to prevent busy waiting
-			//usleep(1000);
+			usleep(1000);
 		}
 	}
 	return written_bytes;
@@ -289,6 +288,10 @@ int nbread(int fd, char* buf)
 			{
 				cout<<"\t\033[0;32mread function failed due to EISDIR error, debug needed\033[0m"<<endl;
 			}
+			else
+			{
+				cout<<"\t\033[0;32mread function failed due to unspecified error, debug needed\033[0m"<<endl;
+			}
 		}
 
 		return readbytes;
@@ -317,6 +320,8 @@ int nbread(int fd, char* buf)
 				{
 					// sleep 1 milli seconds to prevent busy waiting
 					//usleep(1000);
+					cout<<"I'm reading!"<<endl;
+					sleep(1);
 					continue;
 				}
 				else

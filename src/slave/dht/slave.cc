@@ -471,6 +471,8 @@ void signal_listener()
 					cout<<" and jobid "<<running_tasks[i]->get_job()->get_jobid();
 					cout<<" terminated abnormally"<<endl;
 					cout<<"pid: "<<running_tasks[i]->get_pid()<<endl;
+
+					sleep(1);
 					// TODO: clear data structures for the task
 
 					// TODO: launch the failed task again

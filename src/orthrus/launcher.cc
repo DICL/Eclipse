@@ -1,6 +1,5 @@
 #include <iostream>
 #include <vector>
-#include <orthrus.hh>
 #include <utils.hh>
 #include <file_distributor/fileserver.hh>
 #include <fstream>

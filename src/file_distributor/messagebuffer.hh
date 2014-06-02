@@ -123,7 +123,7 @@ int nbwritebuf(int fd, char* buf, messagebuffer* buffer)
 
 	if(written_bytes == writing_bytes)
 	{
-		return 1;
+		return written_bytes;
 	}
 	else if(written_bytes > 0)
 	{

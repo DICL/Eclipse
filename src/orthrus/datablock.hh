@@ -17,8 +17,8 @@ class datablock
 		datablock();
 		~datablock();
 
-		int write_record(string& record); // true when succeeded, false when insufficient capacity
-		int read_record(unsigned pos, char* buf); // -1 when data reaches end of block
+		int write_record(string record); // true when succeeded, false when insufficient capacity
+		int read_record(unsigned pos, string& record); // -1 when data reaches end of block
 		char* get_data();
 		unsigned get_size();
 		void set_size(unsigned num);
@@ -52,7 +52,7 @@ void datablock::set_size(unsigned num)
 	size = num;
 }
 
-int datablock::write_record(string& record)
+int datablock::write_record(string record)
 {
 	if(record.length() + 1 > BLOCKSIZE - size)
 	{
@@ -78,7 +78,7 @@ int datablock::write_record(string& record)
 	}
 }
 
-int datablock::read_record(unsigned pos, char* buf)
+int datablock::read_record(unsigned pos, string& record)
 {
 	if(pos >= size)
 	{
@@ -93,15 +93,14 @@ int datablock::read_record(unsigned pos, char* buf)
 		{
 			if(data[index] == '\n')
 			{
-
-				memcpy(buf, data+pos, recordsize);
+				record.assign(data+pos, recordsize);
 				recordsize++;
 				break;
 			}
 
 			if(data[index] == 0)
 			{
-				memcpy(buf, data+pos, recordsize);
+				record.assign(data+pos, recordsize);
 				break;
 			}
 

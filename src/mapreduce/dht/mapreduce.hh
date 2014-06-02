@@ -480,6 +480,8 @@ void summ_mapreduce()
 
 		// run the mapfunction until input all inputs are processed
 
+		writefileclient.connect_to_server();
+
 		if(isset_mapper)
 		{
 			while(get_nextinput())
@@ -566,6 +568,8 @@ cout<<"[mapreduce]close failed"<<endl;
 		{
 			cout<<"[mapreduce]Debugging: The map or reduce function is called from the map or reduce function."<<endl;
 		}
+
+		writefileclient.connect_to_server();
 
 		// run the reduce functions until all key are processed
 		if(isset_reducer)
@@ -754,8 +758,7 @@ void write_keyvalue(string key, string value)
 		rst.append(" ");
 		rst.append(value);
 
-		writefileclient.write_record(writeid, keyfile, rst, INTERMEDIATE);
-		writefileclient.close_server();
+		writefileclient.write_record(writeid, keyfile, rst);
 	}
 	else
 	{
@@ -793,7 +796,7 @@ bool get_nextinput() // internal function to process next input file
 		inputpaths.pop_back();
 
 		// pre-process first record
-		readsuccess = readfileclient.read_record(&nextrecord);
+		readsuccess = readfileclient.read_record(nextrecord);
 		if(readsuccess)
 			is_nextrec = true;
 		else
@@ -809,7 +812,7 @@ string get_nextrecord() // a user function for the map
 	{
 		bool readsuccess = false;
 		string ret = nextrecord;
-		readsuccess = readfileclient.read_record(&nextrecord);
+		readsuccess = readfileclient.read_record(nextrecord);
 
 		if(readsuccess)
 			is_nextrec = true;
@@ -874,7 +877,7 @@ bool get_nextkey(string* key) // internal function for the reduce
 
 		// pre-process first record
 		stringstream ss;
-		readsuccess = readfileclient.read_record(&nextvalue); // key value record
+		readsuccess = readfileclient.read_record(nextvalue); // key value record
 
 		if(readsuccess)
 		{
@@ -912,7 +915,7 @@ string get_nextvalue() // returns values in reduce function
 	{
 		string ret = nextvalue;
 		bool readsuccess = false;
-		readsuccess = readfileclient.read_record(&nextvalue); // key value record
+		readsuccess = readfileclient.read_record(nextvalue); // key value record
 
 		// pre-process first record
 		if(readsuccess)
@@ -961,7 +964,7 @@ void write_output(string record) // this user function can be used anywhere but 
 	address = nodelist[hashvalue];
 	*/
 
-	writefileclient.write_record(writeid, outputpath, record, OUTPUT);
+	writefileclient.write_record(writeid, outputpath, record);
 }
 
 int get_jobid()
