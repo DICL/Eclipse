@@ -42,6 +42,7 @@ slave/slave_job.hh \
 slave/slave_task.hh \
 \
 common/fileclient.hh \
+common/msgaggregator.hh \
 \
 file_distributor/writecount.hh \
 file_distributor/fd_core.cc \

@@ -18,11 +18,11 @@ class filebridge
 		int dstid; // the bridge id of remote peer, -1 as default, positive value when the dsttype is PEER
 		int writeid;
 		int writefilefd;
-		char read_buf[BUF_SIZE]; // this is not for reading message from other connection, but for buffering reading file
+		//char read_buf[BUF_SIZE]; // this is not for reading message from other connection, but for buffering reading file
 		string dataname; // the key of the data which is used as input of hash function
 		bridgetype srctype; // PEER, DISK, CACHE or CLIENT
 		bridgetype dsttype; // PEER, DISK, CACHE or CLIENT
-		datatype dtype; // RAW, INTERMEDIATE, OUTPUT
+		//datatype dtype; // RAW, INTERMEDIATE, OUTPUT
 		filepeer* dstpeer; // destination peer
 		file_connclient* dstclient; // destination client. should be set in the constructor either to an real object or NULL pointer
 		entrywriter* dstentrywriter; // when this is not null, data should be written to the entry
@@ -38,7 +38,7 @@ class filebridge
 		void set_role(file_role arole);
 		void set_dataname(string aname);
 		void set_filename(string aname);
-		void set_dtype(datatype atype);
+		//void set_dtype(datatype atype);
 		void set_srctype(bridgetype atype);
 		void set_dsttype(bridgetype atype);
 		void set_id(int num);
@@ -52,7 +52,8 @@ class filebridge
 		int get_dstid();
 		int get_writeid();
 		filepeer* get_dstpeer();
-		datatype get_dtype();
+		
+		//datatype get_dtype();
 		file_role get_role();
 		string get_dataname();
 		string get_filename();
@@ -117,10 +118,10 @@ void filebridge::set_dataname(string aname)
 	this->dataname = aname;
 }
 
-void filebridge::set_dtype(datatype atype)
-{
-	this->dtype = atype;
-}
+//void filebridge::set_dtype(datatype atype)
+//{
+//	this->dtype = atype;
+//}
 
 filepeer* filebridge::get_dstpeer()
 {
@@ -132,10 +133,10 @@ string filebridge::get_dataname()
 	return dataname;
 }
 
-datatype filebridge::get_dtype()
-{
-	return dtype;
-}
+//datatype filebridge::get_dtype()
+//{
+//	return dtype;
+//}
 
 void filebridge::set_filename(string aname)
 {

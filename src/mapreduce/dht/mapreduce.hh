@@ -530,7 +530,7 @@ void summ_mapreduce()
 			{
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
-					//					cout<<"[mapreduce]Map task is successfully completed"<<endl;
+//					cout<<"[mapreduce]Map task is successfully completed"<<endl;
 					// terminate successfully
 					readfileclient.close_server();
 					//writefileclient.close_server();
@@ -792,7 +792,7 @@ bool get_nextinput() // internal function to process next input file
 		*/
 
 		bool readsuccess = false;
-		readfileclient.read_attach(inputpaths.back(), RAW);
+		readfileclient.read_request(inputpaths.back(), RAW);
 		inputpaths.pop_back();
 
 		// pre-process first record
@@ -872,7 +872,7 @@ bool get_nextkey(string* key) // internal function for the reduce
 
 		string apath = jobdirpath;
 		apath.append(inputpaths.back());
-		readfileclient.read_attach(apath, INTERMEDIATE);
+		readfileclient.read_request(apath, INTERMEDIATE);
 		inputpaths.pop_back();
 
 		// pre-process first record

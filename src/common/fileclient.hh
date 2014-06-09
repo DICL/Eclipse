@@ -15,7 +15,7 @@
 
 using namespace std;
 
-class fileclient // each task process will has an object of fileclient
+class fileclient // each task process will have two objects(read/write) of fileclient
 {
 private:
 	int serverfd;
@@ -29,10 +29,9 @@ public:
 	bool write_record(int writeid, string filename, string data); // append mode, write a record
 	void close_server(); // this function is used to notify the server that writing is done
 	void wait_write(int writeid); // wait until write is done
-	bool read_attach(string filename, datatype atype); // connect to read file
-	bool read_record(string& record); // read sentences from connected file(after read_attach())
+	bool read_request(string filename, datatype atype); // connect to read file
+	bool read_record(string& record); // read sentences from connected file(after read_request())
 	int connect_to_server(); // returns fd of file server
-
 };
 
 fileclient::fileclient()
@@ -180,7 +179,7 @@ void fileclient::wait_write(int writeid) // wait until write is done
 	return;
 }
 
-bool fileclient::read_attach(string filename, datatype atype)
+bool fileclient::read_request(string filename, datatype atype)
 {
 	// generate request string to send file server
 	string str;
@@ -194,7 +193,7 @@ bool fileclient::read_attach(string filename, datatype atype)
 	}
 	else // atype <- OUTPUT
 	{
-		cout<<"[fileclient]Unexpected datatype in the read_attach()"<<endl;
+		cout<<"[fileclient]Unexpected datatype in the read_request()"<<endl;
 	}
 	str.append(filename);
 
@@ -214,7 +213,6 @@ bool fileclient::read_record(string& record) // read through the socket with blo
 		readbytes = nbread(this->serverfd, this->read_buf);
 		if(readbytes == 0) // when reaches end of file
 		{
-cout<<"[fileclient]: Eread received"<<endl;
 			close_server();
 
 			// return empty string

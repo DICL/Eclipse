@@ -27,6 +27,7 @@ DHT_FLAG += -L $(MR_HOME)/common/
 DHT_FLAG += -lmrr
 CCFLAGS = -Wall -g
 
+#add the msgaggregator.hh to anywhere which needs it
 
 all:
 	echo Type ether: [make nfs], [make hdfs], [make dht] [make clean]

@@ -319,9 +319,7 @@ int nbread(int fd, char* buf)
 				else if(readbytes < 0)
 				{
 					// sleep 1 milli seconds to prevent busy waiting
-					//usleep(1000);
-					cout<<"I'm reading!"<<endl;
-					sleep(1);
+					usleep(1000);
 					continue;
 				}
 				else

@@ -429,7 +429,7 @@ int fileserver::run_server(int port, string master_address)
 									thebridge->set_dstclient(clients[i]);
 									thebridge->set_dataname(filename);
 									thebridge->set_filename(filename);
-									thebridge->set_dtype(RAW);
+									//thebridge->set_dtype(RAW);
 
 									// open read file and start sending data to client
 									thebridge->open_readfile(filename);
@@ -446,7 +446,7 @@ int fileserver::run_server(int port, string master_address)
 									thebridge->set_dstclient(clients[i]);
 									thebridge->set_dataname(filename);
 									thebridge->set_filename(filename);
-									thebridge->set_dtype(RAW);
+									//thebridge->set_dtype(RAW);
 
 									// send message to the target peer
 									string message;
@@ -497,7 +497,7 @@ int fileserver::run_server(int port, string master_address)
 								thebridge->set_dstclient(clients[i]);
 								thebridge->set_dataname(filename);
 								thebridge->set_filename(filename);
-								thebridge->set_dtype(RAW);
+								//thebridge->set_dtype(RAW);
 							}
 						}
 						else // remote cache peer
@@ -510,7 +510,7 @@ int fileserver::run_server(int port, string master_address)
 							thebridge->set_dstclient(clients[i]);
 							thebridge->set_dataname(filename);
 							thebridge->set_filename(filename);
-							thebridge->set_dtype(RAW);
+							//thebridge->set_dtype(RAW);
 							
 							// send message to the target peer
 							string message;
@@ -577,7 +577,7 @@ int fileserver::run_server(int port, string master_address)
 							thebridge->set_dstclient(clients[i]);
 							thebridge->set_dataname(filename);
 							thebridge->set_filename(filename);
-							thebridge->set_dtype(INTERMEDIATE);
+							//thebridge->set_dtype(INTERMEDIATE);
 
 							// open read file and start sending data to client
 							thebridge->open_readfile(filename);
@@ -589,7 +589,7 @@ int fileserver::run_server(int port, string master_address)
 							thebridge->set_dstclient(clients[i]);
 							thebridge->set_dataname(filename);
 							thebridge->set_filename(filename);
-							thebridge->set_dtype(INTERMEDIATE);
+							//thebridge->set_dtype(INTERMEDIATE);
 
 							// send message to the target peer
 							string message;
@@ -1119,7 +1119,7 @@ int fileserver::run_server(int port, string master_address)
 							thebridge->set_dstid(dstid);
 							thebridge->set_dataname(filename);
 							thebridge->set_filename(filename);
-							thebridge->set_dtype(RAW);
+							//thebridge->set_dtype(RAW);
 
 							// open read file and start sending data to peer
 							thebridge->open_readfile(filename);
@@ -1137,7 +1137,7 @@ int fileserver::run_server(int port, string master_address)
 							thebridge->set_dstid(dstid);
 							thebridge->set_dataname(filename);
 							thebridge->set_filename(filename);
-							thebridge->set_dtype(RAW);
+							//thebridge->set_dtype(RAW);
 
 							// send message to the target peer
 							string message;
@@ -1191,7 +1191,7 @@ int fileserver::run_server(int port, string master_address)
 						thebridge->set_dstid(dstid);
 						thebridge->set_dataname(filename);
 						thebridge->set_filename(filename);
-						thebridge->set_dtype(RAW);
+						//thebridge->set_dtype(RAW);
 					}
 				}
 				else if(strncmp(read_buf, "RDread", 6) == 0)
@@ -1216,7 +1216,7 @@ int fileserver::run_server(int port, string master_address)
 					thebridge->set_dstpeer(peers[i]);
 					thebridge->set_dataname(filename);
 					thebridge->set_filename(filename);
-					thebridge->set_dtype(RAW);
+					//thebridge->set_dtype(RAW);
 
 					// open read file and start sending data to client
 					thebridge->open_readfile(filename);
@@ -1251,7 +1251,7 @@ int fileserver::run_server(int port, string master_address)
 						thebridge->set_dstpeer(peers[i]);
 						thebridge->set_dataname(filename); // data name is wrong. but it doesn't matter at this time
 						thebridge->set_filename(filename);
-						thebridge->set_dtype(INTERMEDIATE);
+						//thebridge->set_dtype(INTERMEDIATE);
 
 						// open read file and start sending data to client
 						thebridge->open_readfile(filename);
