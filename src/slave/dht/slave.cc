@@ -486,7 +486,7 @@ void signal_listener()
 			//cout<<"[Slave Heartbeat]";
 			//cout<<"numjob: "<<running_jobs.size()<<", ";
 			//cout<<"numtask: "<<running_tasks.size()<<"("<<localhostname<<")"<<endl;
-			gettimeofday(&time_start, NULL);
+			//gettimeofday(&time_start, NULL);
 		}
 	}
 	while(close(masterfd)<0)

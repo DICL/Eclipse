@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <vector>
+#include <common/msgaggregator.hh>
+#include <file_distributor/messagebuffer.hh>
 
 using namespace std;
 
@@ -14,6 +16,7 @@ class filepeer
 
 	public:
 		vector<messagebuffer*> msgbuf;
+		msgaggregator writebuffer;
 
 		filepeer(int afd, string anaddress);
 		~filepeer();
@@ -28,15 +31,20 @@ filepeer::filepeer(int afd, string anaddress)
 	this->fd = afd;
 	this->address = anaddress;
 
+	writebuffer.configure_initial("write\n");
+	writebuffer.set_msgbuf(&msgbuf);
+
 	// add a null message buffer
 	msgbuf.push_back(new messagebuffer());
 }
+
 
 filepeer::~filepeer()
 {
 	for(int i = 0; (unsigned)i < msgbuf.size(); i++)
 	{
-		delete msgbuf[i];
+		if(msgbuf[i] != NULL)
+			delete msgbuf[i];
 	}
 }
 

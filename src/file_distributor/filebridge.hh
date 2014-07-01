@@ -16,29 +16,28 @@ class filebridge
 	private:
 		int id; // this id will be sent to peer to link this filebridge
 		int dstid; // the bridge id of remote peer, -1 as default, positive value when the dsttype is PEER
-		int writeid;
-		int writefilefd;
-		//char read_buf[BUF_SIZE]; // this is not for reading message from other connection, but for buffering reading file
-		string dataname; // the key of the data which is used as input of hash function
+		//int writefilefd; // deprecated
 		bridgetype srctype; // PEER, DISK, CACHE or CLIENT
 		bridgetype dsttype; // PEER, DISK, CACHE or CLIENT
-		//datatype dtype; // RAW, INTERMEDIATE, OUTPUT
 		filepeer* dstpeer; // destination peer
-		file_connclient* dstclient; // destination client. should be set in the constructor either to an real object or NULL pointer
+		file_connclient* dstclient; // destination client
 		entrywriter* dstentrywriter; // when this is not null, data should be written to the entry
 		entryreader* srcentryreader; // when the srctype is CACHE, srcentryreader should be set and it should read data from cache
 		fstream readfilestream;
-		string filename; // [jobindex(if it is intermediate)] + [dataname]
+
+		//char read_buf[BUF_SIZE]; // this is not for reading message from other connection, but for buffering reading file
+		//string dataname; // the key of the data which is used as input of hash function
+		//string filename; // the key of the data which is used as input of hash function
+		//datatype dtype; // RAW, INTERMEDIATE, OUTPUT
 
 	public:
+		msgaggregator* writebuffer;
+
 		filebridge(int anid);
 		~filebridge();
 
 		void set_dstpeer(filepeer* apeer);
-		void set_role(file_role arole);
-		void set_dataname(string aname);
-		void set_filename(string aname);
-		//void set_dtype(datatype atype);
+		//void set_role(file_role arole);
 		void set_srctype(bridgetype atype);
 		void set_dsttype(bridgetype atype);
 		void set_id(int num);
@@ -46,46 +45,51 @@ class filebridge
 		void set_dstclient(file_connclient* aclient);
 		void set_entryreader(entryreader* areader);
 		void set_entrywriter(entrywriter* awriter);
-		void set_writeid(int num);
+		//void set_dataname(string aname);
+		//void set_filename(string aname);
+		//void set_dtype(datatype atype);
+		//void set_writeid(int num);
 
 		int get_id();
 		int get_dstid();
-		int get_writeid();
 		filepeer* get_dstpeer();
+		//int get_writeid();
 		
-		//datatype get_dtype();
-		file_role get_role();
-		string get_dataname();
-		string get_filename();
+		//file_role get_role();
 		file_connclient* get_dstclient();
 		bridgetype get_srctype();
 		bridgetype get_dsttype();
 		entryreader* get_entryreader();
 		entrywriter* get_entrywriter();
+		//datatype get_dtype();
+		//string get_dataname();
+		//string get_filename();
 
 		void open_readfile(string fname);
-		void open_writefile(string fname);
-		void write_record(string& record, char* write_buf);
-		bool read_record(string& record); // reads next records and appends records until length reaches BUF_THRESHOLD.
+		//void open_writefile(string fname); // deprecated
+		//void write_record(string& record, char* write_buf); // deprecated
+		bool read_record(string& record); // reads next record
 };
 
 filebridge::filebridge(int anid)
 {
 	id = anid;
 	dstid = -1;
-	writeid = -1;
-	writefilefd = -1;
+	//writefilefd = -1;
 	dstpeer = NULL;
 	dstclient = NULL;
 	srcentryreader = NULL;
 	dstentrywriter = NULL;
+	writebuffer = NULL;
 }
 
 filebridge::~filebridge()
 {
 	// clear up all things
 	readfilestream.close();
-	close(this->writefilefd);
+	if(writebuffer != NULL)
+		delete writebuffer;
+	//close(this->writefilefd);
 }
 
 void filebridge::set_entryreader(entryreader* areader)
@@ -103,20 +107,20 @@ void filebridge::set_dstpeer(filepeer* apeer)
 	this->dstpeer = apeer;
 }
 
-void filebridge::set_role(file_role arole)
-{
-	if(this->dstclient == NULL)
-	{
-		cout<<"[filebridge]The destination client of a filebridge is not set and modifying the member client tried"<<endl;
-		return;
-	}
-	this->dstclient->set_role(arole);
-}
+//void filebridge::set_role(file_role arole)
+//{
+//	if(this->dstclient == NULL)
+//	{
+//		cout<<"[filebridge]The destination client of a filebridge is not set and modifying the member client tried"<<endl;
+//		return;
+//	}
+//	this->dstclient->set_role(arole);
+//}
 
-void filebridge::set_dataname(string aname)
-{
-	this->dataname = aname;
-}
+//void filebridge::set_dataname(string aname)
+//{
+//	this->dataname = aname;
+//}
 
 //void filebridge::set_dtype(datatype atype)
 //{
@@ -128,25 +132,25 @@ filepeer* filebridge::get_dstpeer()
 	return dstpeer;
 }
 
-string filebridge::get_dataname()
-{
-	return dataname;
-}
+//string filebridge::get_dataname()
+//{
+//	return dataname;
+//}
 
 //datatype filebridge::get_dtype()
 //{
 //	return dtype;
 //}
 
-void filebridge::set_filename(string aname)
-{
-	this->filename = aname;
-}
+//void filebridge::set_filename(string aname)
+//{
+//	this->filename = aname;
+//}
 
-string filebridge::get_filename()
-{
-	return this->filename;
-}
+//string filebridge::get_filename()
+//{
+//	return this->filename;
+//}
 
 entryreader* filebridge::get_entryreader()
 {
@@ -165,26 +169,23 @@ void filebridge::open_readfile(string fname)
 
 	this->readfilestream.open(fpath.c_str());
 
-
 	if(!this->readfilestream.is_open())
-		cout<<"[filebridge]File does not exist for reading"<<endl;
+		cout<<"[filebridge]File does not exist for reading: "<<fname<<endl;
 
 	return;
 }
 
-bool filebridge::read_record(string& record) // reads next records and appends records until length reaches BUF_THRESHOLD.
+bool filebridge::read_record(string& record) // reads next record
 {
-	string nextrecord;
-	getline(this->readfilestream, nextrecord);
-
-	record = nextrecord;
+	getline(this->readfilestream, record);
 
 	if(this->readfilestream.eof())
 		return false;
 	else
 		return true;
 }
-
+/*
+// deprecated
 void filebridge::open_writefile(string fname)
 {
 	string fpath = DHT_PATH;
@@ -194,10 +195,11 @@ void filebridge::open_writefile(string fname)
 		cout<<"filebridge]Opening write file failed"<<endl;
 	return;
 }
+*/
 
+/*
 void filebridge::write_record(string& record, char* write_buf)
 {
-	/*
 	struct flock alock;
 	struct flock ulock;
 
@@ -216,7 +218,6 @@ void filebridge::write_record(string& record, char* write_buf)
 
 	// acquire file lock
 	fcntl(this->writefilefd, F_SETLKW, &alock);
-	*/
 
 	// critical section
 	{
@@ -230,11 +231,10 @@ void filebridge::write_record(string& record, char* write_buf)
 			cout<<"[filebridge]Writing to write file failed"<<endl;
 	}
 
-	/*
 	// release file lock
 	fcntl(this->writefilefd, F_SETLK, &ulock);
-	*/
 }
+*/
 
 file_connclient* filebridge::get_dstclient()
 {
@@ -281,24 +281,24 @@ void filebridge::set_dstid(int num)
 	dstid = num;
 }
 
-file_role filebridge::get_role()
-{
-	return this->dstclient->get_role();
-}
+//file_role filebridge::get_role()
+//{
+//	return this->dstclient->get_role();
+//}
 
 void filebridge::set_dstclient(file_connclient* aclient)
 {
 	this->dstclient = aclient;
 }
 
-int filebridge::get_writeid()
-{
-	return writeid;
-}
+//int filebridge::get_writeid()
+//{
+//	return writeid;
+//}
 
-void filebridge::set_writeid(int num)
-{
-	writeid = num; 
-}
+//void filebridge::set_writeid(int num)
+//{
+//	writeid = num; 
+//}
 
 #endif

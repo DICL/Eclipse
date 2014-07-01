@@ -266,31 +266,31 @@ int nbread(int fd, char* buf)
 		{
 			if(errno == EBADF)
 			{
-				cout<<"\t\033[0;32mread function failed due to EBADF error, debug needed\033[0m"<<endl;
+				cout<<"\t\033[0;31mread function failed due to EBADF error, debug needed\033[0m"<<endl;
 			}
 			else if(errno == EFAULT)
 			{
-				cout<<"\t\033[0;32mread function failed due to EFAULT error, debug needed\033[0m"<<endl;
+				cout<<"\t\033[0;31mread function failed due to EFAULT error, debug needed\033[0m"<<endl;
 			}
 			else if(errno == EINTR)
 			{
-				cout<<"\t\033[0;32mread function failed due to EINTR error, debug needed\033[0m"<<endl;
+				cout<<"\t\033[0;31mread function failed due to EINTR error, debug needed\033[0m"<<endl;
 			}
 			else if(errno == EINVAL)
 			{
-				cout<<"\t\033[0;32mread function failed due to EINVAL error, debug needed\033[0m"<<endl;
+				cout<<"\t\033[0;31mread function failed due to EINVAL error, debug needed\033[0m"<<endl;
 			}
 			else if(errno == EIO)
 			{
-				cout<<"\t\033[0;32mread function failed due to EIO error, debug needed\033[0m"<<endl;
+				cout<<"\t\033[0;31mread function failed due to EIO error, debug needed\033[0m"<<endl;
 			}
 			else if(errno == EISDIR)
 			{
-				cout<<"\t\033[0;32mread function failed due to EISDIR error, debug needed\033[0m"<<endl;
+				cout<<"\t\033[0;31mread function failed due to EISDIR error, debug needed\033[0m"<<endl;
 			}
 			else
 			{
-				cout<<"\t\033[0;32mread function failed due to unspecified error, debug needed\033[0m"<<endl;
+				cout<<"\t\033[0;31mread function failed due to unspecified error, debug needed\033[0m"<<endl;
 			}
 		}
 
@@ -340,7 +340,7 @@ int nbread(int fd, char* buf)
 		}
 		
 	}
-	return total_readbytes + readbytes;
+	return total_readbytes;
 }
 
 #endif

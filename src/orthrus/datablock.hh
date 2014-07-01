@@ -12,13 +12,14 @@ class datablock
 	private:
 		char* data;
 		unsigned size; // block size(BLOCKSIZE) is defined in mapreduce/definitions.hh
+		vector<int> recordindex; // index of start of each record
 
 	public:
 		datablock();
 		~datablock();
 
 		int write_record(string record); // true when succeeded, false when insufficient capacity
-		int read_record(unsigned pos, string& record); // -1 when data reaches end of block
+		bool read_record(unsigned pos, string& record); // -1 when data reaches end of block
 		char* get_data();
 		unsigned get_size();
 		void set_size(unsigned num);
@@ -29,6 +30,9 @@ datablock::datablock()
 	data = new char[BLOCKSIZE];
 	memset(data, 0, BLOCKSIZE);
 	size = 0;
+
+	// add 0 index for the start of first record
+	recordindex.push_back(0);
 }
 
 datablock::~datablock()
@@ -74,40 +78,23 @@ int datablock::write_record(string record)
 		strcpy(data+size, record.c_str());
 		size += record.length();
 
+		// add start index of next record(end index of current record)
+		recordindex.push_back(size + 1);
+
 		return written_size;
 	}
 }
 
-int datablock::read_record(unsigned pos, string& record)
+bool datablock::read_record(unsigned index, string& record) // return next index if there is next record, or -1
 {
-	if(pos >= size)
+	if(index < recordindex.size() - 1) // there is another data to read
 	{
-		return -1;
+		record.assign(data + recordindex[index], recordindex[index + 1] - recordindex[index] - 1);
+		return true;
 	}
-	else // there is another data to read
+	else
 	{
-		unsigned index = pos;
-		int recordsize = 0;
-
-		while(pos < BLOCKSIZE) // scan until the (possibly) end of block
-		{
-			if(data[index] == '\n')
-			{
-				record.assign(data+pos, recordsize);
-				recordsize++;
-				break;
-			}
-
-			if(data[index] == 0)
-			{
-				record.assign(data+pos, recordsize);
-				break;
-			}
-
-			recordsize++;
-			index++;
-		}
-		return recordsize;
+		return false;
 	}
 }
 

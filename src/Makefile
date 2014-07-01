@@ -17,6 +17,7 @@ ECLIPSE_DEP += $(MR_HOME)/orthrus/histogram.hh
 ECLIPSE_DEP += $(MR_HOME)/orthrus/cache.hh 
 ECLIPSE_DEP += $(MR_HOME)/orthrus/datablock.hh 
 ECLIPSE_DEP += $(MR_HOME)/orthrus/dataentry.hh 
+ECLIPSE_DEP += $(MR_HOME)/common/msgaggregator.hh 
 CACHESERVER_DEP = $(MR_HOME)/orthrus/histogram.hh
 CACHESERVER_DEP += $(MR_HOME)/orthrus/cacheserver.cc
 CACHESERVER_DEP += $(MR_HOME)/orthrus/cacheclient.hh
@@ -134,7 +135,6 @@ clean:
 	rm -f $(MR_HOME)/bin/slave
 	rm -f $(MR_HOME)/bin/client
 	rm -f $(MR_HOME)/bin/mcc
-	#rm -f $(MR_HOME)/bin/fileserver
 	rm -f $(MR_HOME)/bin/eclipse
 	rm -f $(MR_HOME)/DHT/DHTserver.o
 	rm -f $(MR_HOME)/DHT/DHTclient.o

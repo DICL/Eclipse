@@ -85,8 +85,7 @@ int taskid;
 int writeid;
 int pipefd[2]; // pipe fd when the role is map task or reduce task
 //DHTclient* dhtclient;
-fileclient readfileclient;
-fileclient writefileclient;
+fileclient thefileclient;
 
 // variables for map task
 void (*mapfunction) (); // map function pointer
@@ -163,6 +162,7 @@ void init_mapreduce(int argc, char** argv)
 		cout<<"Port should be specified in the setup.conf"<<endl;
 		exit(1);
 	}
+
 	if(master_is_set == false)
 	{
 		cout<<"Master_address should be specified in the setup.conf"<<endl;
@@ -228,7 +228,6 @@ void init_mapreduce(int argc, char** argv)
 					else if(readbytes < 0)
 					{
 						continue;
-						usleep(1000);
 					}
 					else // reply arrived
 					{
@@ -295,7 +294,7 @@ void init_mapreduce(int argc, char** argv)
 
 		if(readbytes == 0)
 		{
-			cout<<"[mapreduce]the connection from slave node is abnormally closed"<<endl;
+			cout<<"[mapreduce]The connection from slave node is abnormally closed"<<endl;
 			exit(1);
 		}
 		fcntl(pipefd[0], F_SETFL, O_NONBLOCK);
@@ -480,7 +479,7 @@ void summ_mapreduce()
 
 		// run the mapfunction until input all inputs are processed
 
-		writefileclient.connect_to_server();
+		thefileclient.connect_to_server(writeid);
 
 		if(isset_mapper)
 		{
@@ -508,7 +507,7 @@ void summ_mapreduce()
 			}
 		}
 
-		writefileclient.wait_write(writeid);
+		thefileclient.wait_write();
 
 		// send complete message
 		memset(write_buf, 0, BUF_SIZE);
@@ -531,9 +530,8 @@ void summ_mapreduce()
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
 //					cout<<"[mapreduce]Map task is successfully completed"<<endl;
+
 					// terminate successfully
-					readfileclient.close_server();
-					//writefileclient.close_server();
 					while(close(pipefd[0]) < 0)
 					{
 cout<<"[mapreduce]close failed"<<endl;
@@ -569,7 +567,7 @@ cout<<"[mapreduce]close failed"<<endl;
 			cout<<"[mapreduce]Debugging: The map or reduce function is called from the map or reduce function."<<endl;
 		}
 
-		writefileclient.connect_to_server();
+		thefileclient.connect_to_server(writeid);
 
 		// run the reduce functions until all key are processed
 		if(isset_reducer)
@@ -583,7 +581,7 @@ cout<<"[mapreduce]close failed"<<endl;
 			}
 		}
 
-		writefileclient.wait_write(writeid);
+		thefileclient.wait_write();
 
 		// send complete message
 		memset(write_buf, 0, BUF_SIZE);
@@ -710,7 +708,9 @@ void write_keyvalue(string key, string value)
 			string keystr = "key ";
 			keystr.append(key);
 //cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
-			unreported_keys.erase(*unreported_keys.begin());
+
+			unreported_keys.erase(key);
+			//unreported_keys.erase(*unreported_keys.begin());
 			reported_keys.insert(key);
 
 			// send 'key' meesage to the slave node
@@ -758,7 +758,7 @@ void write_keyvalue(string key, string value)
 		rst.append(" ");
 		rst.append(value);
 
-		writefileclient.write_record(writeid, keyfile, rst);
+		thefileclient.write_record(keyfile, rst);
 	}
 	else
 	{
@@ -792,11 +792,11 @@ bool get_nextinput() // internal function to process next input file
 		*/
 
 		bool readsuccess = false;
-		readfileclient.read_request(inputpaths.back(), RAW);
+		thefileclient.read_request(inputpaths.back(), RAW);
 		inputpaths.pop_back();
 
 		// pre-process first record
-		readsuccess = readfileclient.read_record(nextrecord);
+		readsuccess = thefileclient.read_record(nextrecord);
 		if(readsuccess)
 			is_nextrec = true;
 		else
@@ -812,7 +812,7 @@ string get_nextrecord() // a user function for the map
 	{
 		bool readsuccess = false;
 		string ret = nextrecord;
-		readsuccess = readfileclient.read_record(nextrecord);
+		readsuccess = thefileclient.read_record(nextrecord);
 
 		if(readsuccess)
 			is_nextrec = true;
@@ -872,12 +872,12 @@ bool get_nextkey(string* key) // internal function for the reduce
 
 		string apath = jobdirpath;
 		apath.append(inputpaths.back());
-		readfileclient.read_request(apath, INTERMEDIATE);
+		thefileclient.read_request(apath, INTERMEDIATE);
 		inputpaths.pop_back();
 
 		// pre-process first record
 		stringstream ss;
-		readsuccess = readfileclient.read_record(nextvalue); // key value record
+		readsuccess = thefileclient.read_record(nextvalue); // key value record
 
 		if(readsuccess)
 		{
@@ -915,7 +915,7 @@ string get_nextvalue() // returns values in reduce function
 	{
 		string ret = nextvalue;
 		bool readsuccess = false;
-		readsuccess = readfileclient.read_record(nextvalue); // key value record
+		readsuccess = thefileclient.read_record(nextvalue); // key value record
 
 		// pre-process first record
 		if(readsuccess)
@@ -964,7 +964,7 @@ void write_output(string record) // this user function can be used anywhere but 
 	address = nodelist[hashvalue];
 	*/
 
-	writefileclient.write_record(writeid, outputpath, record);
+	thefileclient.write_record(outputpath, record);
 }
 
 int get_jobid()

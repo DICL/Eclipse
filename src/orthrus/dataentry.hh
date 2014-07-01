@@ -111,7 +111,7 @@ class entryreader
 	private:
 		dataentry* targetentry;
 		int blockindex;
-		unsigned pos;
+		unsigned index;
 
 	public:
 		entryreader();
@@ -124,14 +124,14 @@ entryreader::entryreader()
 {
 	targetentry = NULL;
 	blockindex = 0;
-	pos = 0;
+	index = 0;
 }
 
 entryreader::entryreader(dataentry* entry)
 {
 	targetentry = entry;
 	blockindex = 0;
-	pos = 0;
+	index = 0;
 
 	entry->lock_entry();
 }
@@ -140,31 +140,32 @@ void entryreader::set_targetentry(dataentry* entry)
 {
 	targetentry = entry;
 	blockindex = 0;
-	pos = 0;
+	index = 0;
 
 	entry->lock_entry();
 }
 
 bool entryreader::read_record(string& record)
 {
-	int ret = targetentry->datablocks[blockindex]->read_record(pos, record);
-
-	if(ret < 0) // no more data in current block
+	if(targetentry->datablocks[blockindex]->read_record(index, record)) // a record successfully read
+	{
+		index++;
+		return true;
+	}
+	else // no more data in current block
 	{
 		blockindex++;
-		pos = 0;
+		index = 0;
 
 		if((unsigned)blockindex < targetentry->datablocks.size()) // next block exist
 		{
-			ret = targetentry->datablocks[blockindex]->read_record(pos, record);
-
-			if(ret < 0) // first read must succeed from next block
+			if(!targetentry->datablocks[blockindex]->read_record(index, record)) // first read must succeed from next block
 			{
 				cout<<"[entryreader]Debugging: Unexpected response from read_record()."<<endl;
 				exit(1);
 			}
 
-			pos += ret;
+			index++;
 			return true;
 		}
 		else // no more next block
@@ -172,11 +173,6 @@ bool entryreader::read_record(string& record)
 			targetentry->unlock_entry();
 			return false;
 		}
-	}
-	else // a record successfully read
-	{
-		pos += ret;
-		return true;
 	}
 }
 

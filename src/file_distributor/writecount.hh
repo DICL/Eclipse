@@ -2,6 +2,7 @@
 #define __WRITECOUNT__
 
 #include <iostream>
+#include <set>
 
 using namespace std;
 
@@ -11,14 +12,13 @@ class writecount
 		int writeid;
 
 	public:
-		vector<int> peerids;
+		set<int> peerids;
 
 		writecount(int anid);
 		int get_id();
 		void set_id(int num);
 		bool add_peer(int peerid);
 		bool clear_peer(int peerid);
-
 };
 
 writecount::writecount(int anid)
@@ -38,26 +38,22 @@ void writecount::set_id(int num)
 
 bool writecount::add_peer(int peerid)
 {
-	for(int i = 0; (unsigned)i < peerids.size(); i++)
+	if(peerids.find(peerid) == peerids.end())
 	{
-		if(peerids[i] == peerid)
-			return false;
+		peerids.insert(peerid);
+		return true;
 	}
-	peerids.push_back(peerid);
-	return true;
+	return false;
+
 }
 
 bool writecount::clear_peer(int peerid)
 {
-	for(int i = 0; (unsigned)i < peerids.size(); i++)
-	{
-		if(peerids[i] == peerid)
-		{
-			peerids.erase(peerids.begin()+i);
-			return true;
-		}
-	}
-	return false;
+	int ret = peerids.erase(peerid);
+	if(ret == 1)
+		return true;
+	else
+		return false;
 }
 
 #endif

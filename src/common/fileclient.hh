@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <fcntl.h>
 #include <sys/time.h>
+#include <common/msgaggregator.hh>
 #include <mapreduce/definitions.hh>
 
 using namespace std;
@@ -19,24 +20,29 @@ class fileclient // each task process will have two objects(read/write) of filec
 {
 private:
 	int serverfd;
+	char* token;
+	char* ptr;
 	char read_buf[BUF_SIZE];
 	char write_buf[BUF_SIZE];
 	//writebuffer* wbuffer;
 
 public:
+	msgaggregator writebuffer; // a buffer for the write
+
 	fileclient();
 	~fileclient();
-	bool write_record(int writeid, string filename, string data); // append mode, write a record
+	bool write_record(string filename, string data); // append mode, write a record
 	void close_server(); // this function is used to notify the server that writing is done
-	void wait_write(int writeid); // wait until write is done
+	void wait_write(); // wait until write is done
 	bool read_request(string filename, datatype atype); // connect to read file
 	bool read_record(string& record); // read sentences from connected file(after read_request())
-	int connect_to_server(); // returns fd of file server
+	int connect_to_server(int writeid); // returns fd of file server
 };
 
 fileclient::fileclient()
 {
 	this->serverfd = -1;
+	token = NULL;
 }
 
 fileclient::~fileclient()
@@ -57,7 +63,7 @@ fileclient::~fileclient()
 	this->serverfd = -1;
 }
 
-int fileclient::connect_to_server()
+int fileclient::connect_to_server(int writeid)
 {
 	int fd;
 	int buffersize = 8388608; // 8 MB buffer
@@ -84,8 +90,6 @@ int fileclient::connect_to_server()
 	{
 		// sleep for 1 miilisecond
 		usleep(1000);
-		//cout<<"[fileclient]The connection failed to the file server"<<endl;
-		//exit(1);
 	}
 
 	// set socket to be nonblocking
@@ -101,21 +105,32 @@ int fileclient::connect_to_server()
 //cout<<"\033[0;33m\tconnect() elapsed: "<<elapsed<<" milli seconds\033[0m"<<endl;
 
 
-//cout<<"the connect is straggler"<<endl;
 	this->serverfd = fd;
+
+	// buffer for write
+	writebuffer.set_fd(fd);
+	writebuffer.configure_initial("write\n");
+
+	// send the write id to the file server
+	stringstream ss;
+	string message;
+	ss << "Wid ";
+	ss << writeid;
+	message = ss.str();
+	memset(write_buf, 0, BUF_SIZE);
+	strcpy(write_buf, message.c_str());
+	nbwrite(this->serverfd, write_buf);
+
 	return fd;
 }
 
 // close should be done exclusively with close_server() function
-bool fileclient::write_record(int writeid, string filename, string data)
+bool fileclient::write_record(string filename, string data)
 {
+/*
 	// generate request string to send file server
 	string str = "write ";
 
-	stringstream ss;
-	ss << writeid;
-	str.append(ss.str());
-	str.append(" ");
 	str.append(filename);
 	str.append(" ");
 	str.append(data);
@@ -124,6 +139,12 @@ bool fileclient::write_record(int writeid, string filename, string data)
 	memset(this->write_buf, 0, BUF_SIZE);
 	strcpy(this->write_buf, str.c_str());
 	nbwrite(this->serverfd, this->write_buf);
+*/
+	// generate request string
+	string str = filename;
+	str.append(" ");
+	str.append(data);
+	writebuffer.add_record(str);
 
 //cout<<"\033[0;33m\trecord sent from client: \033[0m"<<write_buf<<endl;
 	return true;
@@ -147,26 +168,26 @@ void fileclient::close_server()
 	close(this->serverfd);
 }
 
-void fileclient::wait_write(int writeid) // wait until write is done
+void fileclient::wait_write() // wait until write is done
 {
+	// flush the write buffer
+	writebuffer.flush();
+
 	// generate request string
-	string str = "Wwrite "; // waiting message
-	stringstream ss;
-	ss << writeid;
-	str.append(ss.str());
+	string str = "Wwrite"; // waiting message
 
 	// send the message to the fileserver
 	memset(write_buf, 0, BUF_SIZE);
 	strcpy(write_buf, str.c_str());
-	nbwrite(serverfd, write_buf);
+	nbwrite(this->serverfd, write_buf);
 
 	int read_bytes;
 	while(1)
 	{
-		read_bytes = read(serverfd, read_buf, BUF_CUT);  // use BUF_CUT as read size exceptively
+		read_bytes = read(this->serverfd, this->read_buf, BUF_CUT);  // use BUF_CUT as read size exceptively
 		if(read_bytes > 0)
 		{
-			cout<<"[fileclient]Unexpected message while waiting close of socket during the write"<<endl;
+			cout<<"[fileclient]Unexpected message while waiting close of socket during the write: "<<this->read_buf<<endl;
 		}
 		else if(read_bytes == 0)
 		{
@@ -200,39 +221,73 @@ bool fileclient::read_request(string filename, datatype atype)
 	memset(this->write_buf, 0, BUF_SIZE);
 	strcpy(this->write_buf, str.c_str());
 
-	this->serverfd = connect_to_server();
 	nbwrite(this->serverfd, this->write_buf);
 	return true;
 }
 
-bool fileclient::read_record(string& record) // read through the socket with blocking way
+bool fileclient::read_record(string& record) // read through the socket with blocking way and token each record
 {
-	int readbytes;
-	while(1)
+	if(token != NULL)
 	{
-		readbytes = nbread(this->serverfd, this->read_buf);
-		if(readbytes == 0) // when reaches end of file
-		{
-			close_server();
+		token = strtok(ptr, "\n");
+	}
 
-			// return empty string
-			record = "";
-//cout<<"\033[0;32m\tconnection is closed in read_record\033[0m"<<endl;
-			return false;
-		}
-		else if(readbytes < 0)
+	if(token == NULL)
+	{
+		int readbytes;
+		while(1)
 		{
-			continue;
-		}
-		else // successful read
-		{
-			record = this->read_buf;
+			readbytes = nbread(this->serverfd, this->read_buf);
+			if(readbytes == 0) // when reaches end of file
+			{
+				close_server();
+
+				// return empty string
+				record = "";
+				return false;
+			}
+			else if(readbytes < 0)
+			{
+				continue;
+			}
+			else // successful read
+			{
+//cout<<"\tread stream at client: "<<read_buf<<endl;
+//cout<<"\tread stream bytes: "<<readbytes<<endl;
+				if(this->read_buf[0] == -1) // the read stream is finished(Eread)
+				{
+//cout<<"\t\tEnd of read stream at client"<<endl;
+					record = "";
+					return false;
+				}
+				else
+				{
+					token = strtok(this->read_buf, "\n");
+					if(token == NULL)
+					{
+						continue;
+					}
+					else
+					{
+						ptr = this->read_buf + strlen(token) + 1;
+						record = token;
+//cout<<"read stream at client side: "<<record<<endl;
+						return true;
+					}
+				}
 //cout<<"\033[0;32m\trecord received in client: \033[0m"<<*record<<endl;
 //cout<<"\033[0;32m\treadbytes: \033[0m"<<readbytes<<endl;
-			return true;
+			}
 		}
+		return false;
 	}
-	return false;
+	else
+	{
+		record = token;
+		ptr = token + strlen(token) + 1;
+//cout<<"read stream at client side: "<<record<<endl;
+		return true;
+	}
 }
 
 #endif

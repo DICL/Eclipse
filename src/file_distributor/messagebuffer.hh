@@ -2,17 +2,21 @@
 #define __MESSAGEBUFFER__
 
 #include <unistd.h>
+#include <iostream>
+
+using namespace std;
 
 // message can be a null string. which means that remaining
 // bytes are all null character to fit into the BUF_CUT
 class messagebuffer
 {
 private:
+
+public:
 	string message; // should be transmitted from first one
 	int fd; // fd of target object
 	int remain; // remaining bytes
 
-public:
 	messagebuffer();
 	messagebuffer(int number);
 	messagebuffer(string amessage, int number, int aremain);
@@ -36,7 +40,7 @@ messagebuffer::messagebuffer()
 	remain = 0;
 }
 
-messagebuffer::messagebuffer(int afd)
+messagebuffer::messagebuffer(int afd) // same as end buffer
 {
 	fd = afd;
 	remain = 0;
@@ -116,6 +120,8 @@ int nbwritebuf(int fd, char* buf, messagebuffer* buffer)
 //cout<<"message: "<<buf<<endl;
 	int written_bytes;
 	int writing_bytes = BUF_CUT*(strlen(buf)/BUF_CUT+1);
+if(writing_bytes == 0)
+cout<<"check writing_bytes in the nbwritebuf"<<endl;
 	written_bytes = write(fd, buf, writing_bytes);
 
 //cout<<"writing bytes: "<<writing_bytes<<endl;
