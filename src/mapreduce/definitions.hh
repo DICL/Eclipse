@@ -14,9 +14,9 @@ using namespace std;
 #define HDMR_PATH "/user/youngmoon01/mr_storage/"
 #define LIB_PATH "/home/youngmoon01/MRR/src/"
 #define BUF_SIZE (4*1024) // 4 KB sized buffer. determines maximum size of a record
-#define BUF_THRESHOLD (1*1024) // the buffer flush threshold is set to 1 KB
+#define BUF_THRESHOLD (2*1024) // the buffer flush threshold is set to 1 KB
 #define BUF_CUT 64
-#define CACHESIZE (512*1024*1024) // 512 MB
+#define CACHESIZE (1400*1024*1024) // 1400 MB
 #define BLOCKSIZE (16*1024) // 16 KB sized block <- should be multiple of BUF_SIZE
 // #define BUF_SIZE (512*1024) // 512 KB sized buffer
 #define TASK_SLOT 4
@@ -77,7 +77,8 @@ enum bridgetype // bridge source and destination type
 	PEER,
 	DISK,
 	CACHE,
-	CLIENT
+	CLIENT,
+	DISTRIBUTE // distribute the intermediate result of specific app + input pair
 };
 
 enum transfertype // data transfer type. packet or stream
@@ -180,6 +181,7 @@ int nbwrite(int fd, char* buf) // when the content is already on the buffer
 		else if(errno == EBADF)
 		{
 			cout<<"\twrite function failed due to EBADF, retrying..."<<endl;
+cout<<"\tcontents: "<<buf<<endl;
 			sleep(5);
 		}
 		else if(errno == EFAULT)
@@ -292,6 +294,9 @@ int nbread(int fd, char* buf)
 			{
 				cout<<"\t\033[0;31mread function failed due to unspecified error, debug needed\033[0m"<<endl;
 			}
+
+			// sleep 1 second for easier debug
+			sleep(1);
 		}
 
 		return readbytes;

@@ -1,6 +1,8 @@
 #ifndef _SLAVE_
 #define _SLAVE_
 
+#define DHT_SLAVE
+
 #include "../slave_task.hh"
 
 int connect_to_server(char *host, unsigned short port); // function which connect to the master

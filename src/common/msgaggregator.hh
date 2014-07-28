@@ -30,6 +30,7 @@ class msgaggregator
 		msgaggregator(int number); // constructor
 		int get_available(); // remaining capacity, not the full capacity
 		bool add_record(string& record); // <- automatically flushed??
+		bool add_record(char*& record); // <- automatically flushed??
 		void flush(); // flush and re-initialize the message 
 
 		void configure_initial(string record);
@@ -109,6 +110,12 @@ bool msgaggregator::add_record(string& record) // return true when flushed
 	}
 }
 
+bool msgaggregator::add_record(char*& record) // <- automatically flushed??
+{
+	string input = record;
+	return add_record(input);
+}
+
 void msgaggregator::configure_initial(string record) // the white space should be explicitly added to the parameter string
 {
 	initial = record;
@@ -144,7 +151,7 @@ void msgaggregator::flush() // return false when new messagebuffer is needed to 
 	// write to the fd
 	if(msgbuf == NULL) // no target messagebuf(client side)
 	{
-		//cout<<"flushed message: "<<message<<endl<<endl;
+//cout<<"flushed message: "<<message<<endl<<endl;
 		nbwrite(fd, message);
 
 
@@ -160,19 +167,17 @@ void msgaggregator::flush() // return false when new messagebuffer is needed to 
 			msgbuf->back()->set_buffer(message, fd);
 			msgbuf->push_back(new messagebuffer());
 
-
 			// set initial contents
 			set_initial();
 			return;
 		}
 		else
 		{
-			//cout<<"flushed message: "<<message<<endl<<endl;
+//cout<<"flushed message: "<<message<<endl<<endl;
 			if(nbwritebuf(fd, message, msgbuf->back()) <= 0)
 			{
 				// append new message buffer
 				msgbuf->push_back(new messagebuffer());
-
 
 				// set initial contents
 				set_initial();

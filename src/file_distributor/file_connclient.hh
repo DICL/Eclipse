@@ -4,6 +4,8 @@
 #include <iostream>
 #include <fstream>
 #include <fcntl.h>
+#include <orthrus/dataentry.hh>
+#include <file_distributor/filepeer.hh>
 #include "messagebuffer.hh"
 #include "writecount.hh"
 #include <mapreduce/definitions.hh>
@@ -12,30 +14,45 @@ using namespace std;
 
 class file_connclient
 {
-private:
-	int fd;
-	//file_role role;
+	private:
+		int fd;
+		int dstid;
+		string Icachekey;
+		entrywriter* Icachewriter; // cache writer for the intermediate results
+		filepeer* Itargetpeer;
+		//file_role role;
 
-public:
-	writecount* thecount;
-	vector<messagebuffer*> msgbuf;
+	public:
+		writecount* thecount;
+		vector<messagebuffer*> msgbuf;
 
-	file_connclient(int fd);
-	//file_connclient(int fd, file_role arole);
-	~file_connclient();
+		file_connclient(int number);
+		//file_connclient(int fd, file_role arole);
+		~file_connclient();
 
-	int get_fd();
-	//int get_writeid();
-	void set_fd(int num);
-	//void set_writeid(int num);
-	//void set_role(file_role arole);
-	//file_role get_role();
+		int get_fd();
+		//int get_writeid();
+		void set_fd(int num);
+		entrywriter* get_Icachewriter();
+		void set_Icachewriter(entrywriter* thewriter);
+		filepeer* get_Itargetpeer();
+		void set_Itargetpeer(filepeer* thepeer);
+		int get_dstid();
+		void set_dstid(int anumber);
+		void set_Icachekey(string key);
+		string get_Icachekey();
+		//void set_writeid(int num);
+		//void set_role(file_role arole);
+		//file_role get_role();
 };
 
-file_connclient::file_connclient(int fd)
+file_connclient::file_connclient(int number)
 {
-	this->fd = fd;
+	fd = number;
 	thecount = NULL;
+	Icachewriter = NULL;
+	Itargetpeer = NULL;
+	dstid = -1;
 	//this->writeid = -1;
 	//this->role = UNDEFINED;
 
@@ -62,6 +79,12 @@ file_connclient::~file_connclient()
 
 	if(thecount != NULL)
 		delete thecount;
+
+	if(Icachewriter != NULL)
+	{
+		Icachewriter->complete();
+		delete Icachewriter;
+	}
 }
 
 int file_connclient::get_fd()
@@ -72,6 +95,45 @@ int file_connclient::get_fd()
 void file_connclient::set_fd(int num)
 {
 	this->fd = num;
+}
+
+entrywriter* file_connclient::get_Icachewriter()
+{
+	return Icachewriter;
+}
+void file_connclient::set_Icachewriter(entrywriter* thewriter)
+{
+	Icachewriter = thewriter;
+}
+
+filepeer* file_connclient::get_Itargetpeer()
+{
+	return Itargetpeer;
+}
+
+void file_connclient::set_Itargetpeer(filepeer* thepeer)
+{
+	Itargetpeer = thepeer;
+}
+
+int file_connclient::get_dstid()
+{
+	return dstid;
+}
+
+void file_connclient::set_dstid(int anumber)
+{
+	dstid = anumber;
+}
+
+void file_connclient::set_Icachekey(string key)
+{
+	Icachekey = key;
+}
+
+string file_connclient::get_Icachekey()
+{
+	return Icachekey;
 }
 
 //void file_connclient::set_role(file_role arole)

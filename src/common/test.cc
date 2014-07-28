@@ -17,37 +17,31 @@ int main()
 	result = h(read_buf, 6);
 	cout<<hex<<result<<endl;
 
-	abc = "happy birthday";
-	memset(read_buf, 0, 256);
-	strcpy(read_buf, abc.c_str());
-	result = h(read_buf, 6);
-	cout<<hex<<result<<endl;
-
-	abc = "new year";
-	memset(read_buf, 0, 256);
-	strcpy(read_buf, abc.c_str());
-	result = h(read_buf, 6);
-	cout<<hex<<result<<endl;
-
-	abc = "zeeifjse isefjis eifjsef";
-	memset(read_buf, 0, 256);
-	strcpy(read_buf, abc.c_str());
-	result = h(read_buf, 6);
-	cout<<hex<<result<<endl;
-
-	abc = "zee";
-	memset(read_buf, 0, 256);
-	strcpy(read_buf, abc.c_str());
-	result = h(read_buf, 6);
-	cout<<hex<<result<<endl;
-
-	abc = "ijfeije ";
-	memset(read_buf, 0, 256);
-	strcpy(read_buf, abc.c_str());
-	result = h(read_buf, 6);
-	cout<<hex<<result<<endl;
-
 	abc = "starcraf wjfwiejf iwejfiwje ifjweifjwief iwejfiejwifjw eifjwiefjiw efjwiefjwfwiejf wiejfwiejf iwejfiwef t";
+	memset(read_buf, 0, 256);
+	strcpy(read_buf, abc.c_str());
+	result = h(read_buf, 6);
+	cout<<hex<<result<<endl;
+
+	abc = "starcraf wjfwiejf iwejfiwje gitee iwejfiejwifjw eifjwiefjiw efjwiefjwfwiejf wiejfwiejf iwejfiwef t";
+	memset(read_buf, 0, 256);
+	strcpy(read_buf, abc.c_str());
+	result = h(read_buf, 6);
+	cout<<hex<<result<<endl;
+
+	abc = "starcraf wjfwiejf iwejfiwje gitee fijef eifjwiefjiw efjwiefjwfwiejf wiejfwiejf iwejfiwef t";
+	memset(read_buf, 0, 256);
+	strcpy(read_buf, abc.c_str());
+	result = h(read_buf, 6);
+	cout<<hex<<result<<endl;
+
+	abc = "starcr3f wjfwiejf iwejfiwje gitee fijef eifjwiefjiw efjwiefjwfwiejf wiejfwiejf iwejfiwef t";
+	memset(read_buf, 0, 256);
+	strcpy(read_buf, abc.c_str());
+	result = h(read_buf, 6);
+	cout<<hex<<result<<endl;
+
+	abc = "st3rcr3f wjfwiejf iwejfiwje gitee fijef eifjwiefjiw efjwiefjwfwiejf wiejfwiejf iwejfiwef t";
 	memset(read_buf, 0, 256);
 	strcpy(read_buf, abc.c_str());
 	result = h(read_buf, 6);

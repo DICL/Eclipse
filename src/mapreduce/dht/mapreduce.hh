@@ -14,6 +14,7 @@
 #include <netdb.h>
 #include <sys/fcntl.h>
 #include <common/fileclient.hh>
+#include <common/msgaggregator.hh>
 #include <common/hash.hh>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -27,12 +28,12 @@ using namespace std;
 // user functions
 void init_mapreduce(int argc, char** argv); // initialize mapreduce configure
 void summ_mapreduce(); // summarize mapreduce configure
-void set_mapper(void (*map_func)());
+void set_mapper(void (*map_func)(string));
 void set_reducer(void (*red_func) (string key));
 bool is_nextvalue(); // return true if there is next value
 bool is_nextrecord(); // return true if there is next value
 string get_nextvalue(); // returns values in reduce function
-bool get_nextinput(); // process to next input for map role
+bool get_nextinput(string& inputpath); // process to next input for map role
 string get_nextrecord(); // return true when successful, false when out of input record
 bool get_nextkey(string* value); // return true when successful, false when out of key value pair
 void add_inputpath(string path);
@@ -41,9 +42,6 @@ char** get_argv(void); // get user argv excepting passed pipe fd
 void write_keyvalue(string key, string value);
 void write_output(string record); // function used in reduce function
 
-//int openoutfile(string path); // open a task/job result file
-//int writeoutfile(int fd, string data); // write to the task/job result file
-//int closeoutfile(int fd); // close task/job result file
 int get_argc(void); // get user argc excepting passed pipe fd
 void report_key(int index);
 int connect_to_server(char *host, unsigned short port);
@@ -52,6 +50,7 @@ int get_jobid();
 mr_role role = JOB;
 char read_buf[BUF_SIZE]; // read buffer for pipe
 char write_buf[BUF_SIZE]; // write buffer for pipe
+msgaggregator keybuffer; // a buffer for the key emission
 
 int argcount = -1;
 char** argvalues = NULL;
@@ -88,7 +87,7 @@ int pipefd[2]; // pipe fd when the role is map task or reduce task
 fileclient thefileclient;
 
 // variables for map task
-void (*mapfunction) (); // map function pointer
+void (*mapfunction) (string inputpath); // map function pointer
 set<string> reported_keys;
 set<string> unreported_keys;
 
@@ -102,6 +101,7 @@ bool is_nextrec = false;
 void init_mapreduce(int argc, char** argv)
 {
 	int readbytes; // number of bytes read from pipe fd
+	keybuffer.configure_initial("key\n");
 
 	// check the arguments do determine the role
 	if(argc > 1) // check argc to avoid index out of bound
@@ -283,6 +283,8 @@ void init_mapreduce(int argc, char** argv)
 		pipefd[1] = atoi(argv[argc-2]); // write fd
 		argcount = argc - 4;
 
+		keybuffer.set_fd(pipefd[1]);
+
 		// request the task configuration
 		memset(write_buf, 0, BUF_SIZE);
 		strcpy(write_buf, "requestconf");
@@ -368,6 +370,7 @@ void summ_mapreduce()
 		cout<<"Mapreduce has not been initialized"<<endl;
 		exit(1);
 	}
+
 	if(role == JOB) // running job
 	{
 		if((nummap >= 0 && isset_mapper) || (numreduce >= 0 && isset_reducer)) // when neither mapper and reducer are activated
@@ -478,33 +481,33 @@ void summ_mapreduce()
 		}
 
 		// run the mapfunction until input all inputs are processed
-
 		thefileclient.connect_to_server(writeid);
 
 		if(isset_mapper)
 		{
-			while(get_nextinput())
+			string inputpath;
+			while(get_nextinput(inputpath))
 			{
 				inside_map = true;
-				(*mapfunction)();
+				(*mapfunction)(inputpath);
 				inside_map = false;
 
 				// report generated keys to slave node
+				/*
 				while(!unreported_keys.empty())
 				{
 					string key = *unreported_keys.begin();
-					string keystr = "key ";
-					keystr.append(key);
 //cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 					unreported_keys.erase(*unreported_keys.begin());
 					reported_keys.insert(key);
 
 					// send 'key' meesage to the slave node
-					memset(write_buf, 0, BUF_SIZE);
-					strcpy(write_buf, keystr.c_str());
-					nbwrite(pipefd[1], write_buf);
+					keybuffer.add_record(key);
 				}
+				*/
 			}
+//cout<<"[mapreduce]Finished all map tasks..."<<endl;
+			keybuffer.flush();
 		}
 
 		thefileclient.wait_write();
@@ -513,9 +516,11 @@ void summ_mapreduce()
 		memset(write_buf, 0, BUF_SIZE);
 		strcpy(write_buf, "complete");
 		nbwrite(pipefd[1], write_buf);
+//cout<<"[mapreduce]Complete message sent..."<<endl;
 
 		// blocking read until the 'terminate' message
 		fcntl(pipefd[0], F_SETFL, fcntl(pipefd[0], F_GETFL) & ~O_NONBLOCK);
+
 		while(1)
 		{
 			readbytes = nbread(pipefd[0], read_buf);
@@ -529,7 +534,7 @@ void summ_mapreduce()
 			{
 				if(strncmp(read_buf, "terminate", 9) == 0)
 				{
-//					cout<<"[mapreduce]Map task is successfully completed"<<endl;
+// cout<<"[mapreduce]Map task is successfully completed"<<endl;
 
 					// terminate successfully
 					while(close(pipefd[0]) < 0)
@@ -553,7 +558,6 @@ cout<<"[mapreduce]close failed"<<endl;
 			{
 				usleep(1000);
 			}
-
 			// sleeps for 0.0001 seconds. change this if necessary
 			// usleep(100000);
 		}
@@ -628,7 +632,7 @@ char** get_argv(void)
 {
 	return argvalues;
 }
-void set_mapper(void (*map_func)())
+void set_mapper(void (*map_func)(string))
 {
 	isset_mapper = true;
 	mapfunction = map_func;
@@ -698,22 +702,17 @@ void write_keyvalue(string key, string value)
 	// check if thie function is called inside the map function
 	if(inside_map)
 	{
-		if(reported_keys.find(key) == reported_keys.end()
-				&& unreported_keys.find(key) == unreported_keys.end())
+		if(reported_keys.find(key) == reported_keys.end())
 		{
-			unreported_keys.insert(key);
-
 			// send 'key' message to the slave node
-			string key = *unreported_keys.begin();
-			string keystr = "key ";
-			keystr.append(key);
 //cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
 
-			unreported_keys.erase(key);
-			//unreported_keys.erase(*unreported_keys.begin());
 			reported_keys.insert(key);
 
 			// send 'key' meesage to the slave node
+			keybuffer.add_record(key);
+
+			/*
 			memset(write_buf, 0, BUF_SIZE);
 			strcpy(write_buf, keystr.c_str());
 			while(nbwrite(pipefd[1], write_buf) < 0)
@@ -728,9 +727,10 @@ void write_keyvalue(string key, string value)
 				{
 					cout<<"[mapreduce]due to the EFAULT"<<endl;
 				}
-				// sleeps for 1 second. change this if necessary
-				sleep(1);
+				// sleeps for 1 millisecond. change this if necessary
+				usleep(1000);
 			}
+			*/
 
 			// sleeps for 0.0001 seconds. change this if necessary
 			// usleep(100000);
@@ -750,15 +750,7 @@ void write_keyvalue(string key, string value)
 		address = nodelist[hashvalue];
 		*/
 
-		string keyfile = jobdirpath;
-		keyfile.append(key);
-
-		// result string
-		string rst = key;
-		rst.append(" ");
-		rst.append(value);
-
-		thefileclient.write_record(keyfile, rst);
+		thefileclient.write_record(key, value, INTERMEDIATE);
 	}
 	else
 	{
@@ -766,7 +758,7 @@ void write_keyvalue(string key, string value)
 	}
 }
 
-bool get_nextinput() // internal function to process next input file
+bool get_nextinput(string& inputpath) // internal function to process next input file
 {
 	if(inputpaths.size() == 0) // no more input
 	{
@@ -792,7 +784,41 @@ bool get_nextinput() // internal function to process next input file
 		*/
 
 		bool readsuccess = false;
-		thefileclient.read_request(inputpaths.back(), RAW);
+		bool cachehit = false;
+		string request;
+
+		// configure request message of write buffer
+		request = argvalues[0]; // app/[app name]
+		request.append(" ");
+		request.append(jobdirpath);
+		request.append(" ");
+		request.append(inputpaths.back()); // [input path]
+
+		// request <- app/[app name] [input path]
+		cachehit = thefileclient.read_request(request, RAW, &keybuffer, &reported_keys);
+
+		while(cachehit)
+		{
+			// forward to next input
+			inputpaths.pop_back();
+
+			// return false if inputpaths is empty
+			if(inputpaths.size() == 0)
+				return false;
+
+			// configure request message of write buffer
+			request = argvalues[0]; // app/[app name]
+			request.append(" ");
+			request.append(jobdirpath);
+			request.append(" ");
+			request.append(inputpaths.back()); // [input path]
+
+			// request <- app/[app name] [input path]
+			cachehit = thefileclient.read_request(request, RAW, &keybuffer, &reported_keys);
+		}
+		
+		thefileclient.configure_buffer_initial(jobdirpath, argvalues[0], inputpaths.back());
+		inputpath = inputpaths.back();
 		inputpaths.pop_back();
 
 		// pre-process first record
@@ -872,7 +898,8 @@ bool get_nextkey(string* key) // internal function for the reduce
 
 		string apath = jobdirpath;
 		apath.append(inputpaths.back());
-		thefileclient.read_request(apath, INTERMEDIATE);
+		thefileclient.read_request(apath, INTERMEDIATE, NULL, NULL);
+		thefileclient.configure_buffer_initial(jobdirpath, argvalues[0], inputpaths.back());
 		inputpaths.pop_back();
 
 		// pre-process first record
@@ -881,9 +908,9 @@ bool get_nextkey(string* key) // internal function for the reduce
 
 		if(readsuccess)
 		{
-			ss<<nextvalue;
-			ss>>nextvalue; // <- key
-			ss>>nextvalue; // <- value
+			ss << nextvalue;
+			ss >> nextvalue; // <- key
+			ss >> nextvalue; // <- value
 			is_nextval = true;
 		}
 		else
@@ -920,10 +947,6 @@ string get_nextvalue() // returns values in reduce function
 		// pre-process first record
 		if(readsuccess)
 		{
-			stringstream ss;
-			ss<<nextvalue;
-			ss>>nextvalue; // <- key
-			ss>>nextvalue; // <- value
 			is_nextval = true;
 		}
 		else
@@ -944,83 +967,18 @@ void write_output(string record) // this user function can be used anywhere but 
 	if(outputpath == "default_output")
 	{
 		stringstream ss;
-		ss<<"job_";
-		ss<<jobid;
-		ss<<".txt";
+		ss << "job_";
+		ss << jobid;
+		ss << ".txt";
 		outputpath = ss.str();
 	}
 
-	/*
-	// determine the address for the data by hash function
-	string address;
-
-	// use read_buf as temporal buffer for hash function
-	memset(read_buf, 0, BUF_SIZE);
-	strcpy(read_buf, outputpath.c_str());
-
-	uint32_t hashvalue = h(read_buf, HASHLENGTH);
-	hashvalue = hashvalue%nodelist.size();
-
-	address = nodelist[hashvalue];
-	*/
-
-	thefileclient.write_record(outputpath, record);
+	thefileclient.write_record(outputpath, record, OUTPUT);
 }
 
 int get_jobid()
 {
 	return jobid;
 }
-
-/*
-int openoutfile(string path) // path: full absolute path
-{
-	return open(path.c_str(), O_APPEND|O_SYNC|O_WRONLY|O_CREAT, 0644);
-}
-*/
-
-/*
-int writeoutfile(int fd, string data)
-{
-	struct flock alock;
-	struct flock ulock;
-
-	// set lock
-	alock.l_type = F_WRLCK;
-	alock.l_start = 0;
-	alock.l_whence = SEEK_SET;
-	alock.l_len = 0;
-
-	//set unlock
-	ulock.l_type = F_UNLCK;
-	ulock.l_start = 0;
-	ulock.l_whence = SEEK_SET;
-	ulock.l_len = 0;
-
-	// acquire file lock
-	fcntl(fd, F_SETLKW, &alock);
-
-	// critical section
-	{
-		data.append("\n");
-		memset(write_buf, 0, BUF_SIZE);
-		strcpy(write_buf, data.c_str());
-		write(fd, write_buf, strlen(data.c_str()));
-	}
-
-	// relase file lock
-	fcntl(fd, F_SETLK, &ulock);
-
-	// return 1 when successful
-	return 1;
-}
-*/
-
-/*
-int closeoutfile(int fd)
-{
-	return close(fd);
-}
-*/
 
 #endif

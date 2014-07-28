@@ -270,7 +270,7 @@ void* signal_listener(void* args)
 	// listen signals from nodes and listen to node connection
 	while(1)
 	{
-		// check client connection
+		// check client (or job) connection
 		tmpfd = accept(serverfd, (struct sockaddr *) &connaddr, (socklen_t *) &addrlen);
 		if(tmpfd >= 0)
 		{
@@ -369,13 +369,17 @@ void* signal_listener(void* args)
 					char* token;
 					master_job* thejob;
 					token = strtok(read_buf, " "); // token <- "key"
-					token = strtok(NULL, " "); // token <- "jobid"
-					token = strtok(NULL, " "); // token <- job id
+					token = strtok(NULL, "\n"); // token <- job id
 					
 					thejob = find_jobfromid(atoi(token));
 
-					token = strtok(NULL, " "); // token <- key value
-					thejob->add_key(token); // token 
+					token = strtok(NULL, "\n"); // token <- key
+
+					while(token != NULL)
+					{
+						thejob->add_key(token); // token 
+						token = strtok(NULL, "\n");
+					}
 				}
 				else if(strncmp(read_buf, "taskcomplete", 12) == 0) // "taskcomplete" signal arrived
 				{
@@ -584,6 +588,8 @@ void* signal_listener(void* args)
 					token = strtok(read_buf, " "); // token -> jobconf
 					token = strtok(NULL, " "); // token -> nummap expected
 
+					jobs[i]->setconf();
+
 					// parse all configure
 					while(token != NULL)
 					{
@@ -624,7 +630,7 @@ void* signal_listener(void* args)
 						}
 						else
 						{
-							cout<<token<<": unknown job configure in the master side"<<endl;
+							cout<<"[master]Unknown job configure message from job: "<<token<<endl;
 						}
 
 						// process next configure
@@ -660,44 +666,47 @@ void* signal_listener(void* args)
 			}
 
 			// check if all task finished
-			if(jobs[i]->get_numtasks() == jobs[i]->get_numcompleted_tasks())
+			if(jobs[i]->is_confset())
 			{
-				if(jobs[i]->get_stage() == MAP_STAGE) // if map stage is finished
+				if(jobs[i]->get_numtasks() == jobs[i]->get_numcompleted_tasks())
 				{
-					// send message to the job to inform that map phase is completed
-					memset(write_buf, 0, BUF_SIZE);
-					strcpy(write_buf, "mapcomplete");
-					nbwrite(jobs[i]->getjobfd(), write_buf);
-
-					cout<<"[master]Number of keys generated from map phase: "<<jobs[i]->get_numkey()<<endl;
-					// fork reduce tasks
-					for(set<string>::iterator it = jobs[i]->get_keybegin();it != jobs[i]->get_keyend(); it++)
+					if(jobs[i]->get_stage() == MAP_STAGE) // if map stage is finished
 					{
-						master_task* newtask = new master_task(jobs[i], REDUCE);
-						jobs[i]->add_task(newtask);
-						newtask->add_inputpath(*it);
+						// send message to the job to inform that map phase is completed
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, "mapcomplete");
+						nbwrite(jobs[i]->getjobfd(), write_buf);
+
+						cout<<"[master]Number of keys generated from map phase: "<<jobs[i]->get_numkey()<<endl;
+						// fork reduce tasks
+						for(set<string>::iterator it = jobs[i]->get_keybegin();it != jobs[i]->get_keyend(); it++)
+						{
+							master_task* newtask = new master_task(jobs[i], REDUCE);
+							jobs[i]->add_task(newtask);
+							newtask->add_inputpath(*it);
+						}
+						jobs[i]->set_stage(REDUCE_STAGE);
 					}
-					jobs[i]->set_stage(REDUCE_STAGE);
-				}
-				else if(jobs[i]->get_stage() == REDUCE_STAGE) // if reduce stage is finished
-				{
-					// send message to the job to complete the job
-					memset(write_buf, 0, BUF_SIZE);
-					strcpy(write_buf, "complete");
-					nbwrite(jobs[i]->getjobfd(), write_buf);
-					cout<<"[master]Job "<<jobs[i]->getjobid()<<" completed successfully"<<endl;
+					else if(jobs[i]->get_stage() == REDUCE_STAGE) // if reduce stage is finished
+					{
+						// send message to the job to complete the job
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, "complete");
+						nbwrite(jobs[i]->getjobfd(), write_buf);
+						cout<<"[master]Job "<<jobs[i]->getjobid()<<" completed successfully"<<endl;
 
-					jobs[i]->set_stage(COMPLETED_STAGE);
-					// clear the job from the vector and finish
-					delete jobs[i];
-					jobs.erase(jobs.begin()+i);
-					i--;
+						jobs[i]->set_stage(COMPLETED_STAGE);
+						// clear the job from the vector and finish
+						delete jobs[i];
+						jobs.erase(jobs.begin()+i);
+						i--;
 
-					continue;
-				}
-				else
-				{
-					// pass the case for INITIAL_STAGE and COMPLETED_STAGE
+						continue;
+					}
+					else
+					{
+						// pass the case for INITIAL_STAGE and COMPLETED_STAGE
+					}
 				}
 			}
 		}

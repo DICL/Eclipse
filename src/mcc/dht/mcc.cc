@@ -16,8 +16,9 @@ int main(int argc, char** argv)
 	else
 	{
 		cout<<"Compiling the code..."<<endl;
-		cout<<"\tRemember, your program cannot use the words 'MAP', 'REDUCE' as arguments of your program."<<endl;
-		cout<<"\t(If using those words as arguments is inevitable, please avoid them to be the last argument.)"<<endl;
+		cout<<"\tRemember followings,"<<endl;
+		cout<<"\t1. Your program cannot use the words 'MAP', 'REDUCE' as arguments of your program."<<endl;
+		cout<<"\t (If using those words as arguments is inevitable, please avoid them to be the last argument.)"<<endl;
 	}
 
 	char** argvalue = new char*[argc+6];

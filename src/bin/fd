@@ -7,14 +7,9 @@ rm -f $MR_PATH/inputlist.conf
 rm -f $MR_PATH/dist.sh
 
 # remove the existing input files
-for ((i=1;i<=39;i++))
+for line in `cat nodelist.conf`
 do
-	if ((i<10))
-	then
-		ssh raven0$i mrrm &
-	else
-		ssh raven$i mrrm &
-	fi
+	ssh $line mrrm &
 done
 
 wait

@@ -1,4 +1,5 @@
 #include <iostream>
+#include "slave.hh"
 #include <pthread.h>
 #include <errno.h>
 #include <fstream>
@@ -13,7 +14,6 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <mapreduce/definitions.hh>
-#include "slave.hh"
 #include "../slave_job.hh"
 #include "../slave_task.hh"
 
@@ -217,7 +217,7 @@ void signal_listener()
 
 						if(thejob == NULL) // if task in this job already running in this slave
 						{
-							thejob = new slave_job(id);
+							thejob = new slave_job(id, masterfd);
 							running_jobs.push_back(thejob);
 						}
 					}
@@ -331,26 +331,6 @@ void signal_listener()
 		// check the running_jobs
 		for(int i=0;(unsigned)i<running_jobs.size();i++)
 		{
-			// send key information of the job to the master node
-			while(running_jobs[i]->is_unreportedkey())
-			{
-				stringstream ss;
-				string key = running_jobs[i]->pop_unreportedkey();
-				string keystr = "key";
-
-				ss<<" jobid ";
-				ss<<running_jobs[i]->get_jobid();
-				keystr.append(ss.str());
-
-				keystr.append(" ");
-				keystr.append(key);
-				memset(write_buf, 0, BUF_SIZE);
-				strcpy(write_buf, keystr.c_str());
-
-				// send message to the master node
-				nbwrite(masterfd, write_buf);
-			}
-
 			// check if all tasks in the job are finished
 			if(running_jobs[i]->get_numrunningtasks() == 0) // all task is finished
 			{
@@ -422,9 +402,14 @@ void signal_listener()
 				else if(strncmp(read_buf, "key", 3) == 0)
 				{
 					char* token;
-					token = strtok(read_buf, " "); // token <- key
-					token = strtok(NULL, " "); // token <- key value
-					running_tasks[i]->get_job()->add_key(token);
+					token = strtok(read_buf, "\n"); // token <- key
+					token = strtok(NULL, "\n"); // token <- key value
+
+					while(token != NULL)
+					{
+						running_tasks[i]->get_job()->add_key(token);
+						token = strtok(NULL, "\n"); // token <- key value
+					}
 				}
 				else
 				{
@@ -441,6 +426,9 @@ void signal_listener()
 			{
 				if(running_tasks[i]->get_status() == COMPLETED) // successful termination
 				{
+					// flush the key buffer in that job
+					running_tasks[i]->get_job()->keybuffer.flush();
+
 					// send 'taskcomplete' message to the master
 					stringstream ss;
 					string msg = "taskcomplete";

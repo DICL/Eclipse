@@ -7,6 +7,7 @@
 #include <mapreduce/definitions.hh>
 #include <orthrus/dataentry.hh>
 #include "filepeer.hh"
+#include "writecount.hh"
 #include "file_connclient.hh"
 
 using namespace std;
@@ -25,12 +26,19 @@ class filebridge
 		entryreader* srcentryreader; // when the srctype is CACHE, srcentryreader should be set and it should read data from cache
 		fstream readfilestream;
 
+		string Icachekey;
+		string jobdirpath; // used for the distribution of Icache contents
+
 		//char read_buf[BUF_SIZE]; // this is not for reading message from other connection, but for buffering reading file
 		//string dataname; // the key of the data which is used as input of hash function
 		//string filename; // the key of the data which is used as input of hash function
 		//datatype dtype; // RAW, INTERMEDIATE, OUTPUT
 
 	public:
+		set<string> Ikeys;
+		msgaggregator keybuffer;
+
+		writecount* thecount;
 		msgaggregator* writebuffer;
 
 		filebridge(int anid);
@@ -45,6 +53,12 @@ class filebridge
 		void set_dstclient(file_connclient* aclient);
 		void set_entryreader(entryreader* areader);
 		void set_entrywriter(entrywriter* awriter);
+
+		void set_jobdirpath(string path);
+		string get_jobdirpath();
+
+		void set_Icachekey(string key);
+		string get_Icachekey();
 		//void set_dataname(string aname);
 		//void set_filename(string aname);
 		//void set_dtype(datatype atype);
@@ -76,16 +90,22 @@ filebridge::filebridge(int anid)
 	id = anid;
 	dstid = -1;
 	//writefilefd = -1;
+	thecount = NULL;
 	dstpeer = NULL;
 	dstclient = NULL;
 	srcentryreader = NULL;
 	dstentrywriter = NULL;
 	writebuffer = NULL;
+
+	//keybuffer.configure_initial("Ikey\n");
 }
 
 filebridge::~filebridge()
 {
 	// clear up all things
+	if(thecount != NULL)
+		delete thecount;
+
 	readfilestream.close();
 	if(writebuffer != NULL)
 		delete writebuffer;
@@ -184,6 +204,7 @@ bool filebridge::read_record(string& record) // reads next record
 	else
 		return true;
 }
+
 /*
 // deprecated
 void filebridge::open_writefile(string fname)
@@ -290,6 +311,26 @@ void filebridge::set_dstclient(file_connclient* aclient)
 {
 	this->dstclient = aclient;
 }
+void filebridge::set_Icachekey(string key)
+{
+	Icachekey = key;
+}
+
+string filebridge::get_Icachekey()
+{
+	return Icachekey;
+}
+
+void filebridge::set_jobdirpath(string path)
+{
+	jobdirpath = path; 
+}
+
+string filebridge::get_jobdirpath()
+{
+	return jobdirpath;
+}
+
 
 //int filebridge::get_writeid()
 //{

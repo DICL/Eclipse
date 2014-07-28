@@ -54,7 +54,7 @@ $(MR_HOME)/make_version/master_nfs_hdfs: $(MR_HOME)/master/master.cc $(MR_HOME)/
 	touch $(MR_HOME)/make_version/master_nfs_hdfs
 
 
-$(MR_HOME)/make_version/slave_dht: $(MR_HOME)/slave/dht/slave.cc $(MR_HOME)/slave/dht/slave.hh $(MR_DEF) $(DHT_OBJ) $(SLAVE_DEP) $(MR_HOME)/make_version/slave
+$(MR_HOME)/make_version/slave_dht: $(MR_HOME)/slave/dht/slave.cc $(MR_HOME)/slave/dht/slave.hh $(MR_DEF) $(DHT_OBJ) $(SLAVE_DEP) $(MR_HOME)/make_version/slave $(MR_HOME)/common/msgaggregator.hh
 	g++ $(CCFLAGS) $(MR_HOME)/slave/dht/slave.cc -o $(MR_HOME)/bin/slave -I $(MR_HOME) $(DHT_FLAG) -lpthread 
 	touch $(MR_HOME)/make_version/slave
 	touch $(MR_HOME)/make_version/slave_dht

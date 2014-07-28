@@ -19,6 +19,7 @@ private:
 	int argcount;
 	int nummap;
 	int numreduce;
+	bool confset;
 	char** argvalues; // contains program name
 	job_stage stage;
 	vector<string> inputpaths;
@@ -64,6 +65,8 @@ public:
 	void add_key(string akey);
 	bool is_key();
 	int get_numkey();
+	void setconf();
+	bool is_confset();
 	string pop_key();
 	set<string>::iterator get_keybegin();
 	set<string>::iterator get_keyend();
@@ -79,6 +82,7 @@ master_job::master_job()
 	this->argcount = -1;
 	this->argvalues = NULL;
 	this->stage = INITIAL_STAGE;
+	this->confset = false;
 }
 
 master_job::master_job(int id, int fd)
@@ -90,6 +94,7 @@ master_job::master_job(int id, int fd)
 	this->argcount = -1;
 	this->argvalues = NULL;
 	this->stage = INITIAL_STAGE;
+	this->confset = false;
 }
 
 master_job::~master_job()
@@ -342,6 +347,16 @@ set<string>::iterator master_job::get_keybegin()
 set<string>::iterator master_job::get_keyend()
 {
 	return keys.end();
+}
+
+void master_job::setconf()
+{
+	confset = true;
+}
+
+bool master_job::is_confset()
+{
+	return confset;
 }
 
 
