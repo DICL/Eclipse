@@ -441,6 +441,7 @@ gettimeofday(&time_end, NULL);
 
 						if(theentry == NULL) // when the intermediate result is not hit
 						{
+							cout<<"\033[0;31mIcache miss\033[0m"<<endl;
 //cout<<"[fileserver:"<<networkidx<<"]Cachekey miss: "<<cachekey<<endl;
 							// send 0 packet to the client to notify that Icache is not hit
 							memset(write_buf, 0, BUF_CUT);
@@ -567,6 +568,7 @@ gettimeofday(&time_end, NULL);
 						}
 						else // intermediate result hit
 						{
+							cout<<"\033[0;32mIcache hit\033[0m"<<endl;
 //cout<<"[fileserver:"<<networkidx<<"]Cachekey hit: "<<cachekey<<endl;
 							// send 1 packet to the client to notify that Icache is hit
 							memset(write_buf, 0, BUF_CUT);
@@ -1403,7 +1405,9 @@ gettimeofday(&time_end, NULL);
 
 					if(theentry == NULL) // when the intermediate result is not hit
 					{
+						cout<<"\033[0;31mIcache miss\033[0m"<<endl;
 //cout<<"[fileserver:"<<networkidx<<"]Cache key not hit after receiving Ilook: "<<cachekey<<endl;
+
 						// send "Imiss"
 						string message = "Imiss ";
 						message.append(bridgeid);
@@ -2148,6 +2152,8 @@ gettimeofday(&time_end, NULL);
 				}
 				else if(strncmp(read_buf, "Ihit", 4) == 0)
 				{
+					cout<<"\033[0;32mIcache hit\033[0m"<<endl;
+
 					char* token;
 					int dstid;
 
@@ -2161,6 +2167,35 @@ gettimeofday(&time_end, NULL);
 					file_connclient* theclient = thebridge->get_dstclient();
 					memset(write_buf, 0, BUF_CUT);
 					write_buf[0] = 1;
+
+					if(theclient->msgbuf.size() > 1)
+					{
+						theclient->msgbuf.back()->set_buffer(write_buf, theclient->get_fd());
+						theclient->msgbuf.push_back(new messagebuffer());
+					}
+					else
+					{
+						if(nbwritebuf(theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0)
+						{
+							theclient->msgbuf.push_back(new messagebuffer());
+						}
+					}
+				}
+				else if(strncmp(read_buf, "Imiss", 5) == 0)
+				{
+					char* token;
+					filebridge* thebridge;
+					int dstid;
+
+					token = strtok(read_buf, " ");
+					token = strtok(NULL, " ");
+					dstid = atoi(token);
+
+					thebridge = find_bridge(dstid);
+					file_connclient* theclient = thebridge->get_dstclient();
+
+					memset(write_buf, 0, BUF_CUT);
+					write_buf[0] = 0;
 
 					if(theclient->msgbuf.size() > 1)
 					{

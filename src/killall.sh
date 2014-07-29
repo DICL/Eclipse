@@ -1,8 +1,8 @@
-if (($#<1))
-then
-	echo "Usage: sh kill.sh [application program name]"
-	exit
-fi
+#if (($#<1))
+#then
+#	echo "Usage: sh kill.sh [application program names] ..."
+#	exit
+#fi
 
 i=0
 for line in `cat nodelist.conf`
@@ -28,12 +28,15 @@ wait
 
 echo -e "\033[0;32mDone\033[0m"
 
-i=0
-for line in `cat nodelist.conf`
+for program in $*
 do
-	echo "Shutting down $1 in node $i"
-	ssh $line killall $1 &
-	(( i++ ))
+	i=0
+	for line in `cat nodelist.conf`
+	do
+		echo "Shutting down $program in node $i"
+		ssh $line killall $program &
+		(( i++ ))
+	done
 done
 
 wait
@@ -44,6 +47,10 @@ echo "Shutting down master node..."
 
 killall master
 killall cacheserver
-killall $1
+
+for program in $*
+do
+	killall $program
+done
 
 echo -e "\033[0;32mDone\033[0m"
