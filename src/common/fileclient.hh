@@ -243,7 +243,6 @@ bool fileclient::read_request(string request, datatype atype, msgaggregator* key
 			{
 				if(read_buf[0] == 1) // intermediate cache hit
 				{
-					cout<<"\tIntermediate data cache hit!!"<<endl;
 					while(1)
 					{
 						readbytes = nbread(serverfd, read_buf);
@@ -266,7 +265,6 @@ bool fileclient::read_request(string request, datatype atype, msgaggregator* key
 						{
 							if(read_buf[0] == 1) // distributing intermediate data finished
 							{
-								cout<<"\tDistributing finish Signal arrived!!"<<endl;
 								return true;
 							}
 							else // key arrived
@@ -291,7 +289,6 @@ bool fileclient::read_request(string request, datatype atype, msgaggregator* key
 				}
 				else if(read_buf[0] == 0) // intermediate cache miss
 				{
-					cout<<"\tIntermediate data cache miss.."<<endl;
 					return false;
 				}
 			}

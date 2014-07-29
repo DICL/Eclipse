@@ -908,9 +908,6 @@ bool get_nextkey(string* key) // internal function for the reduce
 
 		if(readsuccess)
 		{
-			ss << nextvalue;
-			ss >> nextvalue; // <- key
-			ss >> nextvalue; // <- value
 			is_nextval = true;
 		}
 		else

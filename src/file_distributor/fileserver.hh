@@ -765,7 +765,7 @@ gettimeofday(&time_end, NULL);
 				else if(strncmp(read_buf, "Iread", 5) == 0)
 				{
 //cout<<"[fileserver:"<<networkidx<<"]Iread message: "<<read_buf<<endl;
-					token = strtok(read_buf, " \n"); // <- read or write message
+					token = strtok(read_buf, " \n"); // <- "Iread"
 
 //cout<<"\t\tIread request from client"<<endl;
 					// determine the candidate eclipse node which will have the data
@@ -2903,7 +2903,9 @@ gettimeofday(&time_end, NULL);
 					while(is_success) // some remaining record
 					{
 						if(bridges[i]->writebuffer->add_record(record))
+						{
 							break;
+						}
 
 						is_success = bridges[i]->read_record(record);
 					}
