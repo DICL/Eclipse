@@ -37,9 +37,8 @@ do
 		ssh $line killall $program &
 		(( i++ ))
 	done
+	wait
 done
-
-wait
 
 echo -e "\033[0;32mDone\033[0m"
 

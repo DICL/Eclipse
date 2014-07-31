@@ -9,6 +9,7 @@ setup.conf \
 bin/fd \
 bin/mrls \
 bin/mrrm \
+bin/mrcat \
 \
 client/client.cc \
 client/client.hh \
@@ -46,6 +47,7 @@ common/msgaggregator.hh \
 \
 file_distributor/writecount.hh \
 file_distributor/fd_core.cc \
+file_distributor/mrcat_core.cc \
 file_distributor/fileserver.hh \
 file_distributor/filebridge.hh \
 file_distributor/filepeer.hh \

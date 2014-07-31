@@ -9,7 +9,7 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
-	// initialize data structures from setup.conf
+	// initialize data structures from nodelist.conf
 	ifstream nodelistfile;
 	vector<string> nodelist;
 	string token;
@@ -57,4 +57,6 @@ int main(int argc, char** argv)
 			output<<"scp "<<MR_PATH<<filename<<" "<<nodelist[hashvalue]<<":"<<DHT_PATH<<endl;
 		}
 	}
+	input.close();
+	output.close();
 }

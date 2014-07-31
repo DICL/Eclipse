@@ -1,0 +1,5 @@
+#!/bin/sh
+
+mrcat_core $1
+
+sh $MR_PATH/mrcat.sh
