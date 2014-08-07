@@ -23,7 +23,6 @@ DHT_FLAG = -I $(MR_HOME)/DHT/
 DHT_FLAG += -I $(MR_HOME)/common/ 
 DHT_FLAG += $(DHT_OBJ)
 DHT_FLAG += -L $(MR_HOME)/common/
-DHT_FLAG += -lmrr
 CCFLAGS = -Wall -g
 
 all:
@@ -87,8 +86,8 @@ $(MR_HOME)/make_version/mcc_dht: $(MR_HOME)/mcc/dht/mcc.cc $(MR_HOME)/mcc/dht/mc
 	touch $(MR_HOME)/make_version/mcc
 	touch $(MR_HOME)/make_version/mcc_dht
 
-$(MR_HOME)/bin/eclipse: $(MR_DEF) $(MR_HOME)/orthrus/launcher.cc $(MR_HOME)/orthrus/orthrus.hh $(MR_HOME)/common/utils.o $(MR_HOME)/common/hash.o $(ECLIPSE_DEP)
-	g++ -g $(CCFLAGS) -std=c++11 $(MR_HOME)/orthrus/launcher.cc -I $(MR_HOME) -I $(MR_HOME)/common -I $(MR_HOME)/orthrus $(MR_HOME)/common/utils.o $(MR_HOME)/common/hash.o -o $(MR_HOME)/bin/eclipse
+$(MR_HOME)/bin/eclipse: $(MR_DEF) $(MR_HOME)/orthrus/launcher.cc $(MR_HOME)/common/hash.o $(ECLIPSE_DEP)
+	g++ -g $(CCFLAGS) -std=c++11 $(MR_HOME)/orthrus/launcher.cc -I $(MR_HOME) -I $(MR_HOME)/common -I $(MR_HOME)/orthrus $(MR_HOME)/common/hash.o -o $(MR_HOME)/bin/eclipse
 
 $(MR_HOME)/bin/cacheserver: $(MR_DEF) $(CACHESERVER_DEP)
 	g++ $(CCFLAGS) $(MR_HOME)/orthrus/cacheserver.cc -I $(MR_HOME) -I $(MR_HOME)/common -o $(MR_HOME)/bin/cacheserver

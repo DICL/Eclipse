@@ -185,7 +185,7 @@ void signal_listener()
 			else if(strncmp(read_buf, "close", 5) == 0)
 			{
 				cout<<"[slave]Close request from master"<<endl;
-				while(close(masterfd)<0)
+				while(close(masterfd) < 0)
 				{
 					cout<<"[slave]Close failed"<<endl;
 
@@ -193,7 +193,7 @@ void signal_listener()
 					usleep(1000);
 				}
 				cout<<"[slave]Exiting slave..."<<endl;
-				exit(0);
+				return;
 			}
 			else if(strncmp(read_buf, "tasksubmit", 10) == 0)
 			{

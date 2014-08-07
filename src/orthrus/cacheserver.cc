@@ -125,20 +125,53 @@ int main(int argc, char** argv)
 		}
 	}
 
+	fcntl(serverfd, F_SETFL, O_NONBLOCK);
+
 	// initialize the histogram
 	thehistogram = new histogram(nodelist.size());
 
 	// a main iteration loop
+	int readbytes = -1;
+	int fd;
+
 	while(1)
 	{
-		if(1) // if 
-		{
-			for(int i = 0; (unsigned)i < clients.size(); i++)
-			{
-			}
+		fd = accept(serverfd, (struct sockaddr *) &connaddr, (socklen_t *) &addrlen);
 
-sleep(10);
+		if(fd > 0) // a client is connected. which will send stop message
+		{
+			while(readbytes < 0)
+				readbytes = nbread(fd, read_buf);
+
+			if(readbytes == 0)
+			{
+				cout<<"[cacheserver]Connection abnormally closed from client"<<endl;
+			}
+			else // a message
+			{
+				if(strncmp(read_buf, "stop", 4) == 0)
+				{
+					for(int i = 0; (unsigned)i < clients.size(); i++)
+					{
+						close(clients[i]->get_fd());
+					}
+					close(serverfd);
+					return 0;
+				}
+				else // message other than "stop"
+				{
+					cout<<"[cacheserver]Unexpected message from client"<<read_buf<<endl;
+				}
+			}
 		}
+
+		for(int i = 0; (unsigned)i < clients.size(); i++)
+		{
+			// do nothing currently
+		}
+
+		// sleeps for 1 millisecond
+		usleep(1000);
 	}
 
 	return 0;
@@ -151,8 +184,11 @@ int open_server(int port)
 
 	// socket open
 	serverfd = socket(AF_INET, SOCK_STREAM, 0);
-	if(serverfd<0)
-		cout<<"[master]Socket opening failed"<<endl;
+	if(serverfd < 0)
+		cout<<"[cacheserver]Socket opening failed"<<endl;
+	
+	int valid = 1;
+	setsockopt(serverfd, SOL_SOCKET, SO_REUSEADDR, &valid, sizeof(valid));
 
 	// bind
 	memset((void*) &serveraddr, 0, sizeof(struct sockaddr));
@@ -162,14 +198,14 @@ int open_server(int port)
 
 	if(bind(serverfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0)
 	{
-		cout<<"[master]\033[0;31mBinding failed\033[0m"<<endl;
+		cout<<"[cacheserver]\033[0;31mBinding failed\033[0m"<<endl;
 		return -1;
 	}
 
 	// listen
 	if(listen(serverfd, BACKLOG) < 0)
 	{
-		cout<<"[master]Listening failed"<<endl;
+		cout<<"[cacheserver]Listening failed"<<endl;
 		return -1;
 	}
 

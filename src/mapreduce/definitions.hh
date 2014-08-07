@@ -221,6 +221,7 @@ cout<<"\tcontents: "<<buf<<endl;
 		// sleep 1 milli seconds to prevent busy waiting
 		usleep(1000);
 	}
+
 	if(written_bytes != BUF_CUT*((int)strlen(buf)/BUF_CUT+1))
 	{
 		int progress = written_bytes;
@@ -335,7 +336,6 @@ int nbread(int fd, char* buf)
 				}
 			}
 		}
-		
 	}
 	return total_readbytes;
 }

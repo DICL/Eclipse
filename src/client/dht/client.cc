@@ -31,7 +31,7 @@ vector<string> nodelist;
 int main(int argc, char** argv)
 {
 	// usage
-	if(argc<2)
+	if(argc < 2)
 	{
 		cout<<"Insufficient arguments: at least 1 argument needed"<<endl;
 		cout<<"usage: client [request]"<<endl;
@@ -66,7 +66,8 @@ int main(int argc, char** argv)
 		}
 		else if(token == "master_address")
 		{
-			conf>>token;
+			conf >> token;
+			memset(master_address, 0, token.length() + 1);
 			strcpy(master_address, token.c_str());
 			master_is_set = true;
 		}
@@ -213,27 +214,38 @@ void* signal_listener(void* args)
 			if(strncmp(read_buf, "whoareyou", 9) == 0)
 			{
 				// respond to "whoareyou"
-				memset(tmp_buf, 0, BUF_SIZE);
+				memset(tmp_buf, 0, strlen("client") + 1);
 				strcpy(tmp_buf, "client");
 				nbwrite(serverfd, tmp_buf);
 
 				// request to master
 				nbwrite(serverfd, write_buf);
 
-				// send close message to all fileserver if the message is "stop"
-				if(strncmp(write_buf, "stop", 4) == 0)
+				if(strncmp(write_buf, "stop", 4) == 0) // if argument is "stop"
 				{
+					// send close message to cacheserver
+					int fd;
+
+					fd = connect_to_server(master_address, dhtport);
+
+					if(fd <= 0)
+					{
+						cout<<"[client]Error occured during the connection to the cacheserver"<<endl;
+					}
+
+					nbwrite(fd, write_buf);
+					close(fd);
+
+					/*
 					for(int i = 0; (unsigned)i < nodelist.size(); i++)
 					{
-						int fd;
-						
-						memset(read_buf, 0, BUF_SIZE);
-						strcpy(read_buf, nodelist[i].c_str());
-
-						fd = connect_to_server(read_buf, dhtport);
+						memset(tmp_buf, 0, nodelist[i].length() + 1);
+						strcpy(tmp_buf, nodelist[i].c_str());
+						fd = connect_to_server(tmp_buf, dhtport);
 						nbwrite(fd, write_buf);
 						close(fd);
 					}
+					*/
 				}
 			}
 			else if(strncmp(read_buf, "close", 5) == 0)

@@ -14,8 +14,6 @@
 #include <common/hash.hh>
 #include <pthread.h>
 #include <mapreduce/definitions.hh>
-//#include <DHT/DHTserver.hh>
-//#include <DHT/DHTclient.hh>
 #include "../master_job.hh"
 #include "../master_task.hh"
 #include "../connslave.hh"
@@ -93,6 +91,7 @@ int main(int argc, char** argv)
 		conf>>token;
 	}
 	conf.close();
+
 	// verify initialization
 	if(port == -1)
 	{
@@ -433,7 +432,7 @@ void* signal_listener(void* args)
 					int currfd = clients[i]->getfd(); // store the current client's fd
 
 					// stop all slave
-					for(int j=0;(unsigned)j<slaves.size();j++)
+					for(int j = 0; (unsigned)j < slaves.size(); j++)
 					{
 						memset(write_buf, 0, BUF_SIZE);
 						strcpy(write_buf, "close");
@@ -458,12 +457,13 @@ void* signal_listener(void* args)
 						}
 						cout<<"[master]Connection from a slave closed"<<endl;
 					}
+
 					cout<<"[master]All slaves closed"<<endl;
 
 					// stop all client except the one requested stop
-					for(int j=0;(unsigned)j<clients.size();j++)
+					for(int j = 0; (unsigned)j < clients.size(); j++)
 					{
-						if(currfd==clients[j]->getfd()) // except the client who requested the stop
+						if(currfd == clients[j]->getfd()) // except the client who requested the stop
 							continue;
 
 						memset(write_buf, 0, BUF_SIZE);

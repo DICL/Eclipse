@@ -202,6 +202,9 @@ int fileserver::run_server(int port, string master_address)
 		exit(-1);
 	}
 
+	int valid = 1;
+	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &valid, sizeof(valid));
+
 	// bind
 	memset((void*) &serveraddr, 0, sizeof(struct sockaddr));
 	serveraddr.sin_family = AF_INET;
@@ -368,10 +371,12 @@ gettimeofday(&time_end, NULL);
 			setsockopt(tmpfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t)sizeof(buffersize));
 		}
 
+/*
 		// remote client
 		tmpfd = accept(serverfd, NULL, NULL);
 		if(tmpfd > 0) // new file client is connected
 		{
+cout<<"[fileserver]remote client connected"<<endl;
 			// create new clients
 			clients.push_back(new file_connclient(tmpfd));
 
@@ -380,6 +385,7 @@ gettimeofday(&time_end, NULL);
 			setsockopt(tmpfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t)sizeof(buffersize));
 			setsockopt(tmpfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t)sizeof(buffersize));
 		}
+*/
 
 //gettimeofday(&time_end2, NULL);
 //timeslot1 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
@@ -1333,6 +1339,8 @@ gettimeofday(&time_end, NULL);
 					// create writecount with writeid
 					clients[i]->thecount = new writecount(writeid);
 				}
+
+				/*
 				else if(strncmp(read_buf, "stop", 4) == 0)
 				{
 					// clear the process and exit
@@ -1346,6 +1354,8 @@ gettimeofday(&time_end, NULL);
 					close(serverfd);
 					exit(0);
 				}
+				*/
+
 				else
 				{
 					cout<<"[fileserver:"<<networkidx<<"]Debugging: Unknown message";
@@ -3327,7 +3337,22 @@ gettimeofday(&time_end, NULL);
 			}
 			else if(readbytes == 0)
 			{
-				cout<<"[fileserver:"<<networkidx<<"]Connection from cache server disconnected."<<endl;
+				for(int i = 0; (unsigned)i < clients.size(); i++)
+				{
+					cout<<"[fileserver:"<<networkidx<<"]Closing connection to a client..."<<endl;
+					close(clients[i]->get_fd());
+				}
+
+				for(int i = 0; (unsigned)i < peers.size(); i++)
+					close(peers[i]->get_fd());
+
+				close(ipcfd);
+				close(serverfd);
+				close(cacheserverfd);
+
+				cout<<"[fileserver:"<<networkidx<<"]Connection from cache server disconnected. exiting..."<<endl;
+
+				return 0;
 			}
 		}
 //gettimeofday(&time_end2, NULL);
