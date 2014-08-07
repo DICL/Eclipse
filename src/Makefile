@@ -1,5 +1,3 @@
-#DHT_OBJ = $(MR_HOME)/DHT/DHTserver.o
-#DHT_OBJ += $(MR_HOME)/DHT/DHTclient.o
 MR_DEF = $(MR_HOME)/mapreduce/definitions.hh 
 MASTER_DEP = $(MR_HOME)/master/master_job.hh 
 MASTER_DEP += $(MR_HOME)/master/master_task.hh 
@@ -27,8 +25,6 @@ DHT_FLAG += $(DHT_OBJ)
 DHT_FLAG += -L $(MR_HOME)/common/
 DHT_FLAG += -lmrr
 CCFLAGS = -Wall -g
-
-#add the msgaggregator.hh to anywhere which needs it
 
 all:
 	echo Type ether: [make nfs], [make hdfs], [make dht] [make clean]
@@ -96,9 +92,6 @@ $(MR_HOME)/bin/eclipse: $(MR_DEF) $(MR_HOME)/orthrus/launcher.cc $(MR_HOME)/orth
 
 $(MR_HOME)/bin/cacheserver: $(MR_DEF) $(CACHESERVER_DEP)
 	g++ $(CCFLAGS) $(MR_HOME)/orthrus/cacheserver.cc -I $(MR_HOME) -I $(MR_HOME)/common -o $(MR_HOME)/bin/cacheserver
-
-#$(MR_HOME)/bin/fileserver: $(MR_HOME)/file_distributor/fileserver.cc $(MR_HOME)/file_distributor/fileserver.hh $(MR_DEF)
-#	g++ $(CCFLAGS) $(MR_HOME)/file_distributor/fileserver.cc -o $(MR_HOME)/bin/fileserver -I $(MR_HOME) 
 
 
 $(MR_HOME)/DHT/DHTserver.o: $(MR_HOME)/DHT/DHTserver.cc $(MR_HOME)/DHT/DHTserver.hh

@@ -1,6 +1,5 @@
 #include <iostream>
 #include <vector>
-#include <utils.hh>
 #include <file_distributor/fileserver.hh>
 #include <fstream>
 #include <sstream>
@@ -28,9 +27,6 @@ fileserver afileserver;
 
 int main(int argc, const char *argv[])
 {
-	//Orthrus orthrus;  
-	//orthrus .bind() .run();
-  
 	// initialize data structures from setup.conf
 	ifstream conf;
 	string token;
@@ -90,6 +86,5 @@ int main(int argc, const char *argv[])
 	// run the file server
 	afileserver.run_server(dhtport, master_address);
 
-	//orthrus.close ();
 	return 0;
 }

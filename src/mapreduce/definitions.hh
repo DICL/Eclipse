@@ -63,15 +63,6 @@ enum job_stage
 	COMPLETED_STAGE // not used but reserved for future use
 };
 
-/*
-enum filetype // file(input and output) type for the task side in the dht mode
-{
-	LOCAL,
-	REMOTE,
-	NOTOPENED
-};
-*/
-
 enum bridgetype // bridge source and destination type
 {
 	PEER,
@@ -165,6 +156,7 @@ int nbwrite(int fd, char* buf, char* contents) // when the content should be spe
 			usleep(1000);
 		}
 	}
+
 	return written_bytes;
 }
 

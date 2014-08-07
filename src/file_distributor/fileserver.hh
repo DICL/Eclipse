@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/unistd.h>
+#include <sys/time.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include "file_connclient.hh"
