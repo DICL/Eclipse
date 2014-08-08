@@ -41,6 +41,7 @@ void set_outputpath(string path);
 char** get_argv(void); // get user argv excepting passed pipe fd
 void write_keyvalue(string key, string value);
 void write_output(string record); // function used in reduce function
+void enable_Icache(); // function that enables intermediate cache
 
 int get_argc(void); // get user argc excepting passed pipe fd
 void report_key(int index);
@@ -65,11 +66,14 @@ int nummap = 0;
 int numreduce = 0;
 int completed_map = 0;
 int completed_reduce = 0;
+
 bool master_is_set = false; // check if the configure file includes master address
 bool isset_mapper = false;
 bool isset_reducer = false;
 bool inside_map = false; // true if the code is inside map function 
 bool inside_reduce = false; // true if the code is inside reduce function 
+bool isIcache = false; // whether Icache option enabled
+
 char master_address[BUF_SIZE];
 vector<string> inputpaths; // list of input paths.
 //vector<string> nodelist; // list of slave node addresses
@@ -384,6 +388,7 @@ void summ_mapreduce()
 			// TODO: deal with the case when number of characters exceeds BUF_SIZE
 			ss<<" inputpath ";
 			ss<<inputpaths.size();
+
 			for(int i=0;(unsigned)i<inputpaths.size();i++)
 			{
 				ss<<" ";
@@ -414,7 +419,7 @@ void summ_mapreduce()
 			ss<<" ";
 			apath.append("app/");
 			apath.append(token); // token <- the program name
-			ss<<apath;
+			ss << apath;
 
 			delete[] tmp;
 
@@ -423,6 +428,11 @@ void summ_mapreduce()
 				ss<<" ";
 				ss<<argvalues[i];
 			}
+
+			ss << " nummap ";
+			ss << nummap;
+			ss << " numreduce ";
+			ss << numreduce;
 
 			write_string.append(ss.str());
 			memset(write_buf, 0, BUF_SIZE);
@@ -817,7 +827,7 @@ bool get_nextinput(string& inputpath) // internal function to process next input
 			cachehit = thefileclient.read_request(request, RAW, &keybuffer, &reported_keys);
 		}
 		
-		thefileclient.configure_buffer_initial(jobdirpath, argvalues[0], inputpaths.back());
+		thefileclient.configure_buffer_initial(jobdirpath, argvalues[0], inputpaths.back(), isIcache);
 		inputpath = inputpaths.back();
 		inputpaths.pop_back();
 
@@ -899,7 +909,7 @@ bool get_nextkey(string* key) // internal function for the reduce
 		string apath = jobdirpath;
 		apath.append(inputpaths.back());
 		thefileclient.read_request(apath, INTERMEDIATE, NULL, NULL);
-		thefileclient.configure_buffer_initial(jobdirpath, argvalues[0], inputpaths.back());
+		thefileclient.configure_buffer_initial(jobdirpath, argvalues[0], inputpaths.back(), isIcache);
 		inputpaths.pop_back();
 
 		// pre-process first record
@@ -976,6 +986,11 @@ void write_output(string record) // this user function can be used anywhere but 
 int get_jobid()
 {
 	return jobid;
+}
+
+void enable_Icache() // function that enables intermediate cache
+{
+	isIcache = true;
 }
 
 #endif

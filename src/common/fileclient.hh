@@ -38,7 +38,7 @@ public:
 	bool read_request(string req, datatype atype, msgaggregator* keybuf, set<string>* keys); // connect to read file
 	bool read_record(string& record); // read sentences from connected file(after read_request())
 	int connect_to_server(int writeid); // returns fd of file server
-	void configure_buffer_initial(string jobdirpath, string appname, string inputfilepath); // set the initial string of the Iwritebuffer
+	void configure_buffer_initial(string jobdirpath, string appname, string inputfilepath, bool isIcache); // set the initial string of the Iwritebuffer
 };
 
 fileclient::fileclient()
@@ -126,17 +126,30 @@ int fileclient::connect_to_server(int writeid)
 	return fd;
 }
 
-void fileclient::configure_buffer_initial(string jobdirpath, string appname, string inputfilepath)
+void fileclient::configure_buffer_initial(string jobdirpath, string appname, string inputfilepath, bool isIcache)
 {
 	// buffer for Iwrite
-	string initial = "Iwrite ";
-	initial.append(jobdirpath);
-	initial.append(" ");
-	initial.append(appname);
-	initial.append(" ");
-	initial.append(inputfilepath);
-	initial.append("\n");
+	string initial;
+	if(isIcache)
+	{
+		initial = "ICwrite ";
+		initial.append(jobdirpath);
+		initial.append(" ");
+		initial.append(appname);
+		initial.append(" ");
+		initial.append(inputfilepath);
+		initial.append("\n");
+	}
+	else
+	{
+		initial = "Iwrite ";
+		initial.append(jobdirpath);
+		initial.append(" ");
+		initial.append(inputfilepath);
+		initial.append("\n");
+	}
 
+	Iwritebuffer.flush();
 	Iwritebuffer.configure_initial(initial);
 }
 

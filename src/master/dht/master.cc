@@ -586,7 +586,7 @@ void* signal_listener(void* args)
 				{
 					char* token;
 					token = strtok(read_buf, " "); // token -> jobconf
-					token = strtok(NULL, " "); // token -> nummap expected
+					token = strtok(NULL, " "); // token -> number of inputpaths
 
 					jobs[i]->setconf();
 
@@ -627,6 +627,22 @@ void* signal_listener(void* args)
 								tmp = strtok(NULL, " ");
 								jobs[i]->add_inputpath(tmp);
 							}
+						}
+						else if(strncmp(token, "nummap", 6) == 0)
+						{
+							int nummap;
+							token = strtok(NULL, " "); // token <- number of maps
+							nummap = atoi(token);
+
+							jobs[i]->setnumap(nummap);
+						}
+						else if(strncmp(token, "numreduce" 9) == 0)
+						{
+							int numreduce;
+							token = strtok(NULL, " "); // token <- number of reduces
+							numreduce = atoi(token);
+
+							jobs[i]->setnumreduce(numreduce);
 						}
 						else
 						{

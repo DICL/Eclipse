@@ -862,13 +862,13 @@ cout<<"[fileserver]remote client connected"<<endl;
 						//nbwrite(find_peer(address)->get_fd(), write_buf);
 					}
 				}
-				else if(strncmp(read_buf, "Iwrite", 6) == 0) // "Iwrite" message from client
+				else if(strncmp(read_buf, "ICwrite", 6) == 0) // "ICwrite" message from client
 				{
 					string cachekey;
 					string appname;
 					string inputpath;
 					string jobdirpath;
-					token = strtok(read_buf, " "); // <- "Iwrite"
+					token = strtok(read_buf, " "); // <- "ICwrite"
 					token = strtok(NULL, " "); // <- [jobdirpath]
 					jobdirpath = token;
 					token = strtok(NULL, " "); // <- [app name]
@@ -879,7 +879,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 					inputpath = token;
 					cachekey.append(inputpath);
 
-//cout<<"Iwrite sent"<<endl;
+//cout<<"ICwrite sent"<<endl;
 //cout<<"cachekey: "<<cachekey<<endl;
 //cout<<"inputpath: "<<inputpath<<endl;
 //cout<<"jobdirpath: "<<jobdirpath<<endl;
@@ -994,7 +994,6 @@ cout<<"[fileserver]remote client connected"<<endl;
 						filename.append(token); // filename
 						token = strtok(NULL, "\n"); // tokenize record of file
 						record = token;
-						token = strtok(NULL, " "); // tokenize next file name
 
 						// determine the location of data by filename
 						memset(write_buf, 0, BUF_SIZE);
@@ -1024,6 +1023,134 @@ cout<<"[fileserver]remote client connected"<<endl;
 
 							thepeer->writebuffer.add_record(message);
 						}
+
+						token = strtok(NULL, " "); // tokenize next file name
+					}
+
+					/*
+					if(localhostname == address)
+					{
+						// open write file to write data to disk
+						write_file(filename, record);
+						//filebridge* thebridge = new filebridge(fbidclock++);
+						//thebridge->open_writefile(filename);
+						//thebridge->write_record(record, write_buf);
+
+						//delete thebridge;
+					}
+					else // distant
+					{
+						// bridges.push_back(thebridge);
+
+						// set up the bridge
+						// thebridge->set_srctype(PEER); // source of Ewrite
+						// thebridge->set_dsttype(CLIENT); // destination of Ewrite
+						// thebridge->set_dstclient(NULL);
+						// thebridge->set_dtype(INTERMEDIATE);
+						// thebridge->set_writeid(writeid);
+
+						// send message along with the record to the target peer
+						string message;
+						stringstream ss;
+						ss << "write ";
+						ss << filename;
+						ss << " ";
+						ss << record;
+						message = ss.str();
+
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, message.c_str());
+
+						//cout<<endl;
+						//cout<<"write from: "<<localhostname<<endl;
+						//cout<<"write to: "<<address<<endl;
+						//cout<<"message: "<<write_buf<<endl;
+						//cout<<endl;
+
+						filepeer* thepeer = peers[hashvalue];
+
+						if(clients[i]->thecount == NULL)
+							cout<<"[fileserver]The write id is not set before the write request"<<endl;
+
+						clients[i]->thecount->add_peer(hashvalue);
+
+						if(thepeer->msgbuf.size() > 1)
+						{
+							thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
+							thepeer->msgbuf.push_back(new messagebuffer());
+						}
+						else
+						{
+							//cout<<endl;
+							//cout<<"from: "<<localhostname<<endl;
+							//cout<<"to: "<<thepeer->get_address()<<endl;
+							if(nbwritebuf(thepeer->get_fd(),
+										write_buf, thepeer->msgbuf.back()) <= 0)
+							{
+								thepeer->msgbuf.push_back(new messagebuffer());
+							}
+						}
+					}
+					*/
+				}
+				else if(strncmp(read_buf, "Iwrite", 6) == 0) // "Iwrite" message from client
+				{
+					string inputpath;
+					string jobdirpath;
+					token = strtok(read_buf, " "); // <- "Iwrite"
+					token = strtok(NULL, " "); // <- [jobdirpath]
+					jobdirpath = token;
+					token = strtok(NULL, "\n"); // <- [input file path]
+					inputpath = token;
+
+//cout<<"Iwrite sent"<<endl;
+//cout<<"cachekey: "<<cachekey<<endl;
+//cout<<"inputpath: "<<inputpath<<endl;
+//cout<<"jobdirpath: "<<jobdirpath<<endl;
+
+					// determine the candidate eclipse node which will have the data
+					string record;
+					string address;
+
+					token = strtok(NULL, " "); // tokenize first filename
+
+					while(token != NULL)
+					{
+						filename = jobdirpath;
+						filename.append(token); // filename
+						token = strtok(NULL, "\n"); // tokenize record of file
+						record = token;
+
+						// determine the location of data by filename
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, filename.c_str());
+
+						uint32_t hashvalue = h(write_buf, HASHLENGTH);
+						hashvalue = hashvalue%nodelist.size();
+
+						address = nodelist[hashvalue];
+
+						if(localhostname == address)
+						{
+							write_file(filename, record);
+						}
+						else
+						{
+							string message = filename;
+							message.append(" ");
+							message.append(record);
+
+							filepeer* thepeer = peers[hashvalue];
+
+							if(clients[i]->thecount == NULL)
+								cout<<"[fileserver:"<<networkidx<<"]The write id is not set before the write request"<<endl;
+
+							clients[i]->thecount->add_peer(hashvalue);
+
+							thepeer->writebuffer.add_record(message);
+						}
+
+						token = strtok(NULL, " "); // tokenize next file name
 					}
 
 					/*
