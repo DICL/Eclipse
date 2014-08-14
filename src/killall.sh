@@ -1,9 +1,3 @@
-#if (($#<1))
-#then
-#	echo "Usage: sh kill.sh [application program names] ..."
-#	exit
-#fi
-
 i=0
 for line in `cat nodelist.conf`
 do

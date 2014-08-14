@@ -42,6 +42,8 @@ char** get_argv(void); // get user argv excepting passed pipe fd
 void write_keyvalue(string key, string value);
 void write_output(string record); // function used in reduce function
 void enable_Icache(); // function that enables intermediate cache
+void set_nummapper(int num); // sets number of mappers
+void set_numreducer(int num); // sets number of reducers
 
 int get_argc(void); // get user argc excepting passed pipe fd
 void report_key(int index);
@@ -303,8 +305,69 @@ void init_mapreduce(int argc, char** argv)
 			cout<<"[mapreduce]The connection from slave node is abnormally closed"<<endl;
 			exit(1);
 		}
+
+		char* token;
+		token = strtok(read_buf, " "); // token <- "taskconf"
+
+		token = strtok(NULL, " "); // token <- jobid
+
+		jobid = atoi(token);
+
+		stringstream jobidss;
+
+		jobidss << ".job_";
+		jobidss << jobid;
+		jobidss << "_";
+		jobdirpath = jobidss.str();
+
+		token = strtok(NULL, " "); // token <- taskid
+
+		taskid = atoi(token);
+
+		// read messages from slave until getting Einput
+		while(1)
+		{
+			readbytes = nbread(pipefd[0], read_buf);
+			if(readbytes == 0)
+			{
+				cout<<"[mapreduce]Connection from slave is abnormally closed"<<endl;
+			}
+			else if(readbytes < 0)
+			{
+				cout<<"[mapreduce]A negative return from nbread with blocking read"<<endl;
+				continue;
+			}
+			else // a message
+			{
+				if(strncmp(read_buf, "inputpath", 9) == 0)
+				{
+					token = strtok(read_buf, " "); // token <- "inputpath"
+					
+					token = strtok(NULL, " "); // first path
+
+					while(token != NULL)
+					{
+						// add the input path to the task
+						inputpaths.push_back(token);
+
+						token = strtok(NULL, " ");
+					}
+				}
+				else if(strncmp(read_buf, "Einput", 6) == 0)
+				{
+					// break the while loop
+					break;
+				}
+				else
+				{
+					cout<<"[mapreduce]Unexpected message order from slave"<<endl;
+				}
+			}
+		}
+
 		fcntl(pipefd[0], F_SETFL, O_NONBLOCK);
 
+		/*
 		// parse the task configure
 		char* token;
 		token = strtok(read_buf, " "); // token <- taskconf
@@ -353,6 +416,7 @@ void init_mapreduce(int argc, char** argv)
 				token = strtok(NULL, " ");
 			}
 		}
+		*/
 	}
 
 	// parse user arguments
@@ -981,6 +1045,16 @@ void write_output(string record) // this user function can be used anywhere but 
 	}
 
 	thefileclient.write_record(outputpath, record, OUTPUT);
+}
+
+void set_nummapper(int num) // sets number of mappers
+{
+	nummap = num;
+}
+
+void set_numreducer(int num) // sets number of reducers
+{
+	numreduce = num;
 }
 
 int get_jobid()

@@ -3586,8 +3586,8 @@ filebridge* fileserver::find_Icachebridge(string inputname, int& bridgeindex)
 	{
 		if(bridges[i]->get_Icachekey() == inputname)
 		{
-			return bridges[i];
 			bridgeindex = i;
+			return bridges[i];
 		}
 	}
 	bridgeindex = -1;

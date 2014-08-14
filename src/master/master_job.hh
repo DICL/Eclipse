@@ -23,13 +23,13 @@ private:
 	char** argvalues; // contains program name
 	job_stage stage;
 	vector<string> inputpaths;
+	set<string> keys; // set of keys for the reducers
 	vector<master_task*> tasks;
 	vector<master_task*> waiting_tasks;
 	vector<master_task*> running_tasks;
 	vector<master_task*> completed_tasks;
-	set<string> keys; // set of keys for the reducers
-	
 public:
+
 	master_job();
 	master_job(int id, int fd);
 	~master_job();
@@ -52,6 +52,7 @@ public:
 	int get_numinputpaths();
 	void add_task(master_task* atask);
 	master_task* get_task(int index);
+	master_task* get_waitingtask(int index);
 	int get_numtasks();
 	int get_numwaiting_tasks();
 	int get_numrunning_tasks();
@@ -195,7 +196,23 @@ master_task* master_job::get_task(int index)
 		return NULL;
 	}
 	else
+	{
 		return this->tasks[index];
+	}
+}
+
+master_task* master_job::get_waitingtask(int index)
+{
+	if((unsigned)index >= waiting_tasks.size())
+	{
+		cout<<"Debugging: index out of bound in the matser_job::get_waitingtask() function"<<endl;
+		cout<<"index: "<<index<<", waiting_tasks.size(): "<<waiting_tasks.size()<<endl;
+		return NULL;
+	}
+	else
+	{
+		return waiting_tasks[index];
+	}
 }
 
 int master_job::get_numtasks()

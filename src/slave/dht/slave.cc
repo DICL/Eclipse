@@ -200,10 +200,121 @@ void signal_listener()
 				// launch the forwarded task
 				slave_job* thejob = NULL;
 				slave_task* thetask = NULL;
-				char* token;
-				token = strtok(read_buf, " "); // token -> tasksubmit
-				token = strtok(NULL, " "); // token -> jobid expected
 
+				int jobid;
+				int taskid;
+
+
+				char* token;
+				token = strtok(read_buf, " "); // token <- "tasksubmit"
+				token = strtok(NULL, " "); // token <- jobid
+
+				jobid = atoi(token);
+
+				thejob = find_jobfromid(jobid);
+
+				if(thejob == NULL) // if any task in this job are not running in this slave
+				{
+					thejob = new slave_job(jobid, masterfd);
+					running_jobs.push_back(thejob);
+				}
+
+				token = strtok(NULL, " "); // token <- taskid
+
+				taskid = atoi(token);
+
+				thetask = new slave_task(taskid); // the status is running by default
+
+				// add to the running_tasks vector
+				running_tasks.push_back(thetask);
+
+				// add this task in 'thejob'
+				thejob->add_task(thetask);
+
+				token  = strtok(NULL, " "); // token <- role
+
+				if(strncmp(token, "MAP", 3) == 0)
+				{
+					thetask->set_taskrole(MAP);
+				}
+				else if(strncmp(token, "REDUCE", 6) == 0)
+				{
+					thetask->set_taskrole(REDUCE);
+				}
+				else
+				{
+					cout<<"Debugging: the task role is undefined well."<<endl;
+					thetask->set_taskrole(JOB);
+				}
+
+				token = strtok(NULL, " ");
+
+				int argc = atoi(token);
+
+				thetask->set_argcount(argc);
+
+				char** values = new char*[argc];
+
+				for(int i = 0; i < argc; i++)
+				{
+					token = strtok(NULL, " ");;
+					values[i] = new char[strlen(token) + 1];
+					strcpy(values[i], token);
+				}
+				thetask->set_argvalues(values);
+
+				// read messages from master until getting Einput
+				while(1)
+				{
+					readbytes = nbread(masterfd, read_buf);
+					if(readbytes == 0)
+					{
+						cout<<"[slave]Connection from amster is abnormally closed"<<endl;
+					}
+					else if(readbytes < 0)
+					{
+						continue;
+					}
+					else // a message
+					{
+
+						if(strncmp(read_buf, "inputpath", 9) == 0)
+						{
+							token = strtok(read_buf, " "); // token <- "inputpath"
+
+							token = strtok(NULL, " ");
+
+							while(token != NULL)
+							{
+								// add the input path to the task
+								thetask->add_inputpath(token);
+
+								token = strtok(NULL, " ");
+							}
+						}
+						else if(strncmp(read_buf, "Einput", 6) == 0)
+						{
+							// break the while loop
+							break;
+						}
+						else
+						{
+							cout<<"[slave]Unexpected message order from master"<<endl;
+						}
+					}
+				}
+
+				// launch the forwarded task
+				launch_task(thetask, writeidclock++);
+			}
+			else
+			{
+				cout<<"[slave]Undefined signal from master: "<<read_buf<<endl;
+				cout<<"[slave]Undefined signal size: "<<readbytes<<endl;
+			}
+
+
+				/*
 				// parse task configure
 				while(token != NULL)
 				{
@@ -268,8 +379,12 @@ void signal_listener()
 					else if(strncmp(token, "inputpath", 9) == 0)
 					{
 						string tmp; // used for temporarily storing the paths
+						int readbytes;
 						int numpaths;
-						token = strtok(NULL, " "); // token -> number of input paths
+
+						token = strtok(NULL, " "); // first token
+
+						// tokenize inputpaths
 						numpaths = atoi(token);
 						for(int i=0; i<numpaths; i++)
 						{
@@ -317,7 +432,6 @@ void signal_listener()
 					// process next configure
 					token = strtok(NULL, " ");
 				}
-
 				// launch the forwarded task
 				launch_task(thetask, writeidclock++);
 			}
@@ -326,6 +440,8 @@ void signal_listener()
 				cout<<"[slave]Undefined signal from master: "<<read_buf<<endl;
 				cout<<"[slave]Undefined signal size: "<<readbytes<<endl;
 			}
+				*/
+
 		}
 
 		// check the running_jobs
@@ -374,17 +490,64 @@ void signal_listener()
 				else if(strncmp(read_buf, "requestconf", 11) == 0)
 				{
 					// parse all task configure
-					stringstream message;
-					message<<"taskconf ";
+					string message;
+					stringstream ss;
+					ss<<"taskconf ";
 
 					// job id
-					message<<"jobid ";
-					message<<running_tasks[i]->get_job()->get_jobid();
+					ss<<running_tasks[i]->get_job()->get_jobid();
 
 					// task id
-					message<<" taskid ";
-					message<<running_tasks[i]->get_taskid();
+					ss<<" ";
+					ss<<running_tasks[i]->get_taskid();
+					message = ss.str();
 
+					// send message to the task
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, message.c_str());
+					nbwrite(running_tasks[i]->get_writefd(), write_buf);
+
+					// send input paths
+					message = "inputpath";
+
+					int iter = 0;
+					while(iter < running_tasks[i]->get_numinputpaths())
+					{
+						if(message.length() + running_tasks[i]->get_inputpath(iter).length() + 1 <= BUF_SIZE)
+						{
+							message.append(" ");
+							message.append(running_tasks[i]->get_inputpath(iter));
+						}
+						else
+						{
+							if(running_tasks[i]->get_inputpath(iter).length() + 10 > BUF_SIZE)
+								cout<<"[master]The length of inputpath excceded the limit"<<endl;
+
+							// send message to slave
+							memset(write_buf, 0, BUF_SIZE);
+							strcpy(write_buf, message.c_str());
+							nbwrite(running_tasks[i]->get_writefd(), write_buf);
+
+							message = "inputpath ";
+							message.append(running_tasks[i]->get_inputpath(iter));
+						}
+						iter++;
+					}
+
+					// send remaining paths
+					if(message.length() > strlen("inputpath "))
+					{
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, message.c_str());
+						nbwrite(running_tasks[i]->get_writefd(), write_buf);
+					}
+
+					// notify end of inputpaths
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, "Einput");
+					nbwrite(running_tasks[i]->get_writefd(), write_buf);
+
+					/*
 					// input paths
 					message<<" inputpaths ";
 					message<<running_tasks[i]->get_numinputpaths(); // number of inputpaths
@@ -398,6 +561,7 @@ void signal_listener()
 					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, message.str().c_str());
 					nbwrite(running_tasks[i]->get_writefd(), write_buf);
+					*/
 				}
 				else if(strncmp(read_buf, "key", 3) == 0)
 				{

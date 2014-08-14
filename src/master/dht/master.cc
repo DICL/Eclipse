@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <sys/unistd.h>
+#include <common/msgaggregator.hh>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -634,9 +635,9 @@ void* signal_listener(void* args)
 							token = strtok(NULL, " "); // token <- number of maps
 							nummap = atoi(token);
 
-							jobs[i]->setnumap(nummap);
+							jobs[i]->setnummap(nummap);
 						}
-						else if(strncmp(token, "numreduce" 9) == 0)
+						else if(strncmp(token, "numreduce", 9) == 0)
 						{
 							int numreduce;
 							token = strtok(NULL, " "); // token <- number of reduces
@@ -694,6 +695,33 @@ void* signal_listener(void* args)
 						nbwrite(jobs[i]->getjobfd(), write_buf);
 
 						cout<<"[master]Number of keys generated from map phase: "<<jobs[i]->get_numkey()<<endl;
+
+						int numreducetasks = 0;
+						if(jobs[i]->getnumreduce() > jobs[i]->get_numkey() || jobs[i]->getnumreduce() == 0)
+							numreducetasks = jobs[i]->get_numkey();
+						else
+							numreducetasks = jobs[i]->getnumreduce();
+
+
+						for(int j = 0; j < numreducetasks; j++)
+						{
+							master_task* newtask = new master_task(jobs[i], REDUCE);
+							jobs[i]->add_task(newtask);
+						}
+
+						int iteration = 0;
+						for(set<string>::iterator it = jobs[i]->get_keybegin(); it != jobs[i]->get_keyend(); it++)
+						{
+							jobs[i]->get_waitingtask(iteration)->add_inputpath(*it);
+							iteration++;
+
+							if(iteration >= numreducetasks)
+								iteration = 0;
+						}
+
+						jobs[i]->set_stage(REDUCE_STAGE);
+
+						/*
 						// fork reduce tasks
 						for(set<string>::iterator it = jobs[i]->get_keybegin();it != jobs[i]->get_keyend(); it++)
 						{
@@ -702,6 +730,7 @@ void* signal_listener(void* args)
 							newtask->add_inputpath(*it);
 						}
 						jobs[i]->set_stage(REDUCE_STAGE);
+						*/
 					}
 					else if(jobs[i]->get_stage() == REDUCE_STAGE) // if reduce stage is finished
 					{
@@ -742,46 +771,75 @@ void* signal_listener(void* args)
 
 					// write to the slave the task information
 					stringstream ss;
-					ss<<"tasksubmit ";
-					ss<<"jobid ";
-					ss<<jobs[i]->getjobid();
-					ss<<" ";
-					ss<<"taskid ";
-					ss<<thetask->gettaskid();
-					ss<<" role ";
+					ss << "tasksubmit ";
+					ss << jobs[i]->getjobid();
+					ss << " ";
+					ss << thetask->gettaskid();
+					ss << " ";
 					if(thetask->get_taskrole() == MAP)
-						ss<<"MAP";
+						ss << "MAP";
 					else if(thetask->get_taskrole() == REDUCE)
-						ss<<"REDUCE";
+						ss << "REDUCE";
 else
 cout<<"[master]Debugging: the role of the task not defined in the initialization step";
 
-					ss<<" inputpath ";
-					ss<<thetask->get_numinputpaths(); // number of input paths
 
-					// parse all the input paths
-					for(int k=0;k<thetask->get_numinputpaths();k++)
-					{
-						ss<<" ";
-						ss<<thetask->get_inputpath(k);
-					}
-
-					ss<<" argcount ";
-					ss<<thetask->get_job()->getargcount();
+					ss << " ";
+					ss << thetask->get_job()->getargcount();
 
 					// NOTE: there should be at leat 1 arguments(program path name)
-					ss<<" argvalues";
+					ss << " ";
+
 					for(int k=0;k<thetask->get_job()->getargcount();k++)
 					{
 						ss<<" ";
 						ss<<thetask->get_job()->getargvalue(k);
 					}
-if(ss.str().length()>=BUF_SIZE)
-cout<<"[master]Debugging: the argument string exceeds the limited length"<<endl;
-					
-					string tmp = ss.str();
+
+					string message = ss.str();
+
 					memset(write_buf, 0, BUF_SIZE);
-					strcpy(write_buf, tmp.c_str());
+					strcpy(write_buf, message.c_str());
+					nbwrite(slaves[j]->getfd(), write_buf);
+
+					// prepare inputpath message
+					int iter = 0;
+					message = "inputpath";
+
+					while(iter < thetask->get_numinputpaths())
+					{
+						if(message.length() + thetask->get_inputpath(iter).length() + 1 <= BUF_SIZE)
+						{
+							message.append(" ");
+							message.append(thetask->get_inputpath(iter));
+						}
+						else
+						{
+							if(thetask->get_inputpath(iter).length() + 10 > BUF_SIZE)
+								cout<<"[master]The length of inputpath exceeded the limit"<<endl;
+
+							// send message to slave
+							memset(write_buf, 0, BUF_SIZE);
+							strcpy(write_buf, message.c_str());
+							nbwrite(slaves[j]->getfd(), write_buf);
+
+							message = "inputpath ";
+							message.append(thetask->get_inputpath(iter));
+						}
+						iter++;
+					}
+
+					// send remaining paths
+					if(message.length() > strlen("inputpath "))
+					{
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, message.c_str());
+						nbwrite(slaves[j]->getfd(), write_buf);
+					}
+
+					// notify end of inputpaths
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, "Einput");
 					nbwrite(slaves[j]->getfd(), write_buf);
 
 					// forward waiting task to slave slot

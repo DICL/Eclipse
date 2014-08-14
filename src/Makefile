@@ -3,6 +3,7 @@ MASTER_DEP = $(MR_HOME)/master/master_job.hh
 MASTER_DEP += $(MR_HOME)/master/master_task.hh 
 MASTER_DEP += $(MR_HOME)/master/connslave.hh 
 MASTER_DEP += $(MR_HOME)/master/connclient.hh
+MASTER_DEP += $(MR_HOME)/common/msgaggregator.hh
 SLAVE_DEP = $(MR_HOME)/slave/slave_job.hh
 SLAVE_DEP += $(MR_HOME)/slave/slave_task.hh
 ECLIPSE_DEP = $(MR_HOME)/file_distributor/fileserver.hh
