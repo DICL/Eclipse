@@ -429,7 +429,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 					filename = token;
 
 					// determine the cache location of data
-					memset(read_buf, 0, BUF_SIZE);
+					memset(read_buf, 0, HASHLENGTH);
 					strcpy(read_buf, filename.c_str());
 
 					int index;
@@ -440,6 +440,170 @@ cout<<"[fileserver]remote client connected"<<endl;
 
 					filebridge* thebridge = new filebridge(fbidclock++);
 					bridges.push_back(thebridge);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+							// send 0 packet to the client to notify that Icache is not hit
+							memset(write_buf, 0, BUF_CUT);
+
+							if(clients[i]->msgbuf.size() > 1)
+							{
+								clients[i]->msgbuf.back()->set_buffer(write_buf, clients[i]->get_fd());
+								clients[i]->msgbuf.push_back(new messagebuffer());
+							}
+							else
+							{
+								if(nbwritebuf(clients[i]->get_fd(), write_buf, clients[i]->msgbuf.back()) <= 0)
+								{
+									clients[i]->msgbuf.push_back(new messagebuffer());
+								}
+							}
+
+
+								// determine the DHT file location
+								hashvalue = hashvalue%nodelist.size();
+
+								address = nodelist[hashvalue];
+
+								if((unsigned)networkidx == hashvalue)
+								{
+								cout<<"local disk"<<endl;
+									// 1. read data from disk 
+									// 2. store it in the cache 
+									// 3. send it to client
+
+									thebridge->set_srctype(DISK);
+									thebridge->set_dsttype(CLIENT);
+									thebridge->set_dstclient(clients[i]);
+
+									thebridge->writebuffer = new msgaggregator(clients[i]->get_fd());
+									thebridge->writebuffer->configure_initial("");
+									thebridge->writebuffer->set_msgbuf(&clients[i]->msgbuf);
+									//thebridge->set_filename(filename);
+									//thebridge->set_dataname(filename);
+									//thebridge->set_dtype(RAW);
+
+									// open read file and start sending data to client
+									thebridge->open_readfile(filename);
+								}
+								else // remote DHT peer
+								{
+								cout<<"remote disk"<<endl;
+									// 1. request to the DHT peer (read from peer)
+									// 2. store it in the cache
+									// 3. send it to client
+
+									thebridge->set_srctype(PEER);
+									thebridge->set_dsttype(CLIENT);
+									thebridge->set_dstclient(clients[i]);
+
+									// thebridge->set_filename(filename);
+									// thebridge->set_dataname(filename);
+									// thebridge->set_dtype(RAW);
+
+									// send message to the target peer
+									string message;
+									stringstream ss;
+									ss << "RDread ";
+									ss << filename;
+									ss << " ";
+									ss << thebridge->get_id();
+									message = ss.str();
+
+									memset(write_buf, 0, BUF_SIZE);
+									strcpy(write_buf, message.c_str());
+
+									//cout<<endl;
+									//cout<<"write from: "<<localhostname<<endl;
+									//cout<<"write to: "<<address<<endl;
+									//cout<<"message: "<<write_buf<<endl;
+									//cout<<endl;
+
+									filepeer* thepeer = find_peer(address);
+
+									if(thepeer->msgbuf.size() > 1)
+									{
+										thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
+										thepeer->msgbuf.push_back(new messagebuffer());
+									}
+									else
+									{
+										if(nbwritebuf(thepeer->get_fd(),
+													write_buf, thepeer->msgbuf.back()) <= 0)
+										{
+											thepeer->msgbuf.push_back(new messagebuffer());
+										}
+									}
+								}
+
+
+
+								continue;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 					if(index == networkidx) // local input data
 					{
@@ -787,7 +951,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 					filename = token;
 
 					// determine the location of data by dataname(key)
-					memset(read_buf, 0, BUF_SIZE);
+					memset(read_buf, 0, HASHLENGTH);
 					strcpy(read_buf, filename.c_str());
 
 					uint32_t hashvalue = h(read_buf, HASHLENGTH);
@@ -931,7 +1095,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 					{
 						// determine the target cache of data
 						string address;
-						memset(write_buf, 0, BUF_SIZE);
+						memset(write_buf, 0, HASHLENGTH);
 						strcpy(write_buf, inputpath.c_str());
 
 						int index;
@@ -996,7 +1160,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 						record = token;
 
 						// determine the location of data by filename
-						memset(write_buf, 0, BUF_SIZE);
+						memset(write_buf, 0, HASHLENGTH);
 						strcpy(write_buf, filename.c_str());
 
 						uint32_t hashvalue = h(write_buf, HASHLENGTH);
@@ -1122,7 +1286,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 						record = token;
 
 						// determine the location of data by filename
-						memset(write_buf, 0, BUF_SIZE);
+						memset(write_buf, 0, HASHLENGTH);
 						strcpy(write_buf, filename.c_str());
 
 						uint32_t hashvalue = h(write_buf, HASHLENGTH);
@@ -1238,7 +1402,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 						token = strtok(NULL, " "); // tokenize next file name
 
 						// determine the location of data by filename
-						memset(write_buf, 0, BUF_SIZE);
+						memset(write_buf, 0, HASHLENGTH);
 						strcpy(write_buf, filename.c_str());
 
 						uint32_t hashvalue = h(write_buf, HASHLENGTH);
@@ -1574,7 +1738,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 							cout<<"\033[0;31mCache miss\033[0m"<<endl;
 
 							// determine the hash value
-							memset(write_buf, 0, BUF_SIZE);
+							memset(write_buf, 0, HASHLENGTH);
 							strcpy(write_buf, filename.c_str());
 							uint32_t hashvalue = h(write_buf, HASHLENGTH);
 
@@ -2257,7 +2421,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 					{
 						// determine the hash value
 						uint32_t hashvalue;
-						memset(write_buf, 0, BUF_SIZE);
+						memset(write_buf, 0, HASHLENGTH);
 						strcpy(write_buf, token); // token <- file name
 						hashvalue = h(write_buf, HASHLENGTH);
 
@@ -2737,7 +2901,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 								message.append(token);
 
 								// determine the file location
-								memset(read_buf, 0, BUF_SIZE);
+								memset(read_buf, 0, HASHLENGTH);
 								strcpy(read_buf, message.c_str());
 								hashvalue = h(read_buf, HASHLENGTH);
 								hashvalue = hashvalue%nodelist.size();

@@ -6,13 +6,13 @@
 #include <vector>
 #include <sys/unistd.h>
 #include <common/msgaggregator.hh>
+#include <common/hash.hh>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <sys/fcntl.h>
 #include <sys/wait.h>
 #include <arpa/inet.h>
-#include <common/hash.hh>
 #include <pthread.h>
 #include <mapreduce/definitions.hh>
 #include "../master_job.hh"
@@ -22,7 +22,7 @@
 
 
 // Available scheduling: {FCFS, LOCAL}
-#define FCFS // scheduler
+#define LOCAL // scheduler
 
 using namespace std;
 
@@ -859,14 +859,14 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 				continue;
 			master_task* thetask = jobs[i]->get_lastwaitingtask();
 			string thepath = thetask->get_inputpath(0);
-			string address = ADDRESSPREFIX;
+			string address; 
 			stringstream tmpss;
 
-			memset(write_buf, 0, BUF_SIZE);
+			memset(write_buf, 0, HASHLENGTH);
 			strcpy(write_buf, thepath.c_str());
 
 			uint32_t hashvalue = h(write_buf, HASHLENGTH);
-			hashvalue = hashvalue%nodelist.size();
+			hashvalue = (hashvalue)%nodelist.size();
 			address = nodelist[hashvalue];
 
 			// seek the target slave in which the input file is located on
@@ -879,47 +879,75 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 						
 					// write to the slave the task information
 					stringstream ss;
-					ss<<"tasksubmit ";
-					ss<<"jobid ";
-					ss<<jobs[i]->getjobid();
-					ss<<" ";
-					ss<<"taskid ";
-					ss<<thetask->gettaskid();
-					ss<<" role ";
-
+					ss << "tasksubmit ";
+					ss << jobs[i]->getjobid();
+					ss << " ";
+					ss << thetask->gettaskid();
+					ss << " ";
 					if(thetask->get_taskrole() == MAP)
-						ss<<"MAP";
+						ss << "MAP";
 					else if(thetask->get_taskrole() == REDUCE)
-						ss<<"REDUCE";
+						ss << "REDUCE";
 else
 cout<<"[master]Debugging: the role of the task not defined in the initialization step";
 
-					ss<<" inputpath ";
-					ss<<thetask->get_numinputpaths(); // number of input paths
 
-					// parse all the input paths
-					for(int k = 0; k < thetask->get_numinputpaths(); k++)
-					{
-						ss<<" ";
-						ss<<thetask->get_inputpath(k);
-					}
-
-					ss<<" argcount ";
-					ss<<thetask->get_job()->getargcount();
+					ss << " ";
+					ss << thetask->get_job()->getargcount();
 
 					// NOTE: there should be at leat 1 arguments(program path name)
-					ss<<" argvalues";
+					ss << " ";
+
 					for(int k=0;k<thetask->get_job()->getargcount();k++)
 					{
 						ss<<" ";
 						ss<<thetask->get_job()->getargvalue(k);
 					}
-if(ss.str().length()>=BUF_SIZE)
-cout<<"[master]Debugging: the argument string exceeds the limited length"<<endl;
-					
-					string tmp = ss.str();
+
+					string message = ss.str();
+
 					memset(write_buf, 0, BUF_SIZE);
-					strcpy(write_buf, tmp.c_str());
+					strcpy(write_buf, message.c_str());
+					nbwrite(slaves[j]->getfd(), write_buf);
+
+					// prepare inputpath message
+					int iter = 0;
+					message = "inputpath";
+
+					while(iter < thetask->get_numinputpaths())
+					{
+						if(message.length() + thetask->get_inputpath(iter).length() + 1 <= BUF_SIZE)
+						{
+							message.append(" ");
+							message.append(thetask->get_inputpath(iter));
+						}
+						else
+						{
+							if(thetask->get_inputpath(iter).length() + 10 > BUF_SIZE)
+								cout<<"[master]The length of inputpath exceeded the limit"<<endl;
+
+							// send message to slave
+							memset(write_buf, 0, BUF_SIZE);
+							strcpy(write_buf, message.c_str());
+							nbwrite(slaves[j]->getfd(), write_buf);
+
+							message = "inputpath ";
+							message.append(thetask->get_inputpath(iter));
+						}
+						iter++;
+					}
+
+					// send remaining paths
+					if(message.length() > strlen("inputpath "))
+					{
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, message.c_str());
+						nbwrite(slaves[j]->getfd(), write_buf);
+					}
+
+					// notify end of inputpaths
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, "Einput");
 					nbwrite(slaves[j]->getfd(), write_buf);
 
 					// forward waiting task to slave slot
