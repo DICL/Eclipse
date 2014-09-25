@@ -39,7 +39,7 @@ hdfs: $(MR_HOME)/make_version/master_nfs_hdfs $(MR_HOME)/make_version/slave_nfs_
 	rm -f $(MR_HOME)/make_version/dht_mode
 
 
-$(MR_HOME)/make_version/master_dht: $(MR_HOME)/master/dht/master.cc $(MR_HOME)/master/dht/master.hh $(MR_DEF) $(MASTER_DEP) $(DHT_OBJ) $(MR_HOME)/make_version/master $(MR_HOME)/common/hash.o
+$(MR_HOME)/make_version/master_dht: $(MR_HOME)/master/dht/master.cc $(MR_HOME)/master/dht/master.hh $(MR_DEF) $(MASTER_DEP) $(DHT_OBJ) $(MR_HOME)/make_version/master $(MR_HOME)/common/hash.o $(MR_HOME)/orthrus/histogram.hh
 	g++ $(CCFLAGS) $(MR_HOME)/master/dht/master.cc -o $(MR_HOME)/bin/master -I $(MR_HOME) $(DHT_FLAG) $(MR_HOME)/common/hash.o -lpthread 
 	touch $(MR_HOME)/make_version/master
 	touch $(MR_HOME)/make_version/master_dht

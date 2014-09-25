@@ -443,24 +443,12 @@ void summ_mapreduce()
 	{
 		if((nummap >= 0 && isset_mapper) || (numreduce >= 0 && isset_reducer)) // when neither mapper and reducer are activated
 		{
-			// TODO: manage all things if the role is the job
-
 			// send all necessary information to the master node
-			string write_string = "jobconf";
+			string write_string = "jobconf ";
 			stringstream ss;
 
-			// TODO: deal with the case when number of characters exceeds BUF_SIZE
-			ss<<" inputpath ";
-			ss<<inputpaths.size();
-
-			for(int i=0;(unsigned)i<inputpaths.size();i++)
-			{
-				ss<<" ";
-				ss<<inputpaths[i];
-			}
-
-			ss<<" argcount ";
-			ss<<argcount;
+			ss << "argcount ";
+			ss << argcount;
 
 			// parse the arguments
 			ss<<" argvalues";
@@ -501,6 +489,39 @@ void summ_mapreduce()
 			write_string.append(ss.str());
 			memset(write_buf, 0, BUF_SIZE);
 			strcpy(write_buf, write_string.c_str());
+			nbwrite(masterfd, write_buf);
+
+			// prepare inputpath message
+			stringstream ss2;
+			string message;
+			int iter = 0;
+
+			ss2 << "inputpath ";
+			ss2 << inputpaths.size();
+			message = ss2.str();
+
+			while((unsigned)iter < inputpaths.size())
+			{
+				if(message.length() + inputpaths[iter].length() + 2 < BUF_SIZE) // +1 for white space, +1 for zero packet
+				{
+					message.append(" ");
+					message.append(inputpaths[iter]);
+				}
+				else
+				{
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, message.c_str());
+					nbwrite(masterfd, write_buf);
+
+					message = inputpaths[iter];
+				}
+
+				iter++;
+			}
+
+			// send last message
+			memset(write_buf, 0, BUF_SIZE);
+			strcpy(write_buf, message.c_str());
 			nbwrite(masterfd, write_buf);
 		}
 

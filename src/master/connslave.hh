@@ -17,6 +17,7 @@ public:
 	connslave(int fd);
 	connslave(int maxtask, int fd);
 	connslave(int maxtask, int fd, string anaddress);
+	connslave(string anaddress);
 	~connslave();
 	int getfd();
 	int getmaxtask();
@@ -26,6 +27,7 @@ public:
 	void add_runningtask(master_task* atask);
 	void remove_runningtask(master_task* atask);
 	void set_address(string anaddress);
+	void setfd(int number);
 	string get_address();
 };
 
@@ -33,6 +35,12 @@ connslave::connslave(int fd)
 {
 	this->maxtask = 0;
 	this->fd = fd;
+}
+
+connslave::connslave(string anaddress)
+{
+	this->maxtask = 0;
+	this->address = anaddress;
 }
 
 connslave::connslave(int maxtask, int fd)
@@ -56,6 +64,11 @@ connslave::~connslave()
 int connslave::getfd()
 {
 	return this->fd;
+}
+
+void connslave::setfd(int number)
+{
+	this->fd = number;
 }
 
 int connslave::getmaxtask()

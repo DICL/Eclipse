@@ -282,7 +282,7 @@ int fileserver::run_server(int port, string master_address)
 
 	if(ipcfd < 0)
 	{
-		cout<<"[fileserver:"<<networkidx<<"]AF_UNIX socket opening failed"<<endl;
+		cout<<"[fileserver:"<<networkidx<<"]AF_UNIX socket openning failed"<<endl;
 		exit(-1);
 	}
 
@@ -315,7 +315,7 @@ int fileserver::run_server(int port, string master_address)
 	tmpfd = -1;
 
 	// initialize the histogram
-	thehistogram = new histogram(nodelist.size());
+	thehistogram = new histogram(nodelist.size(), NUMBIN);
 
 	// initialize the local cache
 	thecache = new cache(CACHESIZE);
@@ -441,170 +441,6 @@ cout<<"[fileserver]remote client connected"<<endl;
 					filebridge* thebridge = new filebridge(fbidclock++);
 					bridges.push_back(thebridge);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-							// send 0 packet to the client to notify that Icache is not hit
-							memset(write_buf, 0, BUF_CUT);
-
-							if(clients[i]->msgbuf.size() > 1)
-							{
-								clients[i]->msgbuf.back()->set_buffer(write_buf, clients[i]->get_fd());
-								clients[i]->msgbuf.push_back(new messagebuffer());
-							}
-							else
-							{
-								if(nbwritebuf(clients[i]->get_fd(), write_buf, clients[i]->msgbuf.back()) <= 0)
-								{
-									clients[i]->msgbuf.push_back(new messagebuffer());
-								}
-							}
-
-
-								// determine the DHT file location
-								hashvalue = hashvalue%nodelist.size();
-
-								address = nodelist[hashvalue];
-
-								if((unsigned)networkidx == hashvalue)
-								{
-								cout<<"local disk"<<endl;
-									// 1. read data from disk 
-									// 2. store it in the cache 
-									// 3. send it to client
-
-									thebridge->set_srctype(DISK);
-									thebridge->set_dsttype(CLIENT);
-									thebridge->set_dstclient(clients[i]);
-
-									thebridge->writebuffer = new msgaggregator(clients[i]->get_fd());
-									thebridge->writebuffer->configure_initial("");
-									thebridge->writebuffer->set_msgbuf(&clients[i]->msgbuf);
-									//thebridge->set_filename(filename);
-									//thebridge->set_dataname(filename);
-									//thebridge->set_dtype(RAW);
-
-									// open read file and start sending data to client
-									thebridge->open_readfile(filename);
-								}
-								else // remote DHT peer
-								{
-								cout<<"remote disk"<<endl;
-									// 1. request to the DHT peer (read from peer)
-									// 2. store it in the cache
-									// 3. send it to client
-
-									thebridge->set_srctype(PEER);
-									thebridge->set_dsttype(CLIENT);
-									thebridge->set_dstclient(clients[i]);
-
-									// thebridge->set_filename(filename);
-									// thebridge->set_dataname(filename);
-									// thebridge->set_dtype(RAW);
-
-									// send message to the target peer
-									string message;
-									stringstream ss;
-									ss << "RDread ";
-									ss << filename;
-									ss << " ";
-									ss << thebridge->get_id();
-									message = ss.str();
-
-									memset(write_buf, 0, BUF_SIZE);
-									strcpy(write_buf, message.c_str());
-
-									//cout<<endl;
-									//cout<<"write from: "<<localhostname<<endl;
-									//cout<<"write to: "<<address<<endl;
-									//cout<<"message: "<<write_buf<<endl;
-									//cout<<endl;
-
-									filepeer* thepeer = find_peer(address);
-
-									if(thepeer->msgbuf.size() > 1)
-									{
-										thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
-										thepeer->msgbuf.push_back(new messagebuffer());
-									}
-									else
-									{
-										if(nbwritebuf(thepeer->get_fd(),
-													write_buf, thepeer->msgbuf.back()) <= 0)
-										{
-											thepeer->msgbuf.push_back(new messagebuffer());
-										}
-									}
-								}
-
-
-
-								continue;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 					if(index == networkidx) // local input data
 					{
 						// check whether the intermediate result is hit
@@ -726,7 +562,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 								// set a entry reader
 								entryreader* thereader = new entryreader(theentry);
 
-								cout<<"\033[0;32mCache hit\033[0m"<<endl;
+								cout<<"\033[0;32mLocal cache hit\033[0m"<<endl;
 
 								thebridge->set_srctype(CACHE);
 								thebridge->set_dsttype(CLIENT);
@@ -739,7 +575,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 						}
 						else // intermediate result hit
 						{
-							cout<<"\033[0;32mIcache hit\033[0m"<<endl;
+							cout<<"\033[0;32mLocal Icache hit\033[0m"<<endl;
 //cout<<"[fileserver:"<<networkidx<<"]Cachekey hit: "<<cachekey<<endl;
 							// send 1 packet to the client to notify that Icache is hit
 							memset(write_buf, 0, BUF_CUT);
@@ -1816,7 +1652,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 						}
 						else // raw input data is hit
 						{
-							cout<<"\033[0;32mCache hit\033[0m"<<endl;
+							cout<<"\033[0;32mRemote cache hit\033[0m"<<endl;
 
 							// prepare the read stream from cache
 							entryreader* thereader = new entryreader(theentry);
@@ -2454,7 +2290,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 				}
 				else if(strncmp(read_buf, "Ihit", 4) == 0)
 				{
-					cout<<"\033[0;32mIcache hit\033[0m"<<endl;
+					cout<<"\033[0;32mRemote Icache hit\033[0m"<<endl;
 
 					char* token;
 					int dstid;
@@ -3624,7 +3460,27 @@ cout<<"[fileserver]remote client connected"<<endl;
 			readbytes = nbread(cacheserverfd, read_buf);
 			if(readbytes > 0)
 			{
-				// do something here
+				if(strncmp(read_buf, "boundaries", 10) == 0)
+				{
+					string token;
+					double doubletoken;
+					stringstream ss;
+
+					// raed boundary information and parse it to update the boundary
+					ss << read_buf;
+
+					ss >> token; // boundaries
+
+					for(int i = 0; (unsigned)i < nodelist.size(); i++)
+					{
+						ss >> doubletoken;
+						thehistogram->set_boundary(i, doubletoken);
+					}
+				}
+				else // unknown message
+				{
+					cout<<"[cacheserver]Unknown message from master node"<<endl;
+				}
 			}
 			else if(readbytes == 0)
 			{

@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <sys/fcntl.h>
 #include <sys/wait.h>
 #include <arpa/inet.h>
@@ -19,6 +20,11 @@ using namespace std;
 
 int dhtport = -1;
 
+int serverfd = -1;
+int ipcfd = -1;
+
+int buffersize = 8388608; // 8 MB buffer
+
 vector<string> nodelist;
 vector<cacheclient*> clients;
 
@@ -27,7 +33,7 @@ histogram* thehistogram;
 char read_buf[BUF_SIZE]; // read buffer for signal_listener thread
 char write_buf[BUF_SIZE]; // write buffer for signal_listener thread
 
-int open_server(int port);
+void open_server(int port);
 
 int main(int argc, char** argv)
 {
@@ -37,6 +43,8 @@ int main(int argc, char** argv)
 	string confpath = LIB_PATH;
 	confpath.append("setup.conf");
 	conf.open(confpath.c_str());
+
+	master_connection themaster; // from <orthrus/cacheclient.hh>
 
 	conf>>token;
 	while(!conf.eof())
@@ -83,7 +91,12 @@ int main(int argc, char** argv)
 		nodelistfile>>token;
 	}
 
-	int serverfd = open_server(dhtport);
+	if(access(IPC_PATH, F_OK) == 0)
+	{
+		unlink(IPC_PATH);
+	}
+
+	open_server(dhtport);
 	if(serverfd < 0)
 	{
 		cout<<"[cacheserver]\033[0;31mOpenning server failed\033[0m"<<endl;
@@ -125,14 +138,41 @@ int main(int argc, char** argv)
 		}
 	}
 
-	fcntl(serverfd, F_SETFL, O_NONBLOCK);
+	// receive master connection
+	int tmpfd = accept(ipcfd, NULL, NULL);
+	if(tmpfd > 0) // master is connected
+	{
+		int valid = 1;
+		setsockopt(tmpfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t)sizeof(buffersize));
+		setsockopt(tmpfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t)sizeof(buffersize));
+		setsockopt(tmpfd, SOL_SOCKET, SO_REUSEADDR, &valid, sizeof(valid));
+	}
+	else
+	{
+		cout<<"[cacheserver]Connection from master is unsuccessful"<<endl;
+		exit(-1);
+	}
 
-	// initialize the histogram
-	thehistogram = new histogram(nodelist.size());
+	// set fd of master
+	themaster.set_fd(tmpfd);
+
+	// set the server fd as nonblocking mode
+	fcntl(serverfd, F_SETFL, O_NONBLOCK);
+	fcntl(tmpfd, F_SETFL, O_NONBLOCK);
+
+	// initialize the EM-KDE histogram
+	thehistogram = new histogram(nodelist.size(), NUMBIN);
 
 	// a main iteration loop
 	int readbytes = -1;
 	int fd;
+
+
+	struct timeval time_start;
+	struct timeval time_end;
+
+	gettimeofday(&time_start, NULL);
+	gettimeofday(&time_end, NULL);
 
 	while(1)
 	{
@@ -165,21 +205,68 @@ int main(int argc, char** argv)
 			}
 		}
 
+
+		// listen to master
+		readbytes = nbread(themaster.get_fd(), read_buf);
+
+		if(readbytes == 0)
+		{
+			cout<<"[cacheserver]Connection abnormally closed from master(ipc)"<<endl;
+			usleep(10000); // 10 msec
+		}
+		else if(readbytes > 0) // a message accepted
+		{
+			if(strncmp(read_buf, "boundaries", 10) == 0)
+			{
+				/*
+				string token;
+				double doubletoken;
+				stringstream ss;
+
+				// read boundary information and parse it to update the boundary
+				ss << read_buf;
+
+				ss >> token; // boundaries
+
+				for(int i = 0; i < nodelist.size(); i++)
+				{
+					ss >> doubletoken;
+					thehistogram->set_boundary(i, doubletoken);
+				}
+				*/
+
+				// distribute the updated boundaries to each nodes 
+				for(int i = 0; (unsigned)i < clients.size(); i++)
+				{
+					nbwrite(clients[i]->get_fd(), read_buf);
+				}
+				
+
+			}
+			else // unknown message
+			{
+				cout<<"[cacheserver]Unknown message from master node";
+			}
+		}
+
+
+
+		/*
 		for(int i = 0; (unsigned)i < clients.size(); i++)
 		{
 			// do nothing currently
 		}
+		*/
 
 		// sleeps for 1 millisecond
-		usleep(1000);
+		// usleep(1000);
 	}
 
 	return 0;
 }
 
-int open_server(int port)
+void open_server(int port)
 {
-	int serverfd;
 	struct sockaddr_in serveraddr;
 
 	// socket open
@@ -199,15 +286,39 @@ int open_server(int port)
 	if(bind(serverfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0)
 	{
 		cout<<"[cacheserver]\033[0;31mBinding failed\033[0m"<<endl;
-		return -1;
 	}
 
 	// listen
 	if(listen(serverfd, BACKLOG) < 0)
 	{
 		cout<<"[cacheserver]Listening failed"<<endl;
-		return -1;
 	}
 
-	return serverfd;
+	// prepare AF_UNIX socket for the master_connection
+	struct sockaddr_un serveraddr2;
+	ipcfd = socket(AF_UNIX, SOCK_STREAM, 0);
+
+	if(ipcfd < 0)
+	{
+		cout<<"[cacheserver]AF_UNIX socket openning failed"<<endl;
+		exit(-1);
+	}
+
+	// bind
+	memset((void*) &serveraddr2, 0, sizeof(serveraddr2));
+	serveraddr2.sun_family = AF_UNIX;
+	strcpy(serveraddr2.sun_path, IPC_PATH);
+
+	if(bind(ipcfd, (struct sockaddr *)&serveraddr2, SUN_LEN(&serveraddr2)) < 0)
+	{
+		cout<<"[cacheserver]IPC Binding fialed"<<endl;
+		exit(-1);
+	}
+
+	// listen
+	if(listen(ipcfd, BACKLOG) < 0)
+	{
+		cout<<"[cacheserver]Listening failed"<<endl;
+		exit(-1);
+	}
 }

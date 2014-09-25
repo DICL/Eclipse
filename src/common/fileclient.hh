@@ -49,18 +49,6 @@ fileclient::fileclient()
 
 fileclient::~fileclient()
 {
-	/*
-	if(this->serverfd != -1)
-	{
-		while(close(this->serverfd) < 0)
-		{
-			cout<<"[fileclient]close failed"<<endl;
-
-			// sleep for 1 millisecond
-			usleep(1000);
-		}
-	}
-	*/
 	close(serverfd);
 	serverfd = -1;
 }
@@ -75,7 +63,7 @@ int fileclient::connect_to_server(int writeid)
 	fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if(fd < 0)
 	{
-		cout<<"[fileclient]Openning socket failed"<<endl;
+		cout<<"[fileclient]Openning unix socket failed"<<endl;
 		exit(1);
 	}
 

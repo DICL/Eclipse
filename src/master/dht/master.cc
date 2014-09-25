@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <sys/unistd.h>
+#include <sys/un.h>
 #include <common/msgaggregator.hh>
 #include <common/hash.hh>
 #include <sys/types.h>
@@ -15,14 +16,15 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <mapreduce/definitions.hh>
+#include <orthrus/histogram.hh>
 #include "../master_job.hh"
 #include "../master_task.hh"
 #include "../connslave.hh"
 #include "../connclient.hh"
 
 
-// Available scheduling: {FCFS, LOCAL}
-#define LOCAL // scheduler
+// Available scheduling: {FCFS, EMKDE}
+#define EMKDE // scheduler
 
 using namespace std;
 
@@ -31,6 +33,11 @@ vector<connclient*> clients;
 
 vector<master_job*> jobs;
 
+histogram* thehistogram;
+
+int serverfd;
+//int cacheserverfd;
+int ipcfd; // fd of cacheserver
 int port = -1;
 int dhtport = -1;
 int max_job = -1;
@@ -119,12 +126,21 @@ int main(int argc, char** argv)
 		nodelistfile>>token;
 	}
 
-	//dhtserver = new DHTserver(dhtport);
-	//dhtserver->bind();
-	//dhtserver->listen();
+	for(int i = 0; (unsigned)i < nodelist.size(); i++)
+	{
+		slaves.push_back(new connslave(nodelist[i]));
+	}
 
-	int serverfd = open_server(port);
+	// initialize the EM-KDE histogram
+	thehistogram = new histogram(nodelist.size(), NUMBIN);
+
+	open_server(port);
 	if(serverfd < 0)
+	{
+		cout<<"[master]\033[0;31mOpenning server failed\033[0m"<<endl;
+		return 1;
+	}
+	if(ipcfd < 0)
 	{
 		cout<<"[master]\033[0;31mOpenning server failed\033[0m"<<endl;
 		return 1;
@@ -133,6 +149,8 @@ int main(int argc, char** argv)
 	struct sockaddr_in connaddr;
 	int addrlen = sizeof(connaddr);
 	char* haddrp;
+
+	int connectioncount = 0;
 
 	while(1) // receives connection from slaves
 	{
@@ -143,7 +161,7 @@ int main(int argc, char** argv)
 			cout<<"[master]Accepting failed"<<endl;
 
 			// sleep 0.0001 seconds. change this if necessary
-			// usleep(100);
+			usleep(1000);
 			continue;
 		}
 		else
@@ -162,8 +180,17 @@ int main(int argc, char** argv)
 				// get ip address of slave
 				haddrp = inet_ntoa(connaddr.sin_addr);
 
-				// add connected slave to the slaves
-				slaves.push_back(new connslave(TASK_SLOT, fd, haddrp));
+				// set fd and max task of connect slave
+				for(int i = 0; (unsigned)i < slaves.size(); i++)
+				{
+					if(slaves[i]->get_address() == haddrp)
+					{
+						slaves[i]->setfd(fd);
+						slaves[i]->setmaxtask(TASK_SLOT);
+						connectioncount++;
+						break;
+					}
+				}
 
 				printf("slave node connected from %s \n", haddrp);
 			}
@@ -190,7 +217,7 @@ int main(int argc, char** argv)
 			}
 
 			// break if all slaves are connected
-			if(slaves.size() == nodelist.size())
+			if((unsigned)connectioncount == nodelist.size())
 			{
 				cout<<"[master]\033[0;32mAll slave nodes are connected successfully\033[0m"<<endl;
 
@@ -205,6 +232,31 @@ int main(int argc, char** argv)
 			// usleep(100);
 		}
 	}
+
+	int buffersize = 8388608; // 8 MB buffer
+	struct sockaddr_un serveraddr;
+
+	// SOCK_STREAM -> tcp
+	ipcfd = socket(AF_UNIX, SOCK_STREAM, 0);
+	if(ipcfd < 0)
+	{
+		cout<<"[master]Openning unix socket error"<<endl;
+		exit(1);
+	}
+
+	memset((void*) &serveraddr, 0, sizeof(struct sockaddr));
+	serveraddr.sun_family = AF_UNIX;
+	strcpy(serveraddr.sun_path, IPC_PATH);
+
+	while(connect(ipcfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0)
+	{
+		usleep(1000);
+	}
+
+	// set socket to be nonblocking
+	fcntl(ipcfd, F_SETFL, O_NONBLOCK);
+	setsockopt(ipcfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t)sizeof(buffersize));
+	setsockopt(ipcfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t)sizeof(buffersize));
 
 
 	//dhtclient = new DHTclient(RAVENLEADER, dhtport);
@@ -227,35 +279,34 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-int open_server(int port)
+void open_server(int port)
 {
-	int serverfd;
 	struct sockaddr_in serveraddr;
 
 	// socket open
 	serverfd = socket(AF_INET, SOCK_STREAM, 0);
-	if(serverfd<0)
+	if(serverfd < 0)
 		cout<<"[master]Socket opening failed"<<endl;
 
 	// bind
+	int valid = 1;
 	memset((void*) &serveraddr, 0, sizeof(struct sockaddr));
+	setsockopt(serverfd, SOL_SOCKET, SO_REUSEADDR, &valid, sizeof(valid));
 	serveraddr.sin_family = AF_INET;
 	serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	serveraddr.sin_port = htons((unsigned short) port);
 	if(bind(serverfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0)
 	{
 		cout<<"[master]\033[0;31mBinding failed\033[0m"<<endl;
-		return -1;
+		exit(1);
 	}
 
 	// listen
 	if(listen(serverfd, BACKLOG) < 0)
 	{
 		cout<<"[master]Listening failed"<<endl;
-		return -1;
+		exit(1);
 	}
-
-	return serverfd;
 }
 
 void* signal_listener(void* args)
@@ -266,6 +317,13 @@ void* signal_listener(void* args)
 	char* haddrp;
 	struct sockaddr_in connaddr;
 	int addrlen = sizeof(connaddr);
+	int elapsed = 0; // time elapsed im msec
+
+	struct timeval time_start;
+	struct timeval time_end;
+
+	gettimeofday(&time_start, NULL);
+	gettimeofday(&time_end, NULL);
 
 	// listen signals from nodes and listen to node connection
 	while(1)
@@ -280,6 +338,7 @@ void* signal_listener(void* args)
 			nbwrite(tmpfd, write_buf);
 
 			memset(read_buf, 0, BUF_SIZE);
+
 			// blocking read to check identification of connected node
 			readbytes = nbread(tmpfd, read_buf);
 			if(readbytes == 0)
@@ -596,14 +655,14 @@ void* signal_listener(void* args)
 					{
 						if(strncmp(token, "argcount", 8) == 0)
 						{
-							// NOTE: there should be at leat 1 arguments(program path name)
+							// NOTE: there should be at least 1 arguments(program path name)
 							token = strtok(NULL, " "); // token <- argument count
 							jobs[i]->setargcount(atoi(token));
 
 							// process next configure
 							token = strtok(NULL, " "); // token -> argvalues
 
-							// check the protocl
+							// check the protocol
 							if(strncmp(token, "argvalues", 9) != 0) // if the token is not 'argvalues'
 								cout<<"Debugging: the 'jobconf' protocol conflicts."<<endl;
 
@@ -616,6 +675,7 @@ void* signal_listener(void* args)
 							}
 							jobs[i]->setargvalues(arguments);
 						}
+						/*
 						else if(strncmp(token, "inputpath", 9) == 0)
 						{
 							int numpath;
@@ -629,6 +689,7 @@ void* signal_listener(void* args)
 								jobs[i]->add_inputpath(tmp);
 							}
 						}
+						*/
 						else if(strncmp(token, "nummap", 6) == 0)
 						{
 							int nummap;
@@ -644,6 +705,44 @@ void* signal_listener(void* args)
 							numreduce = atoi(token);
 
 							jobs[i]->setnumreduce(numreduce);
+
+							// numreduce is the last token of this message
+							// read another message, which is inputpath message
+							int numpath;
+							int iter = 0;
+
+							readbytes = -1;
+
+							while(readbytes < 0)
+								readbytes = nbread(jobs[i]->getjobfd(), read_buf);
+
+							token = strtok(read_buf, " "); // token <- "inputpath"
+							token = strtok(NULL, " "); // token <- number of input paths
+							numpath = atoi(token);
+
+							while(iter < numpath)
+							{
+								token = strtok(NULL, " "); // next input path or NULL pointer
+
+								if(token == NULL) // a null pointer
+								{
+									readbytes = -1;
+
+									while(readbytes < 0)
+									{
+										readbytes = nbread(jobs[i]->getjobfd(), read_buf);
+									}
+
+									token = strtok(read_buf, " "); // must be a valid token(input path)
+									jobs[i]->add_inputpath(token);
+								}
+								else // a valid input path
+								{
+									jobs[i]->add_inputpath(token);
+								}
+
+								iter++;
+							}
 						}
 						else
 						{
@@ -653,6 +752,7 @@ void* signal_listener(void* args)
 						// process next configure
 						token = strtok(NULL, " ");
 					}
+
 					if(jobs[i]->getnummap() == 0)
 						jobs[i]->setnummap(jobs[i]->get_numinputpaths());
 
@@ -851,21 +951,107 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 		}
 #endif
 
-#ifdef LOCAL
-		// LOCAL scheduler: schedule the task where the input is located
+#ifdef EMKDE
+		// EMKDE scheduler: schedule the task where the input is located
 		for(int i = 0; (unsigned)i < jobs.size(); i++)
 		{
+			int nodeindex = -1;
 			if(jobs[i]->get_lastwaitingtask() == NULL)
 				continue;
+
 			master_task* thetask = jobs[i]->get_lastwaitingtask();
-			string thepath = thetask->get_inputpath(0);
+			string thepath = thetask->get_inputpath(0); // first input as a representative input
 			string address; 
 			stringstream tmpss;
 
 			memset(write_buf, 0, HASHLENGTH);
 			strcpy(write_buf, thepath.c_str());
 
+			// determine the hash value and count the query
 			uint32_t hashvalue = h(write_buf, HASHLENGTH);
+			nodeindex = thehistogram->get_index(hashvalue);
+
+			thehistogram->count_query(hashvalue);
+
+			if(slaves[nodeindex]->getnumrunningtasks() >= slaves[nodeindex]->getmaxtask()) // no available task slot
+				continue;
+
+			// write to the slave the task information
+			stringstream ss;
+			ss << "tasksubmit ";
+			ss << jobs[i]->getjobid();
+			ss << " ";
+			ss << thetask->gettaskid();
+			ss << " ";
+			if(thetask->get_taskrole() == MAP)
+				ss << "MAP";
+			else if(thetask->get_taskrole() == REDUCE)
+				ss << "REDUCE";
+
+			ss << " ";
+			ss << thetask->get_job()->getargcount();
+
+			// NOTE: there should be at least 1 arguments(program path name)
+			ss << " ";
+
+			for(int j = 0; j < thetask->get_job()->getargcount(); j++)
+			{
+				ss << " ";
+				ss << thetask->get_job()->getargvalue(j);
+			}
+
+			string message = ss.str();
+
+			memset(write_buf, 0, BUF_SIZE);
+			strcpy(write_buf, message.c_str());
+//			nbwrite(slaves[nodeindex]->getfd(), write_buf);
+
+			// prepare inputpath message
+			int iter = 0;
+			message = "inputpath";
+
+			while(iter < thetask->get_numinputpaths())
+			{
+				if(message.length() + thetask->get_inputpath(iter).length() + 1 < BUF_SIZE)
+				{
+					message.append(" ");
+					message.append(thetask->get_inputpath(iter));
+				}
+				else
+				{
+					if(thetask->get_inputpath(iter).length() + 10 > BUF_SIZE)
+						cout<<"[master]The length of inputpath exceeded the limit"<<endl;
+
+					// send message to slave
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, message.c_str());
+//					nbwrite(slaves[nodeindex]->getfd(), write_buf);
+
+					message = "inputpath ";
+					message.append(thetask->get_inputpath(iter));
+				}
+				iter++;
+			}
+
+			// send remaining paths
+			if(message.length() > strlen("inputpath "))
+			{
+				memset(write_buf, 0, BUF_SIZE);
+				strcpy(write_buf, message.c_str());
+//				nbwrite(slaves[nodeindex]->getfd(), write_buf);
+			}
+
+			// notify end of inputpaths
+			memset(write_buf, 0, BUF_SIZE);
+			strcpy(write_buf, "Einput");
+//			nbwrite(slaves[nodeindex]->getfd(), write_buf);
+
+			// forward waiting task to salve slot
+//			jobs[i]->schedule_task(thetask, slaves[nodeindex]);
+
+			continue;
+
+			/*
 			hashvalue = (hashvalue)%nodelist.size();
 			address = nodelist[hashvalue];
 
@@ -895,7 +1081,7 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 					ss << " ";
 					ss << thetask->get_job()->getargcount();
 
-					// NOTE: there should be at leat 1 arguments(program path name)
+					// NOTE: there should be at least 1 arguments(program path name)
 					ss << " ";
 
 					for(int k=0;k<thetask->get_job()->getargcount();k++)
@@ -956,6 +1142,39 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 					break;
 				}
 			}
+			*/
+
+
+		}
+
+		gettimeofday(&time_end, NULL);
+		elapsed += 1000*(time_end.tv_sec - time_start.tv_sec);
+		elapsed += (time_end.tv_usec - time_start.tv_usec)/1000;
+
+		if(elapsed > UPDATEINTERVAL) // UPDATE INTERVAL from EM-KDE
+		{
+			// EM-KDE: calculate the new boundary according to the query counts
+			thehistogram->updateboundary();
+
+			// EM-KDE: send the boundariees of each histogram to cache server
+			string message;
+			stringstream ss;
+			ss << "boundaries";
+			for(int i = 0; i < thehistogram->get_numserver(); i++) // total numserver - 1 boundary
+			{
+				ss << " ";
+				ss << thehistogram->get_boundary(i);
+			}
+
+			message = ss.str();
+
+			// send the boundary message to the cache server
+			memset(write_buf, 0, BUF_SIZE);
+			strcpy(write_buf, message.c_str());
+			nbwrite(ipcfd, write_buf);
+
+			gettimeofday(&time_start, NULL);
+			elapsed = 0;
 		}
 #endif
 
@@ -963,8 +1182,8 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 		if(slaves.size() == 0 && clients.size() == 0)
 			break;
 
-		// sleeps for 0.0001 seconds. change this if necessary
-		// usleep(100000);
+		// sleeps for 1 msec. change this if necessary
+		// usleep(1000);
 	}
 
 	// close master socket

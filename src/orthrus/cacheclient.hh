@@ -5,6 +5,40 @@
 
 using namespace std;
 
+// address of master should be same as cache server
+class master_connection
+{
+	private:
+		int fd;
+
+	public:
+		master_connection();
+		master_connection(int num);
+		int get_fd();
+		void set_fd(int num);
+};
+
+master_connection::master_connection()
+{
+	// do nothing
+}
+
+master_connection::master_connection(int num)
+{
+	fd = num;
+}
+
+int master_connection::get_fd()
+{
+	return fd;
+}
+
+void master_connection::set_fd(int num)
+{
+	fd = num;
+}
+
+
 class cacheclient
 {
 	private:
