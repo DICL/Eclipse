@@ -1004,7 +1004,7 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 
 			memset(write_buf, 0, BUF_SIZE);
 			strcpy(write_buf, message.c_str());
-//			nbwrite(slaves[nodeindex]->getfd(), write_buf);
+			nbwrite(slaves[nodeindex]->getfd(), write_buf);
 
 			// prepare inputpath message
 			int iter = 0;
@@ -1025,7 +1025,7 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 					// send message to slave
 					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, message.c_str());
-//					nbwrite(slaves[nodeindex]->getfd(), write_buf);
+					nbwrite(slaves[nodeindex]->getfd(), write_buf);
 
 					message = "inputpath ";
 					message.append(thetask->get_inputpath(iter));
@@ -1038,16 +1038,48 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 			{
 				memset(write_buf, 0, BUF_SIZE);
 				strcpy(write_buf, message.c_str());
-//				nbwrite(slaves[nodeindex]->getfd(), write_buf);
+				nbwrite(slaves[nodeindex]->getfd(), write_buf);
 			}
 
 			// notify end of inputpaths
 			memset(write_buf, 0, BUF_SIZE);
 			strcpy(write_buf, "Einput");
-//			nbwrite(slaves[nodeindex]->getfd(), write_buf);
+			nbwrite(slaves[nodeindex]->getfd(), write_buf);
 
 			// forward waiting task to salve slot
-//			jobs[i]->schedule_task(thetask, slaves[nodeindex]);
+			jobs[i]->schedule_task(thetask, slaves[nodeindex]);
+
+
+
+
+/*
+jobs[i]->scheduled++;
+if(jobs[i]->get_numtasks() == jobs[i]->scheduled)
+{
+	memset(write_buf, 0, BUF_SIZE);
+	strcpy(write_buf, "complete");
+	nbwrite(jobs[i]->getjobfd(), write_buf);
+	cout<<"[master]Job "<<jobs[i]->getjobid()<<" completed successfully"<<endl;
+
+	jobs[i]->set_stage(COMPLETED_STAGE);
+	// clear the job from the vector and finish
+	delete jobs[i];
+	jobs.erase(jobs.begin()+i);
+}
+i--;
+*/
+
+
+
+
+
+
+
+
+
+
+
+
 
 			continue;
 

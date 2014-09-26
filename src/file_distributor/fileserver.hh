@@ -448,7 +448,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 
 						if(theentry == NULL) // when the intermediate result is not hit
 						{
-							cout<<"\033[0;31mIcache miss\033[0m"<<endl;
+//							cout<<"\033[0;31mLocal Icache miss\033[0m"<<endl;
 //cout<<"[fileserver:"<<networkidx<<"]Cachekey miss: "<<cachekey<<endl;
 							// send 0 packet to the client to notify that Icache is not hit
 							memset(write_buf, 0, BUF_CUT);
@@ -470,7 +470,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 
 							if(theentry == NULL) // when data is not in cache
 							{
-								cout<<"\033[0;31mCache miss\033[0m"<<endl;
+//								cout<<"\033[0;31mLocal Cache miss\033[0m"<<endl;
 
 								// set an entry writer
 								dataentry* newentry = new dataentry(filename, hashvalue);
@@ -562,7 +562,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 								// set a entry reader
 								entryreader* thereader = new entryreader(theentry);
 
-								cout<<"\033[0;32mLocal cache hit\033[0m"<<endl;
+//								cout<<"\033[0;32mLocal Cache hit\033[0m"<<endl;
 
 								thebridge->set_srctype(CACHE);
 								thebridge->set_dsttype(CLIENT);
@@ -575,7 +575,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 						}
 						else // intermediate result hit
 						{
-							cout<<"\033[0;32mLocal Icache hit\033[0m"<<endl;
+//							cout<<"\033[0;32mLocal Icache hit\033[0m"<<endl;
 //cout<<"[fileserver:"<<networkidx<<"]Cachekey hit: "<<cachekey<<endl;
 							// send 1 packet to the client to notify that Icache is hit
 							memset(write_buf, 0, BUF_CUT);
@@ -1543,7 +1543,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 
 					if(theentry == NULL) // when the intermediate result is not hit
 					{
-						cout<<"\033[0;31mIcache miss\033[0m"<<endl;
+//						cout<<"\033[0;31mRemote Icache miss\033[0m"<<endl;
 //cout<<"[fileserver:"<<networkidx<<"]Cache key not hit after receiving Ilook: "<<cachekey<<endl;
 
 						// send "Imiss"
@@ -1571,7 +1571,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 
 						if(theentry == NULL) // raw input data is not hit
 						{
-							cout<<"\033[0;31mCache miss\033[0m"<<endl;
+//							cout<<"\033[0;31mRemote Cache miss\033[0m"<<endl;
 
 							// determine the hash value
 							memset(write_buf, 0, HASHLENGTH);
@@ -1652,7 +1652,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 						}
 						else // raw input data is hit
 						{
-							cout<<"\033[0;32mRemote cache hit\033[0m"<<endl;
+//							cout<<"\033[0;32mRemote Cache hit\033[0m"<<endl;
 
 							// prepare the read stream from cache
 							entryreader* thereader = new entryreader(theentry);
@@ -2290,7 +2290,7 @@ cout<<"[fileserver]remote client connected"<<endl;
 				}
 				else if(strncmp(read_buf, "Ihit", 4) == 0)
 				{
-					cout<<"\033[0;32mRemote Icache hit\033[0m"<<endl;
+//					cout<<"\033[0;32mRemote Icache hit\033[0m"<<endl;
 
 					char* token;
 					int dstid;

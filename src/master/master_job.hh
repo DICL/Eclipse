@@ -30,6 +30,17 @@ private:
 	vector<master_task*> completed_tasks;
 public:
 
+
+
+
+	int scheduled;
+
+
+
+
+
+
+
 	master_job();
 	master_job(int id, int fd);
 	~master_job();
@@ -88,6 +99,17 @@ master_job::master_job()
 
 master_job::master_job(int id, int fd)
 {
+	scheduled = 0;
+
+
+
+
+
+
+
+
+
+
 	this->jobid = id;
 	this->jobfd = fd;
 	this->nummap = 0;
