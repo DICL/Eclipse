@@ -25,6 +25,9 @@ char write_buf[BUF_SIZE];
 int port = -1;
 int dhtport = -1;
 int masterfd = -1;
+
+int buffersize = 8388608; // 8 MB buffer size
+
 bool master_is_set = false;
 char master_address[BUF_SIZE];
 string localhostname;
@@ -106,6 +109,8 @@ int main(int argc, char** argv)
 
 	// set master socket to be non-blocking socket to avoid deadlock
 	fcntl(masterfd, F_SETFL, O_NONBLOCK);
+	setsockopt(masterfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t)sizeof(buffersize));
+	setsockopt(masterfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t)sizeof(buffersize));
 
 
 	signal_listener();
@@ -146,7 +151,7 @@ void signal_listener()
 	//ofstream logfile = new ofstream("slave" + id + ".log");
 	// get signal from master, jobs and tasks
 	int readbytes = 0;
-	int writeidclock = 0;
+	//int writeidclock = 0;
 	struct timeval time_start;
 	struct timeval time_end;
 
@@ -236,10 +241,123 @@ void signal_listener()
 				if(strncmp(token, "MAP", 3) == 0)
 				{
 					thetask->set_taskrole(MAP);
+
+					token = strtok(NULL, " ");
+
+					int argc = atoi(token);
+
+					thetask->set_argcount(argc);
+
+					char** values = new char*[argc];
+
+					for(int i = 0; i < argc; i++)
+					{
+						token = strtok(NULL, " ");;
+						values[i] = new char[strlen(token) + 1];
+						strcpy(values[i], token);
+					}
+
+					thetask->set_argvalues(values);
+
+					// read messages from master until getting Einput
+					while(1)
+					{
+						readbytes = nbread(masterfd, read_buf);
+						if(readbytes == 0)
+						{
+							cout<<"[slave]Connection from master is abnormally closed"<<endl;
+						}
+						else if(readbytes < 0)
+						{
+							continue;
+						}
+						else // a message
+						{
+
+							if(strncmp(read_buf, "inputpath", 9) == 0)
+							{
+								token = strtok(read_buf, " "); // token <- "inputpath"
+
+								token = strtok(NULL, " ");
+
+								while(token != NULL)
+								{
+									// add the input path to the task
+									thetask->add_inputpath(token);
+
+									token = strtok(NULL, " ");
+								}
+							}
+							else if(strncmp(read_buf, "Einput", 6) == 0)
+							{
+								// break the while loop
+								break;
+							}
+							else
+							{
+								cout<<"[slave]Unexpected message order from master"<<endl;
+							}
+						}
+					}
+
+					// launch the forwarded task
+					launch_task(thetask);
 				}
 				else if(strncmp(token, "REDUCE", 6) == 0)
 				{
 					thetask->set_taskrole(REDUCE);
+
+					token = strtok(NULL, " ");
+
+					int argc = atoi(token);
+
+					thetask->set_argcount(argc);
+
+					char** values = new char*[argc];
+
+					for(int i = 0; i < argc; i++)
+					{
+						token = strtok(NULL, " ");;
+						values[i] = new char[strlen(token) + 1];
+						strcpy(values[i], token);
+					}
+
+					thetask->set_argvalues(values);
+
+					// read messages from master
+					while(1)
+					{
+						readbytes = nbread(masterfd, read_buf);
+						if(readbytes == 0)
+						{
+							cout<<"[slave]Connection from master is abnormally closed"<<endl;
+						}
+						else if(readbytes < 0)
+						{
+							continue;
+						}
+						else // a message
+						{
+							break;
+						}
+					}
+
+					token = strtok(read_buf, " "); // <- "inputpath"
+					token = strtok(NULL, " "); // <- first peer id
+
+					while(token != NULL)
+					{
+						thetask->peerids.push_back(atoi(token));
+
+						token = strtok(NULL, " "); // <- numiblock
+
+						thetask->numiblocks.push_back(atoi(token));
+
+						token = strtok(NULL, " "); // <- next peerid
+					}
+
+					// launch the forwarded task
+					launch_task(thetask);
 				}
 				else
 				{
@@ -247,201 +365,12 @@ void signal_listener()
 					thetask->set_taskrole(JOB);
 				}
 
-				token = strtok(NULL, " ");
-
-				int argc = atoi(token);
-
-				thetask->set_argcount(argc);
-
-				char** values = new char*[argc];
-
-				for(int i = 0; i < argc; i++)
-				{
-					token = strtok(NULL, " ");;
-					values[i] = new char[strlen(token) + 1];
-					strcpy(values[i], token);
-				}
-				thetask->set_argvalues(values);
-
-				// read messages from master until getting Einput
-				while(1)
-				{
-					readbytes = nbread(masterfd, read_buf);
-					if(readbytes == 0)
-					{
-						cout<<"[slave]Connection from amster is abnormally closed"<<endl;
-					}
-					else if(readbytes < 0)
-					{
-						continue;
-					}
-					else // a message
-					{
-
-						if(strncmp(read_buf, "inputpath", 9) == 0)
-						{
-							token = strtok(read_buf, " "); // token <- "inputpath"
-
-							token = strtok(NULL, " ");
-
-							while(token != NULL)
-							{
-								// add the input path to the task
-								thetask->add_inputpath(token);
-
-								token = strtok(NULL, " ");
-							}
-						}
-						else if(strncmp(read_buf, "Einput", 6) == 0)
-						{
-							// break the while loop
-							break;
-						}
-						else
-						{
-							cout<<"[slave]Unexpected message order from master"<<endl;
-						}
-					}
-				}
-
-				// launch the forwarded task
-				launch_task(thetask, writeidclock++);
 			}
 			else
 			{
 				cout<<"[slave]Undefined signal from master: "<<read_buf<<endl;
 				cout<<"[slave]Undefined signal size: "<<readbytes<<endl;
 			}
-
-
-				/*
-				// parse task configure
-				while(token != NULL)
-				{
-					if(strncmp(token, "jobid", 5) == 0)
-					{
-						int id;
-						token = strtok(NULL, " ");
-						id = atoi(token);
-
-						thejob = find_jobfromid(id);
-
-						if(thejob == NULL) // if task in this job already running in this slave
-						{
-							thejob = new slave_job(id, masterfd);
-							running_jobs.push_back(thejob);
-						}
-					}
-					else if(strncmp(token, "taskid", 6) == 0)
-					{
-						int id;
-						if(thejob == NULL)
-						{
-							cout<<"Debugging: the job is set to null in";
-							cout<<"the slave side when a task is forwarded."<<endl;
-							token = strtok(NULL, " ");
-							continue;
-						}
-						token = strtok(NULL, " ");
-						id = atoi(token);
-						thetask = new slave_task(id); // the status is running by default
-
-						// add to the running_tasks vector
-						running_tasks.push_back(thetask);
-
-						// add this task in 'thejob'
-						thejob->add_task(thetask);
-					}
-					else if(strncmp(token, "role", 4) == 0)
-					{
-						if(thetask == NULL)
-						{
-							cout<<"Debugging: the task is set to null in ";
-							cout<<"the slave side when a task is forwarded."<<endl;
-							token = strtok(NULL, " ");
-							continue;
-						}
-						token = strtok(NULL, " "); // "MAP" or "REDUCE"
-						if(strncmp(token, "MAP", 3) == 0)
-						{
-							thetask->set_taskrole(MAP);
-						}
-						else if(strncmp(token, "REDUCE", 6) == 0)
-						{
-							thetask->set_taskrole(REDUCE);
-						}
-						else
-						{
-							cout<<"Debugging: the task role is undefined well."<<endl;
-							thetask->set_taskrole(JOB);
-						}
-					}
-					else if(strncmp(token, "inputpath", 9) == 0)
-					{
-						string tmp; // used for temporarily storing the paths
-						int readbytes;
-						int numpaths;
-
-						token = strtok(NULL, " "); // first token
-
-						// tokenize inputpaths
-						numpaths = atoi(token);
-						for(int i=0; i<numpaths; i++)
-						{
-							token = strtok(NULL, " ");
-							tmp = token;
-							thetask->add_inputpath(tmp);
-						}
-					}
-					else if(strncmp(token, "argcount", 8) == 0)
-					{
-						// deal with argcount and argvalues together in this bracket
-						// because both configure should be successive
-						int count;
-						token = strtok(NULL, " "); // token -> arguments count
-						count = atoi(token);
-						thetask->set_argcount(count);
-
-						char** values = new char*[count];
-
-						token = strtok(NULL, " "); // token -> argvalues
-
-						// check the message protocol
-						if(strncmp(token, "argvalues", 9) != 0)
-						{
-							cout<<"Debugging: the 'tasksubmit' protocol conflicts in the slave."<<endl;
-							// process next configure
-							token = strtok(NULL, " ");
-							continue;
-						}
-
-						// parse all arguments
-						for(int i=0;i<count;i++)
-						{
-							token = strtok(NULL, " ");
-							values[i] = new char[strlen(token)+1];
-							strcpy(values[i], token);
-						}
-						thetask->set_argvalues(values);
-					}
-					else
-					{
-						cout<<token<<": unknown task configure in the slave side"<<endl;
-					}
-
-					// process next configure
-					token = strtok(NULL, " ");
-				}
-				// launch the forwarded task
-				launch_task(thetask, writeidclock++);
-			}
-			else
-			{
-				cout<<"[slave]Undefined signal from master: "<<read_buf<<endl;
-				cout<<"[slave]Undefined signal size: "<<readbytes<<endl;
-			}
-				*/
-
 		}
 
 		// check the running_jobs
@@ -475,6 +404,33 @@ void signal_listener()
 			{
 				if(strncmp(read_buf, "complete", 8) == 0)
 				{
+					char* token;
+
+					if(running_tasks[i]->get_taskrole() == MAP) // map task
+					{
+						string message = "peerids ";
+						stringstream ss;
+						ss << running_tasks[i]->get_job()->get_jobid();
+
+						// receive peerids
+						token = strtok(read_buf, " ");
+						token = strtok(NULL, " "); // first token(peer id)
+
+						while(token != NULL)
+						{
+							ss << " ";
+							ss << atoi(token);
+							token = strtok(NULL, " ");
+						}
+
+						message.append(ss.str());
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, message.c_str());
+
+						nbwrite(masterfd, write_buf);
+					}
+
+
 					//cout<<"[slave]Task with taskid "<<running_tasks[i]->get_taskid();
 					//cout<<" and job id "<<running_tasks[i]->get_job()->get_jobid();
 					//cout<<" completed successfully"<<endl;
@@ -507,72 +463,84 @@ void signal_listener()
 					strcpy(write_buf, message.c_str());
 					nbwrite(running_tasks[i]->get_writefd(), write_buf);
 
-					// send input paths
-					message = "inputpath";
-
-					int iter = 0;
-					while(iter < running_tasks[i]->get_numinputpaths())
+					if(running_tasks[i]->get_taskrole() == MAP)
 					{
-						if(message.length() + running_tasks[i]->get_inputpath(iter).length() + 1 <= BUF_SIZE)
-						{
-							message.append(" ");
-							message.append(running_tasks[i]->get_inputpath(iter));
-						}
-						else
-						{
-							if(running_tasks[i]->get_inputpath(iter).length() + 10 > BUF_SIZE)
-								cout<<"[master]The length of inputpath excceded the limit"<<endl;
+						// send input paths
+						message = "inputpath";
 
-							// send message to slave
+						int iter = 0;
+						while(iter < running_tasks[i]->get_numinputpaths())
+						{
+							if(message.length() + running_tasks[i]->get_inputpath(iter).length() + 1 <= BUF_SIZE)
+							{
+								message.append(" ");
+								message.append(running_tasks[i]->get_inputpath(iter));
+							}
+							else
+							{
+								if(running_tasks[i]->get_inputpath(iter).length() + 10 > BUF_SIZE)
+									cout<<"[master]The length of inputpath excceded the limit"<<endl;
+
+								// send message to slave
+								memset(write_buf, 0, BUF_SIZE);
+								strcpy(write_buf, message.c_str());
+								nbwrite(running_tasks[i]->get_writefd(), write_buf);
+
+								message = "inputpath ";
+								message.append(running_tasks[i]->get_inputpath(iter));
+							}
+							iter++;
+						}
+
+						// send remaining paths
+						if(message.length() > strlen("inputpath "))
+						{
 							memset(write_buf, 0, BUF_SIZE);
 							strcpy(write_buf, message.c_str());
 							nbwrite(running_tasks[i]->get_writefd(), write_buf);
-
-							message = "inputpath ";
-							message.append(running_tasks[i]->get_inputpath(iter));
 						}
-						iter++;
-					}
 
-					// send remaining paths
-					if(message.length() > strlen("inputpath "))
+						// notify end of inputpaths
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, "Einput");
+						nbwrite(running_tasks[i]->get_writefd(), write_buf);
+
+						/*
+						// input paths
+						message<<" inputpaths ";
+						message<<running_tasks[i]->get_numinputpaths(); // number of inputpaths
+						for(int j=0;j<running_tasks[i]->get_numinputpaths();j++)
+						{
+						message<<" ";
+						message<<running_tasks[i]->get_inputpath(j);
+						}
+
+						// send message to the task
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, message.str().c_str());
+						nbwrite(running_tasks[i]->get_writefd(), write_buf);
+						*/
+					}
+					else
 					{
+						// send input paths
+						message = "inputpath";
+						stringstream ss;
+
+						for(int j = 0; (unsigned)j < running_tasks[i]->peerids.size(); j++)
+						{
+							ss << " ";
+							ss << running_tasks[i]->peerids[j];
+							ss << " ";
+							ss << running_tasks[i]->numiblocks[j];
+						}
+
+						message.append(ss.str());
+
+						// notify end of inputpaths
 						memset(write_buf, 0, BUF_SIZE);
 						strcpy(write_buf, message.c_str());
 						nbwrite(running_tasks[i]->get_writefd(), write_buf);
-					}
-
-					// notify end of inputpaths
-					memset(write_buf, 0, BUF_SIZE);
-					strcpy(write_buf, "Einput");
-					nbwrite(running_tasks[i]->get_writefd(), write_buf);
-
-					/*
-					// input paths
-					message<<" inputpaths ";
-					message<<running_tasks[i]->get_numinputpaths(); // number of inputpaths
-					for(int j=0;j<running_tasks[i]->get_numinputpaths();j++)
-					{
-						message<<" ";
-						message<<running_tasks[i]->get_inputpath(j);
-					}
-					
-					// send message to the task
-					memset(write_buf, 0, BUF_SIZE);
-					strcpy(write_buf, message.str().c_str());
-					nbwrite(running_tasks[i]->get_writefd(), write_buf);
-					*/
-				}
-				else if(strncmp(read_buf, "key", 3) == 0)
-				{
-					char* token;
-					token = strtok(read_buf, "\n"); // token <- key
-					token = strtok(NULL, "\n"); // token <- key value
-
-					while(token != NULL)
-					{
-						running_tasks[i]->get_job()->add_key(token);
-						token = strtok(NULL, "\n"); // token <- key value
 					}
 				}
 				else
@@ -590,16 +558,14 @@ void signal_listener()
 			{
 				if(running_tasks[i]->get_status() == COMPLETED) // successful termination
 				{
-					// flush the key buffer in that job
-					running_tasks[i]->get_job()->keybuffer.flush();
-
 					// send 'taskcomplete' message to the master
 					stringstream ss;
 					string msg = "taskcomplete";
-					ss<<" jobid ";
-					ss<<running_tasks[i]->get_job()->get_jobid();
-					ss<<" taskid ";
-					ss<<running_tasks[i]->get_taskid();
+					ss << " jobid ";
+					ss << running_tasks[i]->get_job()->get_jobid();
+					ss << " taskid ";
+					ss << running_tasks[i]->get_taskid();
+
 					msg.append(ss.str());
 
 					memset(write_buf, 0, BUF_SIZE);
@@ -652,7 +618,7 @@ void signal_listener()
 	exit(0);
 }
 
-void launch_task(slave_task* atask, int writeid)
+void launch_task(slave_task* atask)
 {
 	int pid;
 	int fd1[2]; // two set of fds between slave and task(1)
@@ -693,48 +659,43 @@ void launch_task(slave_task* atask, int writeid)
 			args[i][strlen(atask->get_argvalues()[i])] = 0;
 		}
 
-		// pass write id
-		ss << writeid;
-
-		args[count] = new char[ss.str().length()+1];
-		strcpy(args[count], ss.str().c_str());
-		args[count][ss.str().length()] = 0;
-
 		// pass pipe fds
 		ss1<<fd2[0];
 		ss2<<fd1[1];
 
-		args[count+1] = new char[ss1.str().length()+1];
-		args[count+2] = new char[ss2.str().length()+1];
-		strcpy(args[count+1], ss1.str().c_str());
-		strcpy(args[count+2], ss2.str().c_str());
-		args[count+1][ss1.str().length()] = 0;
-		args[count+2][ss2.str().length()] = 0;
+		args[count] = new char[ss1.str().length()+1];
+		args[count+1] = new char[ss2.str().length()+1];
+		strcpy(args[count], ss1.str().c_str());
+		strcpy(args[count+1], ss2.str().c_str());
+		args[count][ss1.str().length()] = 0;
+		args[count+1][ss2.str().length()] = 0;
 
 		// pass task type
 		if(atask->get_taskrole() == MAP)
 		{
-			args[count+3] = new char[4];
-			strcpy(args[count+3], "MAP");
-			args[count+3][3] = 0;
+			args[count+2] = new char[4];
+			strcpy(args[count+2], "MAP");
+			args[count+2][3] = 0;
 			//args[count+2] = "MAP";
 		}
 		else if(atask->get_taskrole() == REDUCE)
 		{
-			args[count+3] = new char[7];
-			strcpy(args[count+3], "REDUCE");
-			args[count+3][6] = 0;
+			args[count+2] = new char[7];
+			strcpy(args[count+2], "REDUCE");
+			args[count+2][6] = 0;
 			//args[count+2] = "REDUCE";
 		}
 		else
 		{
 			cout<<"[slave]Debugging: the role of the task is not defined in launch_task() function"<<endl;
-			args[count+3] = new char[4];
-			strcpy(args[count+3], "JOB");
+			args[count+2] = new char[4];
+			strcpy(args[count+2], "JOB");
+			args[count+2][3] = 0;
 			//args[count+2] = "JOB";
 		}
+
 		// pass null to last parameter
-		args[count+4] = NULL;
+		args[count+3] = NULL;
 
 		// launch the task with the passed arguments
 		while(execv(args[0], args) == -1)

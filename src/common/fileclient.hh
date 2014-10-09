@@ -23,6 +23,9 @@ private:
 	int serverfd;
 	char* token;
 	char* ptr;
+	datatype readdatatype;
+	string currentkey;
+	string Owritepath;
 	char read_buf[BUF_SIZE];
 	char write_buf[BUF_SIZE];
 
@@ -34,10 +37,10 @@ public:
 	~fileclient();
 	bool write_record(string filename, string data, datatype atype); // append mode, write a record
 	void close_server(); // this function is used to notify the server that writing is done
-	void wait_write(); // wait until write is done
-	bool read_request(string req, datatype atype, msgaggregator* keybuf, set<string>* keys); // connect to read file
+	void wait_write(set<int>* peerids); // wait until write is done
+	bool read_request(string req, datatype atype); // connect to read file
 	bool read_record(string& record); // read sentences from connected file(after read_request())
-	int connect_to_server(int writeid); // returns fd of file server
+	int connect_to_server(); // returns fd of file server
 	void configure_buffer_initial(string jobdirpath, string appname, string inputfilepath, bool isIcache); // set the initial string of the Iwritebuffer
 };
 
@@ -53,7 +56,7 @@ fileclient::~fileclient()
 	serverfd = -1;
 }
 
-int fileclient::connect_to_server(int writeid)
+int fileclient::connect_to_server()
 {
 	int fd;
 	int buffersize = 8388608; // 8 MB buffer
@@ -99,17 +102,6 @@ int fileclient::connect_to_server(int writeid)
 	// buffer for Iwrite and Owrite
 	Iwritebuffer.set_fd(fd);
 	Owritebuffer.set_fd(fd);
-	Owritebuffer.configure_initial("Owrite\n");
-
-	// send the write id to the file server
-	stringstream ss;
-	string message;
-	ss << "Wid ";
-	ss << writeid;
-	message = ss.str();
-	memset(write_buf, 0, BUF_SIZE);
-	strcpy(write_buf, message.c_str());
-	nbwrite(serverfd, write_buf);
 
 	return fd;
 }
@@ -132,8 +124,6 @@ void fileclient::configure_buffer_initial(string jobdirpath, string appname, str
 	{
 		initial = "Iwrite ";
 		initial.append(jobdirpath);
-		initial.append(" ");
-		initial.append(inputfilepath);
 		initial.append("\n");
 	}
 
@@ -155,10 +145,22 @@ bool fileclient::write_record(string filename, string data, datatype atype)
 	else if(atype == OUTPUT)// atype == OUTPUT
 	{
 		// generate request string
-		string str = filename;
-		str.append(" ");
-		str.append(data);
-		Owritebuffer.add_record(str);
+		if(Owritepath == filename) // serial write
+		{
+			Owritebuffer.add_record(data);
+		}
+		else // different output
+		{
+			Owritepath = filename;
+			// flush and configure initial string of Owritebuffer
+			Owritebuffer.flush();
+			string initial = "Owrite ";
+			initial.append(filename);
+			initial.append("\n");
+
+			Owritebuffer.configure_initial(initial);
+			Owritebuffer.add_record(data);
+		}
 	}
 	else // atype == RAW
 	{
@@ -174,43 +176,102 @@ void fileclient::close_server()
 	close(serverfd);
 }
 
-void fileclient::wait_write() // wait until write is done
+void fileclient::wait_write(set<int>* peerids) // wait until write is done
 {
 	// flush the write buffer
 	Iwritebuffer.flush();
 	Owritebuffer.flush();
 
 	// generate request string
-	string str = "Wwrite"; // waiting message
+	string str;
+	if(peerids != NULL) // map task
+		str = "MWwrite";
+	else // reduce task
+		str = "RWwrite"; 
 
 	// send the message to the fileserver
 	memset(write_buf, 0, BUF_SIZE);
 	strcpy(write_buf, str.c_str());
 	nbwrite(serverfd, write_buf);
 
-	int read_bytes;
-	while(1)
+	if(peerids != NULL) // map task
 	{
-		read_bytes = read(serverfd, read_buf, BUF_CUT);  // use BUF_CUT as read size exceptively
-		if(read_bytes > 0)
+		// receive the node list to which idata is written
+		int readbytes;
+		while(1)
 		{
-			cout<<"[fileclient]Unexpected message while waiting close of socket during the write: "<<read_buf<<endl;
-		}
-		else if(read_bytes == 0)
-		{
-			break;
+			readbytes = nbread(serverfd, read_buf);
+			if(readbytes == 0) // closed abnormally
+			{
+				cout<<"[fileclient]Connection from file server abnormally closed"<<endl;
+			}
+			else if(readbytes > 0)
+			{
+				if(read_buf[0] == 0)
+				{
+					break;
+				}
+				else
+				{
+					char* token;
+					int id;
+					token = strtok(read_buf, " ");
+
+					while(token != NULL)
+					{
+						id = atoi(token);
+						peerids->insert(id);
+
+						// tokenize next peer id
+						token = strtok(NULL, " ");
+					}
+					break;
+				}
+			}
+			else // didn't receive packets
+			{
+				continue;
+			}
+
+			usleep(1000);
 		}
 
-		// sleeps for 1 milli second
-		usleep(1000);
+		// wait close from fileserver
+		while(1)
+		{
+			readbytes = nbread(serverfd, read_buf);
+			if(readbytes == 0) // close detected
+			{
+				break;
+			}
+			else if(readbytes > 0)
+			{
+				if(read_buf[0] == 0)
+				{
+					break;
+				}
+			}
+			usleep(1000);
+		}
+
+		close(serverfd);
+
+		return;
 	}
-	close(serverfd);
-	return;
+	else // reduce task
+	{
+		// don't need to wait for the peer ids
+		close(serverfd);
+
+		return;
+	}
 }
 
-bool fileclient::read_request(string request, datatype atype, msgaggregator* keybuffer, set<string>* reported_keys)
+bool fileclient::read_request(string request, datatype atype)
 {
 	// generate request string to send file server
+	readdatatype = atype;
+
 	string str;
 	if(atype == RAW)
 	{
@@ -270,19 +331,7 @@ bool fileclient::read_request(string request, datatype atype, msgaggregator* key
 							}
 							else // key arrived
 							{
-//cout<<"[fileclient]Ikey arrived to the file client: "<<read_buf<<endl;
-								// accept key and insert it to key buffer if its not in the list
-								char* token = strtok(read_buf, "\n"); // <- "Ikey"
-								token = strtok(NULL, "\n");
-								while(token != NULL)
-								{
-									if(reported_keys->find(token) == reported_keys->end())
-									{
-										reported_keys->insert(token);
-										keybuffer->add_record(token);
-									}
-									token = strtok(NULL, "\n");
-								}
+								cout<<"[fileclient]Unexpected message during waiting distributing idata"<<endl;
 							}
 						}
 					}
@@ -318,67 +367,128 @@ bool fileclient::read_request(string request, datatype atype, msgaggregator* key
 
 bool fileclient::read_record(string& record) // read through the socket with blocking way and token each record
 {
-	if(token != NULL)
+	if(readdatatype == RAW)
 	{
-		token = strtok(ptr, "\n");
-	}
-
-	if(token == NULL)
-	{
-		int readbytes;
-		while(1)
+		if(token != NULL)
 		{
-			readbytes = nbread(serverfd, read_buf);
-			if(readbytes == 0) // connection closed abnormally
-			{
-				cout<<"[fileclient]Connection abnormally closed"<<endl;
-				close_server();
+			token = strtok(ptr, "\n");
+		}
 
-				// return empty string
-				record = "";
-				return false;
-			}
-			else if(readbytes < 0)
+		if(token == NULL)
+		{
+			int readbytes;
+			while(1)
 			{
-				continue;
-			}
-			else // successful read
-			{
-//cout<<"\tread stream at client: "<<read_buf<<endl;
-//cout<<"\tread stream bytes: "<<readbytes<<endl;
-				if(read_buf[0] == -1) // the read stream is finished(Eread)
+				readbytes = nbread(serverfd, read_buf);
+				if(readbytes == 0) // connection closed abnormally
 				{
-//cout<<"\t\tEnd of read stream at client"<<endl;
+					cout<<"[fileclient]Connection abnormally closed"<<endl;
+					close_server();
+
+					// return empty string
 					record = "";
 					return false;
 				}
-				else
+				else if(readbytes < 0)
 				{
-					token = strtok(read_buf, "\n");
-					if(token == NULL)
+					continue;
+				}
+				else // successful read
+				{
+					//cout<<"\tread stream at client: "<<read_buf<<endl;
+					//cout<<"\tread stream bytes: "<<readbytes<<endl;
+					if(read_buf[0] == -1) // the read stream is finished(Eread)
 					{
-						continue;
+						//cout<<"\t\tEnd of read stream at client"<<endl;
+						record = "";
+						return false;
 					}
 					else
 					{
-						ptr = read_buf + strlen(token) + 1;
-						record = token;
-//cout<<"read stream at client side: "<<record<<endl;
-						return true;
+						token = strtok(read_buf, "\n");
+						if(token == NULL)
+						{
+							continue;
+						}
+						else
+						{
+							ptr = read_buf + strlen(token) + 1;
+							record = token;
+							//cout<<"read stream at client side: "<<record<<endl;
+							return true;
+						}
+					}
+					//cout<<"\033[0;32m\trecord received in client: \033[0m"<<*record<<endl;
+					//cout<<"\033[0;32m\treadbytes: \033[0m"<<readbytes<<endl;
+				}
+			}
+			return false;
+		}
+		else
+		{
+			record = token;
+			ptr = token + strlen(token) + 1;
+			//cout<<"read stream at client side: "<<record<<endl;
+			return true;
+		}
+	}
+	else // INTERMEDIATE
+	{
+		if(token != NULL)
+		{
+			token = strtok(ptr, "\n");
+		}
+
+		if(token == NULL)
+		{
+			int readbytes;
+			while(1)
+			{
+				readbytes = nbread(serverfd, read_buf);
+				if(readbytes == 0) // connection closed abnormally
+				{
+					cout<<"[fileclient]Connection abnormally closed"<<endl;
+					close_server();
+
+					// return empty string
+					record = "";
+					return false;
+				}
+				else if(readbytes < 0)
+				{
+					continue;
+					usleep(1000);
+				}
+				else // successful read
+				{
+					if(read_buf[0] == 0) // end of key
+					{
+						record = "";
+						return false;
+					}
+					else
+					{
+						token = strtok(read_buf, "\n");
+						if(token == NULL)
+						{
+							continue;
+						}
+						else
+						{
+							ptr = read_buf + strlen(token) + 1;
+							record = token;
+							return true;
+						}
 					}
 				}
-//cout<<"\033[0;32m\trecord received in client: \033[0m"<<*record<<endl;
-//cout<<"\033[0;32m\treadbytes: \033[0m"<<readbytes<<endl;
 			}
 		}
-		return false;
-	}
-	else
-	{
-		record = token;
-		ptr = token + strlen(token) + 1;
-//cout<<"read stream at client side: "<<record<<endl;
-		return true;
+		else
+		{
+			record = token;
+			ptr = token + strlen(token) + 1;
+			return true;
+		}
 	}
 }
 

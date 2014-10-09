@@ -46,14 +46,12 @@ void set_nummapper(int num); // sets number of mappers
 void set_numreducer(int num); // sets number of reducers
 
 int get_argc(void); // get user argc excepting passed pipe fd
-void report_key(int index);
 int connect_to_server(char *host, unsigned short port);
 int get_jobid();
 
 mr_role role = JOB;
 char read_buf[BUF_SIZE]; // read buffer for pipe
 char write_buf[BUF_SIZE]; // write buffer for pipe
-msgaggregator keybuffer; // a buffer for the key emission
 
 int argcount = -1;
 char** argvalues = NULL;
@@ -70,6 +68,7 @@ int completed_map = 0;
 int completed_reduce = 0;
 
 bool master_is_set = false; // check if the configure file includes master address
+bool isset_outputpath = false;
 bool isset_mapper = false;
 bool isset_reducer = false;
 bool inside_map = false; // true if the code is inside map function 
@@ -78,6 +77,10 @@ bool isIcache = false; // whether Icache option enabled
 
 char master_address[BUF_SIZE];
 vector<string> inputpaths; // list of input paths.
+
+int currentpeer = -1;
+vector<int> peerids; // list of peer ids on which the idata is located.
+vector<int> numiblocks; // list of nummber of iblocks, element of which are mathced to the peerids(vector<int>)
 //vector<string> nodelist; // list of slave node addresses
 //ifstream input; // input file stream for get_record
 //filetype inputtype = NOTOPENED; // type of the input data
@@ -87,7 +90,6 @@ string outputpath = "default_output";
 // variables for task role
 string jobdirpath;
 int taskid;
-int writeid;
 int pipefd[2]; // pipe fd when the role is map task or reduce task
 //DHTclient* dhtclient;
 fileclient thefileclient;
@@ -101,13 +103,13 @@ set<string> unreported_keys;
 void (*reducefunction) (string key); // reduce function pointer
 string nextvalue;
 string nextrecord;
+
 bool is_nextval = false;
 bool is_nextrec = false;
 
 void init_mapreduce(int argc, char** argv)
 {
 	int readbytes; // number of bytes read from pipe fd
-	keybuffer.configure_initial("key\n");
 
 	// check the arguments do determine the role
 	if(argc > 1) // check argc to avoid index out of bound
@@ -175,18 +177,6 @@ void init_mapreduce(int argc, char** argv)
 		exit(1);
 	}
 
-	/*
-	ifstream nodelistfile;
-	string filepath = LIB_PATH;
-	filepath.append("nodelist.conf");
-	nodelistfile.open(filepath.c_str());
-
-	while(!nodelistfile.eof())
-	{
-		nodelistfile>>token;
-		nodelist.push_back(token);
-	}
-	*/
 
 	if(role == JOB) // when the role is job
 	{
@@ -194,7 +184,7 @@ void init_mapreduce(int argc, char** argv)
 		argcount = argc;
 
 		masterfd = connect_to_server(master_address, port);
-		if(masterfd < 0)
+		if(masterfd <= 0)
 		{
 			cout<<"Connecting to master failed"<<endl;
 			exit(1);
@@ -267,29 +257,94 @@ void init_mapreduce(int argc, char** argv)
 		// set master fd to be nonblocking to avoid deadlock
 		fcntl(masterfd, F_SETFL, O_NONBLOCK);
 	}
-	else // when the role is map task or reduce task
+	else if(role == MAP)// when the role is map task 
 	{
-		/*
-		// read hostname from hostname file
-		ifstream hostfile;
-		string hostpath = DHT_PATH;
-		hostpath.append("hostname");
-		hostfile.open(hostpath.c_str());
-		hostfile>>localhostname;
-
-		hostfile.close();
-		*/
-
-		// run the dht client
-		//dhtclient = new DHTclient(RAVENLEADER, dhtport);
-
 		// process pipe arguments and write id
-		writeid = atoi(argv[argc-4]); // write id
 		pipefd[0] = atoi(argv[argc-3]); // read fd
 		pipefd[1] = atoi(argv[argc-2]); // write fd
-		argcount = argc - 4;
+		argcount = argc - 3;
 
-		keybuffer.set_fd(pipefd[1]);
+		// request the task configuration
+		memset(write_buf, 0, BUF_SIZE);
+		strcpy(write_buf, "requestconf");
+		nbwrite(pipefd[1], write_buf);
+
+		// blocking read until the arrival of 'taskconf' message from master
+		fcntl(pipefd[0], F_SETFL, fcntl(pipefd[0], F_GETFL) & ~O_NONBLOCK);
+		readbytes = nbread(pipefd[0], read_buf);
+
+		if(readbytes == 0)
+		{
+			cout<<"[mapreduce]The connection from slave node is abnormally closed"<<endl;
+			exit(1);
+		}
+
+		char* token;
+		token = strtok(read_buf, " "); // token <- "taskconf"
+
+		token = strtok(NULL, " "); // token <- jobid
+
+		jobid = atoi(token);
+
+		stringstream jobidss;
+
+		jobidss << ".job_";
+		jobidss << jobid;
+		jobidss << "_";
+		jobdirpath = jobidss.str();
+
+		token = strtok(NULL, " "); // token <- taskid
+
+		taskid = atoi(token);
+		// read messages from slave until getting Einput
+		while(1)
+		{
+			readbytes = nbread(pipefd[0], read_buf);
+			if(readbytes == 0)
+			{
+				cout<<"[mapreduce]Connection from slave is abnormally closed"<<endl;
+			}
+			else if(readbytes < 0)
+			{
+				cout<<"[mapreduce]A negative return from nbread with blocking read"<<endl;
+				continue;
+			}
+			else // a message
+			{
+				if(strncmp(read_buf, "inputpath", 9) == 0)
+				{
+					token = strtok(read_buf, " "); // token <- "inputpath"
+					
+					token = strtok(NULL, " "); // first path
+
+					while(token != NULL)
+					{
+						// add the input path to the task
+						inputpaths.push_back(token);
+
+						token = strtok(NULL, " ");
+					}
+				}
+				else if(strncmp(read_buf, "Einput", 6) == 0)
+				{
+					// break the while loop
+					break;
+				}
+				else
+				{
+					cout<<"[mapreduce]Unexpected message order from slave"<<endl;
+				}
+			}
+		}
+
+		fcntl(pipefd[0], F_SETFL, O_NONBLOCK);
+	}
+	else // when the role is reduce
+	{
+		// process pipe arguments and write id
+		pipefd[0] = atoi(argv[argc-3]); // read fd
+		pipefd[1] = atoi(argv[argc-2]); // write fd
+		argcount = argc - 3;
 
 		// request the task configuration
 		memset(write_buf, 0, BUF_SIZE);
@@ -343,19 +398,18 @@ void init_mapreduce(int argc, char** argv)
 				{
 					token = strtok(read_buf, " "); // token <- "inputpath"
 					
-					token = strtok(NULL, " "); // first path
+					token = strtok(NULL, " "); // first peer id
 
 					while(token != NULL)
 					{
 						// add the input path to the task
-						inputpaths.push_back(token);
+						peerids.push_back(atoi(token));
 
-						token = strtok(NULL, " ");
+						token = strtok(NULL, " "); // number of iblock
+						numiblocks.push_back(atoi(token));
+
+						token = strtok(NULL, " "); // next peer id
 					}
-				}
-				else if(strncmp(read_buf, "Einput", 6) == 0)
-				{
-					// break the while loop
 					break;
 				}
 				else
@@ -366,57 +420,6 @@ void init_mapreduce(int argc, char** argv)
 		}
 
 		fcntl(pipefd[0], F_SETFL, O_NONBLOCK);
-
-		/*
-		// parse the task configure
-		char* token;
-		token = strtok(read_buf, " "); // token <- taskconf
-
-		// check the message protocol
-		if(strncmp(token, "taskconf", 8) != 0)
-		{
-			cout<<"[mapreduce]Debugging: The message protocol has problem"<<endl;
-		}
-		else
-		{
-			while(token != NULL)
-			{
-				if(strncmp(token, "jobid", 5) == 0)
-				{
-					// register job id and set job directory path
-					stringstream jobidss;
-
-					token = strtok(NULL, " "); // token -> job id
-					jobid = atoi(token);
-
-					jobidss<<".job_";
-					jobidss<<jobid;
-					jobidss<<"_";
-					jobdirpath = jobidss.str();
-
-				}
-				else if(strncmp(token, "taskid", 6) == 0)
-				{
-					token = strtok(NULL, " "); // token -> taskid
-					taskid = atoi(token);
-				}
-				else if(strncmp(token, "inputpaths", 10) == 0)
-				{
-					int numpath;
-					token = strtok(NULL, " "); // token -> number of input paths
-					numpath = atoi(token);
-					for(int i=0;i<numpath;i++)
-					{
-						token = strtok(NULL, " ");
-						inputpaths.push_back(token);
-					}
-				}
-
-				// process next configure
-				token = strtok(NULL, " ");
-			}
-		}
-		*/
 	}
 
 	// parse user arguments
@@ -539,14 +542,14 @@ void summ_mapreduce()
 					cout<<"close failed"<<endl;
 
 					// sleeps for 1 milli seconds
-					usleep(1000);
+					usleep(100000);
 				}
 				while(close(pipefd[1]) < 0)
 				{
 					cout<<"close failed"<<endl;
 
 					// sleeps for 1 milli seconds
-					usleep(1000);
+					usleep(100000);
 				}
 				cout<<"[mapreduce]Connection to master abnormally closed"<<endl;
 				exit(0);
@@ -561,7 +564,6 @@ void summ_mapreduce()
 				else if(strncmp(read_buf, "mapcomplete", 11) == 0)
 				{
 					cout<<"[mapreduce]Map tasks are completed"<<endl;
-					cout<<"[mapreduce]Now reduce tasks are launched"<<endl;
 				}
 			}
 		}
@@ -576,7 +578,7 @@ void summ_mapreduce()
 		}
 
 		// run the mapfunction until input all inputs are processed
-		thefileclient.connect_to_server(writeid);
+		thefileclient.connect_to_server();
 
 		if(isset_mapper)
 		{
@@ -602,15 +604,29 @@ void summ_mapreduce()
 				*/
 			}
 //cout<<"[mapreduce]Finished all map tasks..."<<endl;
-			keybuffer.flush();
 		}
 
-		thefileclient.wait_write();
+		set<int> peerids;
+		thefileclient.wait_write(&peerids);
 
-		// send complete message
+		string message;
+		stringstream ss;
+
+		ss << "complete";
+
+		for(set<int>::iterator it = peerids.begin(); it != peerids.end(); it++)
+		{
+			ss << " ";
+			ss << *it;
+		}
+
+		message = ss.str();
+
+		// send complete message with peerds
 		memset(write_buf, 0, BUF_SIZE);
-		strcpy(write_buf, "complete");
+		strcpy(write_buf, message.c_str());
 		nbwrite(pipefd[1], write_buf);
+
 //cout<<"[mapreduce]Complete message sent..."<<endl;
 
 		// blocking read until the 'terminate' message
@@ -666,11 +682,29 @@ cout<<"[mapreduce]close failed"<<endl;
 			cout<<"[mapreduce]Debugging: The map or reduce function is called from the map or reduce function."<<endl;
 		}
 
-		thefileclient.connect_to_server(writeid);
+		thefileclient.connect_to_server();
 
 		// run the reduce functions until all key are processed
 		if(isset_reducer)
 		{
+			// request first key
+			currentpeer = 0;
+			string ipath;
+			stringstream ss;
+
+			ss << jobid;
+			ss << " ";
+			ss << peerids[currentpeer];
+			ss << " ";
+			ss << numiblocks[currentpeer];
+
+			ipath = ss.str();
+
+			thefileclient.read_request(ipath, INTERMEDIATE);
+
+			currentpeer++;
+
+			// run reducers
 			string key;
 			while(get_nextkey(&key))
 			{
@@ -680,7 +714,7 @@ cout<<"[mapreduce]close failed"<<endl;
 			}
 		}
 
-		thefileclient.wait_write();
+		thefileclient.wait_write(NULL);
 
 		// send complete message
 		memset(write_buf, 0, BUF_SIZE);
@@ -757,6 +791,7 @@ void add_inputpath(string path) // the path is relative path to DHT_PATH
 
 void set_outputpath(string path) // this user function can be used in anywhere but before initialization
 {
+	isset_outputpath = true;
 	outputpath = path;
 }
 
@@ -776,8 +811,7 @@ int connect_to_server(char *host, unsigned short port)
 
 	hp = gethostbyname(host);
 
-
-	if (hp == NULL)
+	if(hp == NULL)
 	{
 		cout<<"[mapreduce]Cannot find host by host name"<<endl;
 		return -1;
@@ -797,54 +831,6 @@ void write_keyvalue(string key, string value)
 	// check if thie function is called inside the map function
 	if(inside_map)
 	{
-		if(reported_keys.find(key) == reported_keys.end())
-		{
-			// send 'key' message to the slave node
-//cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
-
-			reported_keys.insert(key);
-
-			// send 'key' meesage to the slave node
-			keybuffer.add_record(key);
-
-			/*
-			memset(write_buf, 0, BUF_SIZE);
-			strcpy(write_buf, keystr.c_str());
-			while(nbwrite(pipefd[1], write_buf) < 0)
-			{
-				cout<<"[mapreduce]write to slave failed"<<endl;
-				int err = errno;
-				if(err == EAGAIN)
-				{
-					cout<<"[mapreduce]due to the EAGAIN"<<endl;
-				}
-				else if(err == EFAULT)
-				{
-					cout<<"[mapreduce]due to the EFAULT"<<endl;
-				}
-				// sleeps for 1 millisecond. change this if necessary
-				usleep(1000);
-			}
-			*/
-
-			// sleeps for 0.0001 seconds. change this if necessary
-			// usleep(100000);
-		}
-
-		/*
-		// determine the address for the data by hash function
-		string address;
-
-		// use read_buf as temporal buffer for hash function
-		memset(read_buf, 0, BUF_SIZE);
-		strcpy(read_buf, key.c_str());
-
-		uint32_t hashvalue = h(read_buf, HASHLENGTH);
-		hashvalue = hashvalue%nodelist.size();
-
-		address = nodelist[hashvalue];
-		*/
-
 		thefileclient.write_record(key, value, INTERMEDIATE);
 	}
 	else
@@ -881,16 +867,19 @@ bool get_nextinput(string& inputpath) // internal function to process next input
 		bool readsuccess = false;
 		bool cachehit = false;
 		string request;
+		stringstream ss;
 
 		// configure request message of write buffer
-		request = argvalues[0]; // app/[app name]
-		request.append(" ");
-		request.append(jobdirpath);
-		request.append(" ");
-		request.append(inputpaths.back()); // [input path]
+		ss << argvalues[0]; // app/[app name]  <- for Icache
+		ss << " ";
+		ss << jobid;
+		ss << " ";
+		ss << inputpaths.back();
 
-		// request <- app/[app name] [input path]
-		cachehit = thefileclient.read_request(request, RAW, &keybuffer, &reported_keys);
+		request = ss.str();
+
+		// request <- app/[app name] [job directory path] [input path]
+		cachehit = thefileclient.read_request(request, RAW);
 
 		while(cachehit)
 		{
@@ -901,15 +890,18 @@ bool get_nextinput(string& inputpath) // internal function to process next input
 			if(inputpaths.size() == 0)
 				return false;
 
+			stringstream ss1;
 			// configure request message of write buffer
-			request = argvalues[0]; // app/[app name]
-			request.append(" ");
-			request.append(jobdirpath);
-			request.append(" ");
-			request.append(inputpaths.back()); // [input path]
+			ss1 << argvalues[0]; // app/[app name]  <- for Icache
+			ss1 << " ";
+			ss1 << jobid;
+			ss1 << " ";
+			ss1 << inputpaths.back();
+
+			request = ss1.str();
 
 			// request <- app/[app name] [input path]
-			cachehit = thefileclient.read_request(request, RAW, &keybuffer, &reported_keys);
+			cachehit = thefileclient.read_request(request, RAW);
 		}
 		
 		thefileclient.configure_buffer_initial(jobdirpath, argvalues[0], inputpaths.back(), isIcache);
@@ -918,6 +910,7 @@ bool get_nextinput(string& inputpath) // internal function to process next input
 
 		// pre-process first record
 		readsuccess = thefileclient.read_record(nextrecord);
+
 		if(readsuccess)
 			is_nextrec = true;
 		else
@@ -964,42 +957,23 @@ bool is_nextrecord()
 
 bool get_nextkey(string* key) // internal function for the reduce
 {
-	if(inputpaths.size() == 0) // no more key
+	if(is_nextval) // if there are some remaining values of this key
 	{
-		return false;
+		// flush all values of this key
+		bool readsuccess = true;
+
+		while(readsuccess)
+		{
+			readsuccess = thefileclient.read_record(nextvalue);
+		}
 	}
-	else
+
+	// get next key
+	bool readsuccess = thefileclient.read_record(*key);
+
+	if(readsuccess) // next key exist
 	{
-		*key = inputpaths.back(); // in reduce function, inputpath name is the key
-		// request the location of the input to the dht server
-		// NOTE: for this version, we can simply call hash function
-		// rather than requesting to dht server
-
-		/*
-		   string address;
-		   string inputname = inputpaths.back();
-
-		// use read_buf as temporal buffer for hash function
-		memset(read_buf, 0, BUF_SIZE);
-		strcpy(read_buf, inputname.c_str());
-
-		uint32_t hashvalue = h(read_buf, HASHLENGTH);
-		hashvalue = hashvalue%nodelist.size();
-
-		address = nodelist[hashvalue];
-		*/
-
-		bool readsuccess = false;
-
-		string apath = jobdirpath;
-		apath.append(inputpaths.back());
-		thefileclient.read_request(apath, INTERMEDIATE, NULL, NULL);
-		thefileclient.configure_buffer_initial(jobdirpath, argvalues[0], inputpaths.back(), isIcache);
-		inputpaths.pop_back();
-
-		// pre-process first record
-		stringstream ss;
-		readsuccess = thefileclient.read_record(nextvalue); // key value record
+		readsuccess = thefileclient.read_record(nextvalue);
 
 		if(readsuccess)
 		{
@@ -1008,8 +982,60 @@ bool get_nextkey(string* key) // internal function for the reduce
 		else
 		{
 			is_nextval = false;
+			cout<<"[mapreduce]Unexpected respond after read_request(1)"<<endl;
+			cout<<"[mapreduce]key received: "<<*key<<endl;
+			return false;
 		}
+
 		return true;
+	}
+	else // no next key in this node
+	{
+		if((unsigned)currentpeer < peerids.size()) // another peer to go
+		{
+			// request to next peer
+			string ipath;
+			stringstream ss;
+
+			ss << jobid;
+			ss << " ";
+			ss << peerids[currentpeer];
+			ss << " ";
+			ss << numiblocks[currentpeer];
+
+			ipath = ss.str();
+
+			thefileclient.read_request(ipath, INTERMEDIATE);
+
+			currentpeer++;
+
+			// receive first key
+			readsuccess = thefileclient.read_record(*key);
+
+			if(readsuccess) // first key exist
+			{
+				readsuccess = thefileclient.read_record(nextvalue);
+
+				if(readsuccess)
+				{
+					is_nextval = true;
+				}
+				else
+				{
+					cout<<"[mapreduce]Unexpected respond after read_request(2)"<<endl;
+				}
+			}
+			else // no first key
+			{
+				cout<<"[mapreduce]Unexpected respond after read_request(3)"<<endl;
+			}
+
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 }
 
@@ -1034,18 +1060,23 @@ string get_nextvalue() // returns values in reduce function
 	{
 		string ret = nextvalue;
 		bool readsuccess = false;
-		readsuccess = thefileclient.read_record(nextvalue); // key value record
 
-		// pre-process first record
-		if(readsuccess)
+		if(!is_nextval) // no next value
 		{
-			is_nextval = true;
+			return "";
 		}
 		else
 		{
-			is_nextval = false;
+			readsuccess = thefileclient.read_record(nextvalue); // key value record
+
+			// pre-process first record
+			if(readsuccess)
+				is_nextval = true;
+			else
+				is_nextval = false;
+
+			return ret;
 		}
-		return ret;
 	}
 	else
 	{
@@ -1056,7 +1087,7 @@ string get_nextvalue() // returns values in reduce function
 
 void write_output(string record) // this user function can be used anywhere but after initialization
 {
-	if(outputpath == "default_output")
+	if(!isset_outputpath)
 	{
 		stringstream ss;
 		ss << "job_";

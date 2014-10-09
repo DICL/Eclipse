@@ -22,6 +22,7 @@ class filebridge
 		bridgetype dsttype; // PEER, DISK, CACHE or CLIENT
 		filepeer* dstpeer; // destination peer
 		file_connclient* dstclient; // destination client
+		idistributor* theidistributor;
 		entrywriter* dstentrywriter; // when this is not null, data should be written to the entry
 		entryreader* srcentryreader; // when the srctype is CACHE, srcentryreader should be set and it should read data from cache
 		fstream readfilestream;
@@ -35,10 +36,7 @@ class filebridge
 		//datatype dtype; // RAW, INTERMEDIATE, OUTPUT
 
 	public:
-		set<string> Ikeys;
-		msgaggregator keybuffer;
-
-		writecount* thecount;
+		writecount* thecount; // list of nodes the to which the outputs(RAW, INTERMEDIATE) are transffered
 		msgaggregator* writebuffer;
 
 		filebridge(int anid);
@@ -53,6 +51,9 @@ class filebridge
 		void set_dstclient(file_connclient* aclient);
 		void set_entryreader(entryreader* areader);
 		void set_entrywriter(entrywriter* awriter);
+		void set_distributor(idistributor* thedistributor);
+
+		idistributor* get_distributor();
 
 		void set_jobdirpath(string path);
 		string get_jobdirpath();
@@ -96,6 +97,7 @@ filebridge::filebridge(int anid)
 	srcentryreader = NULL;
 	dstentrywriter = NULL;
 	writebuffer = NULL;
+	theidistributor = NULL;
 
 	//keybuffer.configure_initial("Ikey\n");
 }
@@ -125,6 +127,16 @@ void filebridge::set_entrywriter(entrywriter* awriter)
 void filebridge::set_dstpeer(filepeer* apeer)
 {
 	this->dstpeer = apeer;
+}
+
+void filebridge::set_distributor(idistributor* thedistributor)
+{
+	theidistributor = thedistributor;
+}
+
+idistributor* filebridge::get_distributor()
+{
+	return theidistributor;
 }
 
 //void filebridge::set_role(file_role arole)

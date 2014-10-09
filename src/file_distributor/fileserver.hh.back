@@ -409,7 +409,6 @@ gettimeofday(&time_end, NULL);
 						// check whether the intermediate result is hit
 						dataentry* theentry = thecache->lookup(cachekey);
 
-
 						if(theentry == NULL) // when the intermediate result is not hit
 						{
 							cout<<"\033[0;31mLocal Icache miss\033[0m"<<endl;
@@ -519,105 +518,26 @@ gettimeofday(&time_end, NULL);
 							}
 							else // when the data is in the cache
 							{
-								if(theentry->is_being_written())
-								{
-									// determine the DHT file location
-									hashvalue = hashvalue%nodelist.size();
+								// 1. read from cache
+								// 2. and send it to client
 
-									address = nodelist[hashvalue];
+								// set a entry reader
+								entryreader* thereader = new entryreader(theentry);
 
-									if((unsigned)networkidx == hashvalue)
-									{
-										// 1. read data from disk 
-										// 2. store it in the cache 
-										// 3. send it to client
+								cout<<"\033[0;32mLocal Cache hit\033[0m"<<endl;
 
-										thebridge->set_srctype(DISK);
-										thebridge->set_dsttype(CLIENT);
-										thebridge->set_dstclient(clients[i]);
-
-										thebridge->writebuffer = new msgaggregator(clients[i]->get_fd());
-										thebridge->writebuffer->configure_initial("");
-										thebridge->writebuffer->set_msgbuf(&clients[i]->msgbuf);
-										//thebridge->set_filename(filename);
-										//thebridge->set_dataname(filename);
-										//thebridge->set_dtype(RAW);
-
-										// open read file and start sending data to client
-										thebridge->open_readfile(filename);
-									}
-									else // remote DHT peer
-									{
-										// 1. request to the DHT peer (read from peer)
-										// 2. store it in the cache
-										// 3. send it to client
-
-										thebridge->set_srctype(PEER);
-										thebridge->set_dsttype(CLIENT);
-										thebridge->set_dstclient(clients[i]);
-
-										// thebridge->set_filename(filename);
-										// thebridge->set_dataname(filename);
-										// thebridge->set_dtype(RAW);
-
-										// send message to the target peer
-										string message;
-										stringstream ss;
-										ss << "RDread ";
-										ss << filename;
-										ss << " ";
-										ss << thebridge->get_id();
-										message = ss.str();
-
-										memset(write_buf, 0, BUF_SIZE);
-										strcpy(write_buf, message.c_str());
-
-										//cout<<endl;
-										//cout<<"write from: "<<localhostname<<endl;
-										//cout<<"write to: "<<address<<endl;
-										//cout<<"message: "<<write_buf<<endl;
-										//cout<<endl;
-
-										filepeer* thepeer = find_peer(address);
-
-										if(thepeer->msgbuf.size() > 1)
-										{
-											thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
-											thepeer->msgbuf.push_back(new messagebuffer());
-										}
-										else
-										{
-											if(nbwritebuf(thepeer->get_fd(),
-														write_buf, thepeer->msgbuf.back()) <= 0)
-											{
-												thepeer->msgbuf.push_back(new messagebuffer());
-											}
-										}
-									}
-								}
-								else
-								{
-									// 1. read from cache
-									// 2. and send it to client
-
-									// set a entry reader
-									entryreader* thereader = new entryreader(theentry);
-
-									cout<<"\033[0;32m["<<networkidx<<"]Local Cache hit\033[0m"<<endl;
-
-									thebridge->set_srctype(CACHE);
-									thebridge->set_dsttype(CLIENT);
-									thebridge->set_entryreader(thereader);
-									thebridge->set_dstclient(clients[i]);
-									//thebridge->set_filename(filename);
-									//thebridge->set_dataname(filename);
-									//thebridge->set_dtype(RAW);
-								}
+								thebridge->set_srctype(CACHE);
+								thebridge->set_dsttype(CLIENT);
+								thebridge->set_entryreader(thereader);
+								thebridge->set_dstclient(clients[i]);
+								//thebridge->set_filename(filename);
+								//thebridge->set_dataname(filename);
+								//thebridge->set_dtype(RAW);
 							}
 						}
 						else // intermediate result hit
 						{
-							cout<<"\033[0;32m["<<networkidx<<"]Local Icache hit\033[0m"<<endl;
+							cout<<"\033[0;32mLocal Icache hit\033[0m"<<endl;
 //cout<<"[fileserver:"<<networkidx<<"]Cachekey hit: "<<cachekey<<endl;
 							// send 1 packet to the client to notify that Icache is hit
 							memset(write_buf, 0, BUF_CUT);
@@ -645,6 +565,7 @@ gettimeofday(&time_end, NULL);
 							thebridge->set_dstclient(clients[i]); // to notify the end of distribution
 							thebridge->set_distributor(thedistributor);
 							thebridge->set_entryreader(thereader);
+cout<<"\033[0;32mLocal Icache hit end\033[0m"<<endl;
 						}
 
 						/*
@@ -1165,7 +1086,6 @@ gettimeofday(&time_end, NULL);
 				}
 				else if(strncmp(read_buf, "MWwrite", 7) == 0)
 				{
-//cout<<"MWwrite"<<endl;
 					// flush and clear the distributor
 					if(clients[i]->thedistributor != NULL)
 					{
@@ -1391,9 +1311,7 @@ gettimeofday(&time_end, NULL);
 					bridgeid = token;
 					dstid = atoi(token);
 
-					// TODO: restore the remote Icache!!!
-					//dataentry* theentry = thecache->lookup(cachekey);
-					dataentry* theentry = NULL;
+					dataentry* theentry = thecache->lookup(cachekey);
 
 					if(theentry == NULL) // when the intermediate result is not hit
 					{
@@ -1506,95 +1424,19 @@ gettimeofday(&time_end, NULL);
 						}
 						else // raw input data is hit
 						{
-							if(theentry->is_being_written())
-							{
-								cout<<"\033[0;31mRemote Cache miss\033[0m"<<endl;
+							cout<<"\033[0;32mRemote Cache hit\033[0m"<<endl;
 
-								// determine the hash value
-								memset(write_buf, 0, HASHLENGTH);
-								strcpy(write_buf, filename.c_str());
-								uint32_t hashvalue = h(write_buf, HASHLENGTH);
+							// prepare the read stream from cache
+							entryreader* thereader = new entryreader(theentry);
 
-								// determine the DHT file location
-								int index = hashvalue%nodelist.size();
+							filebridge* thebridge = new filebridge(fbidclock++);
+							bridges.push_back(thebridge);
 
-								string address = nodelist[index];
-
-								if(networkidx == index) // local DHT file
-								{
-									filebridge* thebridge = new filebridge(fbidclock++);
-									bridges.push_back(thebridge);
-
-									thebridge->set_srctype(DISK);
-									thebridge->set_dsttype(PEER);
-									thebridge->set_dstpeer(peers[i]);
-									thebridge->set_dstid(dstid);
-
-									thebridge->writebuffer = new msgaggregator(peers[i]->get_fd());
-									bridgeid.append("\n");
-									thebridge->writebuffer->configure_initial(bridgeid);
-									thebridge->writebuffer->set_msgbuf(&peers[i]->msgbuf);
-
-									// open read file and start sending data to peer
-									thebridge->open_readfile(filename);
-								}
-								else // remote DHT file
-								{
-									filebridge* thebridge = new filebridge(fbidclock++);
-									bridges.push_back(thebridge);
-
-									thebridge->set_srctype(PEER);
-									thebridge->set_dsttype(PEER);
-									thebridge->set_dstpeer(peers[i]);
-									thebridge->set_dstid(dstid);
-
-									// send message to the target peer
-									string message;
-									stringstream ss;
-									ss << "RDread ";
-									ss << filename;
-									ss << " ";
-									ss << thebridge->get_id();
-									message = ss.str();
-
-									memset(write_buf, 0, BUF_SIZE);
-									strcpy(write_buf, message.c_str());
-
-									filepeer* thepeer = peers[index];
-
-									if(thepeer->msgbuf.size() > 1)
-									{
-										thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
-										thepeer->msgbuf.push_back(new messagebuffer());
-										//continue; // escape the acceleration loop
-									}
-									else
-									{
-										if(nbwritebuf(thepeer->get_fd(),
-													write_buf, thepeer->msgbuf.back()) <= 0)
-										{
-											thepeer->msgbuf.push_back(new messagebuffer());
-											//continue; // escape the acceleration loop
-										}
-									}
-								}
-							}
-							else
-							{
-								cout<<"\033[0;32m["<<networkidx<<"]Remote Cache hit\033[0m"<<endl;
-
-								// prepare the read stream from cache
-								entryreader* thereader = new entryreader(theentry);
-
-								filebridge* thebridge = new filebridge(fbidclock++);
-								bridges.push_back(thebridge);
-
-								thebridge->set_srctype(CACHE);
-								thebridge->set_dsttype(PEER);
-								thebridge->set_entryreader(thereader);
-								thebridge->set_dstpeer(peers[i]);
-								thebridge->set_dstid(dstid);
-							}
+							thebridge->set_srctype(CACHE);
+							thebridge->set_dsttype(PEER);
+							thebridge->set_entryreader(thereader);
+							thebridge->set_dstpeer(peers[i]);
+							thebridge->set_dstid(dstid);
 						}
 					}
 					else // when the intermediate result is hit
@@ -1882,7 +1724,7 @@ gettimeofday(&time_end, NULL);
 				}
 				else if(strncmp(read_buf, "Wack", 4) == 0)
 				{
-//cout<<"Wack"<<endl;
+//cout<<"\t\tWack"<<endl;
 					string message;
 					char* token;
 
@@ -2162,7 +2004,7 @@ gettimeofday(&time_end, NULL);
 				}
 				else if(strncmp(read_buf, "Ihit", 4) == 0)
 				{
-					cout<<"\033[0;32m["<<networkidx<<"]Remote Icache hit\033[0m"<<endl;
+					cout<<"\033[0;32mRemote Icache hit\033[0m"<<endl;
 
 					char* token;
 					int dstid;
@@ -2482,96 +2324,226 @@ gettimeofday(&time_end, NULL);
 
 							writecount* thecount = bridges[i]->get_dstclient()->thecount;
 
-							// TODO: if dstpeer exists, thecount should be from bridge itself, not from client
-							// abc
-
-							if(bridges[i]->get_dstpeer() != NULL)
+							if(thecount->peerids.size() == 0)
 							{
-								filepeer* thepeer = bridges[i]->get_dstpeer();
-
-								// send Edist message to the dstpeer
-								string message;
-								stringstream ss;
-								ss << "Edist ";
-								ss << bridges[i]->get_dstid();
-
-								// add to the ss the writecount peer information
-								for(set<int>::iterator it = thecount->peerids.begin(); it != thecount->peerids.end(); it++)
+								// notify end of DISTRIBUTE to the dstclient(dstpeer)
+								if(bridges[i]->get_dstpeer() != NULL)
 								{
-									ss << " ";
-									ss << *it;
-								}
+									filepeer* thepeer = bridges[i]->get_dstpeer();
 
-								message = ss.str();
-								memset(write_buf, 0, BUF_SIZE);
-								strcpy(write_buf, message.c_str());
+									// send Edist message to the dstpeer
+									string message;
+									stringstream ss;
+									ss << "Edist ";
+									ss << bridges[i]->get_dstid();
 
-								if(thepeer->msgbuf.size() > 1)
-								{
-									thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
-									thepeer->msgbuf.push_back(new messagebuffer());
-								}
-								else
-								{
-									if(nbwritebuf(thepeer->get_fd(),
-												write_buf, thepeer->msgbuf.back()) <= 0)
+									// add to the ss the writecount peer information
+									for(set<int>::iterator it = thecount->peerids.begin(); it != thecount->peerids.end(); it++)
 									{
+										ss << " ";
+										ss << *it;
+									}
+
+									message = ss.str();
+									memset(write_buf, 0, BUF_SIZE);
+									strcpy(write_buf, message.c_str());
+
+									if(thepeer->msgbuf.size() > 1)
+									{
+										thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
 										thepeer->msgbuf.push_back(new messagebuffer());
 									}
-								}
-
-								// clear the entry reader
-								if(bridges[i]->get_entryreader() != NULL)
-								{
-									delete bridges[i]->get_entryreader();
-									bridges[i]->set_entryreader(NULL);
-								}
-							}
-							else if(bridges[i]->get_dstclient() != NULL)
-							{
-								// notify the end of DISTRIBUTE to the dstclient
-								memset(write_buf, 0, BUF_CUT);
-								write_buf[0] = 1;
-
-								// determine clientidx
-								int clientidx = -1;
-
-								for(int j = 0; (unsigned)j < clients.size(); j++)
-								{
-									if(clients[j] == bridges[i]->get_dstclient())
+									else
 									{
-										clientidx = j;
-										break;
+										if(nbwritebuf(thepeer->get_fd(),
+													write_buf, thepeer->msgbuf.back()) <= 0)
+										{
+											thepeer->msgbuf.push_back(new messagebuffer());
+										}
+									}
+
+									// clear the entry reader
+									if(bridges[i]->get_entryreader() != NULL)
+									{
+										delete bridges[i]->get_entryreader();
+										bridges[i]->set_entryreader(NULL);
 									}
 								}
-
-								if(clientidx == -1)
+								else if(bridges[i]->get_dstclient() != NULL)
 								{
-									cout<<"[fileserver:"<<networkidx<<"]Cannot find such client"<<endl;
-								}
+									abc;
+									// notify the end of DISTRIBUTE to the dstclient
+									memset(write_buf, 0, BUF_CUT);
+									write_buf[0] = 1;
 
-								if(clients[clientidx]->msgbuf.size() > 1)
-								{
-									clients[clientidx]->msgbuf.back()->set_buffer(write_buf, clients[clientidx]->get_fd());
-									clients[clientidx]->msgbuf.push_back(new messagebuffer());
+									// determine clientidx
+									int clientidx = -1;
+
+									for(int j = 0; (unsigned)j < clients.size(); j++)
+									{
+										if(clients[j] == bridges[i]->get_dstclient())
+										{
+											clientidx = j;
+											break;
+										}
+									}
+
+									if(clientidx == -1)
+									{
+										cout<<"[fileserver:"<<networkidx<<"]Cannot find such client"<<endl;
+									}
+
+									if(clients[clientidx]->msgbuf.size() > 1)
+									{
+										clients[clientidx]->msgbuf.back()->set_buffer(write_buf, clients[clientidx]->get_fd());
+										clients[clientidx]->msgbuf.push_back(new messagebuffer());
+									}
+									else
+									{
+										if(nbwritebuf(clients[clientidx]->get_fd(), write_buf, clients[clientidx]->msgbuf.back()) <= 0)
+										{
+											clients[clientidx]->msgbuf.push_back(new messagebuffer());
+										}
+									}
 								}
 								else
 								{
-									if(nbwritebuf(clients[clientidx]->get_fd(), write_buf, clients[clientidx]->msgbuf.back()) <= 0)
-									{
-										clients[clientidx]->msgbuf.push_back(new messagebuffer());
-									}
+									cout<<"Neither dstclient nor dstpeer are set"<<endl;
 								}
+
+								// clear the bridge
+								delete bridges[i];
+								bridges.erase(bridges.begin() + i);
+								i--;
 							}
 							else
 							{
-								cout<<"Neither dstclient nor dstpeer are set"<<endl;
+								// send message to the target peer
+								string message;
+								stringstream ss;
+								ss << "IWack ";
+								ss << bridges[i]->get_id();
+								message = ss.str();
+
+								memset(write_buf, 0, BUF_SIZE);
+								strcpy(write_buf, message.c_str());
+
+								for(set<int>::iterator it = thecount->peerids.begin(); it != thecount->peerids.end(); it++)
+								{
+									filepeer* thepeer = peers[*it];
+
+									if(*it != networkidx)
+									{
+										if(thepeer->msgbuf.size() > 1)
+										{
+											thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
+											thepeer->msgbuf.push_back(new messagebuffer());
+										}
+										else
+										{
+											if(nbwritebuf(thepeer->get_fd(), 
+														write_buf, thepeer->msgbuf.back()) <= 0)
+											{
+												thepeer->msgbuf.push_back(new messagebuffer());
+											}
+										}
+									}
+								}
+
+								//thecount->clear_peer(networkidx);
+
+								if(thecount->size() == 0)
+								{
+									if(bridges[i]->get_dstpeer() != NULL)
+									{
+										filepeer* thepeer = bridges[i]->get_dstpeer();
+
+										// send Edist message to the dstpeer
+										string message;
+										stringstream ss;
+										ss << "Edist ";
+										ss << bridges[i]->get_dstid();
+
+										// add to the ss the writecount peer information
+										for(set<int>::iterator it = thecount->peerids.begin(); it != thecount->peerids.end(); it++)
+										{
+											ss << " ";
+											ss << *it;
+										}
+
+										message = ss.str();
+										memset(write_buf, 0, BUF_SIZE);
+										strcpy(write_buf, message.c_str());
+
+										if(thepeer->msgbuf.size() > 1)
+										{
+											thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
+											thepeer->msgbuf.push_back(new messagebuffer());
+										}
+										else
+										{
+											if(nbwritebuf(thepeer->get_fd(),
+														write_buf, thepeer->msgbuf.back()) <= 0)
+											{
+												thepeer->msgbuf.push_back(new messagebuffer());
+											}
+										}
+
+										// clear the entry reader
+										if(bridges[i]->get_entryreader() != NULL)
+										{
+											delete bridges[i]->get_entryreader();
+											bridges[i]->set_entryreader(NULL);
+										}
+									}
+									else if(bridges[i]->get_dstclient() != NULL)
+									{
+										// notify the end of DISTRIBUTE to the dstclient
+										memset(write_buf, 0, BUF_CUT);
+										write_buf[0] = 1;
+
+										// determine clientidx
+										int clientidx = -1;
+
+										for(int j = 0; (unsigned)j < clients.size(); j++)
+										{
+											if(clients[j] == bridges[i]->get_dstclient())
+											{
+												clientidx = j;
+												break;
+											}
+										}
+
+										if(clientidx == -1)
+										{
+											cout<<"[fileserver:"<<networkidx<<"]Cannot find such client"<<endl;
+										}
+
+										if(clients[clientidx]->msgbuf.size() > 1)
+										{
+											clients[clientidx]->msgbuf.back()->set_buffer(write_buf, clients[clientidx]->get_fd());
+											clients[clientidx]->msgbuf.push_back(new messagebuffer());
+										}
+										else
+										{
+											if(nbwritebuf(clients[clientidx]->get_fd(), write_buf, clients[clientidx]->msgbuf.back()) <= 0)
+											{
+												clients[clientidx]->msgbuf.push_back(new messagebuffer());
+											}
+										}
+									}
+
+									// clear the entry reader
+									if(bridges[i]->get_entryreader() != NULL)
+									{
+										delete bridges[i]->get_entryreader();
+										bridges[i]->set_entryreader(NULL);
+									}
+								}
 							}
 
-							// clear the bridge
-							delete bridges[i];
-							bridges.erase(bridges.begin() + i);
-							i--;
+							// mark the source to PEER to avoid sending IWack again
+							bridges[i]->set_srctype(PEER);
 						}
 					}
 					else
@@ -3194,7 +3166,6 @@ gettimeofday(&time_end, NULL);
 						if(iwriters[i]->get_jobid() == jobid)
 						{
 							iwriters[i]->flush();
-							break;
 						}
 					}
 				}

@@ -7,6 +7,7 @@
 #include <orthrus/dataentry.hh>
 #include <file_distributor/filepeer.hh>
 #include "messagebuffer.hh"
+#include "idistributor.hh"
 #include "writecount.hh"
 #include <mapreduce/definitions.hh>
 
@@ -23,6 +24,7 @@ class file_connclient
 		//file_role role;
 
 	public:
+		idistributor* thedistributor;
 		writecount* thecount;
 		vector<messagebuffer*> msgbuf;
 
@@ -52,6 +54,7 @@ file_connclient::file_connclient(int number)
 	thecount = NULL;
 	Icachewriter = NULL;
 	Itargetpeer = NULL;
+	thedistributor = NULL;
 	dstid = -1;
 	//this->writeid = -1;
 	//this->role = UNDEFINED;
@@ -84,6 +87,11 @@ file_connclient::~file_connclient()
 	{
 		Icachewriter->complete();
 		delete Icachewriter;
+	}
+
+	if(thedistributor != NULL)
+	{
+		delete thedistributor;
 	}
 }
 

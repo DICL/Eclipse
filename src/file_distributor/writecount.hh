@@ -9,31 +9,18 @@ using namespace std;
 class writecount
 {
 	private:
-		int writeid;
-
 	public:
 		set<int> peerids;
 
-		writecount(int anid);
-		int get_id();
-		void set_id(int num);
+		writecount();
+		int size();
 		bool add_peer(int peerid);
 		bool clear_peer(int peerid);
 };
 
-writecount::writecount(int anid)
+writecount::writecount()
 {
-	writeid = anid;
-}
-
-int writecount::get_id()
-{
-	return writeid;
-}
-
-void writecount::set_id(int num)
-{
-	writeid = num;
+	// do nothing
 }
 
 bool writecount::add_peer(int peerid)
@@ -51,9 +38,18 @@ bool writecount::clear_peer(int peerid)
 {
 	int ret = peerids.erase(peerid);
 	if(ret == 1)
+	{
 		return true;
+	}
 	else
+	{
 		return false;
+	}
+}
+
+int writecount::size()
+{
+	return peerids.size();
 }
 
 #endif

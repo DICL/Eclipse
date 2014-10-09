@@ -44,6 +44,18 @@ int max_job = -1;
 int jobidclock = 0; // job id starts 0
 bool thread_continue;
 
+
+
+
+
+
+
+
+
+
+
+
+
 vector<string> nodelist;
 
 char read_buf[BUF_SIZE]; // read buffer for signal_listener thread
@@ -152,6 +164,8 @@ int main(int argc, char** argv)
 
 	int connectioncount = 0;
 
+	int buffersize = 8388608; // 8 MB buffer
+
 	while(1) // receives connection from slaves
 	{
 		int fd;
@@ -186,7 +200,13 @@ int main(int argc, char** argv)
 					if(slaves[i]->get_address() == haddrp)
 					{
 						slaves[i]->setfd(fd);
-						slaves[i]->setmaxtask(TASK_SLOT);
+						slaves[i]->setmaxmaptask(MAP_SLOT);
+						slaves[i]->setmaxreducetask(REDUCE_SLOT);
+
+						fcntl(fd, F_SETFL, O_NONBLOCK);
+						setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t)sizeof(buffersize));
+						setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t)sizeof(buffersize));
+
 						connectioncount++;
 						break;
 					}
@@ -233,7 +253,6 @@ int main(int argc, char** argv)
 		}
 	}
 
-	int buffersize = 8388608; // 8 MB buffer
 	struct sockaddr_un serveraddr;
 
 	// SOCK_STREAM -> tcp
@@ -257,7 +276,6 @@ int main(int argc, char** argv)
 	fcntl(ipcfd, F_SETFL, O_NONBLOCK);
 	setsockopt(ipcfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t)sizeof(buffersize));
 	setsockopt(ipcfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t)sizeof(buffersize));
-
 
 	//dhtclient = new DHTclient(RAVENLEADER, dhtport);
 
@@ -423,6 +441,10 @@ void* signal_listener(void* args)
 			}
 			else // signal from the slave
 			{
+				// remove below "key" part
+				// remove below "key" part
+				// remove below "key" part
+				/*
 				if(strncmp(read_buf, "key", 3) == 0) // key signal arrived
 				{
 					char* token;
@@ -438,6 +460,27 @@ void* signal_listener(void* args)
 					{
 						thejob->add_key(token); // token 
 						token = strtok(NULL, "\n");
+					}
+				}
+				*/
+				if(strncmp(read_buf, "peerids", 7) == 0)
+				{
+					char* token;
+
+					master_job* thejob;
+
+					token = strtok(read_buf, " "); // token <- "peerids"
+					token = strtok(NULL, " "); // token <- jobid
+
+					thejob = find_jobfromid(atoi(token));
+
+					// token first ids
+					token = strtok(NULL, " ");
+
+					while(token != NULL)
+					{
+						thejob->peerids.insert(atoi(token));
+						token = strtok(NULL, " "); // good
 					}
 				}
 				else if(strncmp(read_buf, "taskcomplete", 12) == 0) // "taskcomplete" signal arrived
@@ -459,6 +502,9 @@ void* signal_listener(void* args)
 					thejob = find_jobfromid(ajobid);
 					thetask = thejob->find_taskfromid(ataskid);
 					thejob->finish_task(thetask, slaves[i]);
+
+					cout<<"[master]A task completed(jobid: "<<ajobid<<", "<<thejob->get_numcompleted_tasks();
+					cout<<"/"<<thejob->get_numtasks()<<")"<<endl;
 				}
 				else
 				{
@@ -592,7 +638,7 @@ void* signal_listener(void* args)
 					int numtasks = 0;
 					for(int j=0;(unsigned)j<jobs.size();j++)
 					{
-						numtasks += jobs[j]->get_numtasks();
+						numtasks += jobs[j]->get_numrunning_tasks();
 					}
 					ss<<numtasks;
 					ostring.append(ss.str());
@@ -647,8 +693,6 @@ void* signal_listener(void* args)
 					char* token;
 					token = strtok(read_buf, " "); // token -> jobconf
 					token = strtok(NULL, " "); // token -> number of inputpaths
-
-					jobs[i]->setconf();
 
 					// parse all configure
 					while(token != NULL)
@@ -773,7 +817,7 @@ void* signal_listener(void* args)
 						}
 					}
 
-					// set job status as MAP_STAGE
+					// set job stage as MAP_STAGE
 					jobs[i]->set_stage(MAP_STAGE);
 				}
 				else // undefined signal
@@ -783,78 +827,147 @@ void* signal_listener(void* args)
 			}
 
 			// check if all task finished
-			if(jobs[i]->is_confset())
+			if(jobs[i]->get_numtasks() == jobs[i]->get_numcompleted_tasks())
 			{
-				if(jobs[i]->get_numtasks() == jobs[i]->get_numcompleted_tasks())
+				if(jobs[i]->get_stage() == MAP_STAGE) // if map stage is finished
 				{
-					if(jobs[i]->get_stage() == MAP_STAGE) // if map stage is finished
+					if(jobs[i]->status == TASK_FINISHED) // information of numblock is gathered
 					{
 						// send message to the job to inform that map phase is completed
 						memset(write_buf, 0, BUF_SIZE);
 						strcpy(write_buf, "mapcomplete");
 						nbwrite(jobs[i]->getjobfd(), write_buf);
 
-						cout<<"[master]Number of keys generated from map phase: "<<jobs[i]->get_numkey()<<endl;
+						// request to the cache the flush of each iwriter and information of numblock from each peer
+						stringstream ss;
+						string message;
 
-						int numreducetasks = 0;
-						if(jobs[i]->getnumreduce() > jobs[i]->get_numkey() || jobs[i]->getnumreduce() == 0)
-							numreducetasks = jobs[i]->get_numkey();
-						else
-							numreducetasks = jobs[i]->getnumreduce();
+						ss << "iwritefinish ";
+						ss << jobs[i]->getjobid();
+
+						// append peer ids to ss
+						for(set<int>::iterator it = jobs[i]->peerids.begin(); it != jobs[i]->peerids.end(); it++)
+						{
+							ss << " ";
+							ss << *it;
+						}
+						
+						message = ss.str();
+
+						// send the message to the cache server
+						memset(write_buf, 0, BUF_SIZE);
+						strcpy(write_buf, message.c_str());
+						nbwrite(ipcfd, write_buf);
+
+						jobs[i]->status = REQUEST_SENT;
+					}
+					else if(jobs[i]->status == REQUEST_SENT)
+					{
+						// do nothing(just wait for the respond)
+					}
+					else // status == RESPOND_RECEIVED
+					{
+						// determine the number of reducers
+						if(jobs[i]->getnumreduce() <= 0)
+						{
+							jobs[i]->setnumreduce(jobs[i]->peerids.size());
+						}
+						else if((unsigned)jobs[i]->getnumreduce() > jobs[i]->peerids.size())
+						{
+							// TODO: enable much more number of reducers
+							jobs[i]->setnumreduce(jobs[i]->peerids.size());
+						}
 
 
-						for(int j = 0; j < numreducetasks; j++)
+						// generate reduce tasks and feed each reducer dedicated peer with numblock information
+
+						for(int j = 0; j < jobs[i]->getnumreduce(); j++)
 						{
 							master_task* newtask = new master_task(jobs[i], REDUCE);
 							jobs[i]->add_task(newtask);
 						}
 
+						int index = 0;
 						int iteration = 0;
-						for(set<string>::iterator it = jobs[i]->get_keybegin(); it != jobs[i]->get_keyend(); it++)
+
+						// while all peerids are given to reducers
+						for(set<int>::iterator it = jobs[i]->peerids.begin(); it != jobs[i]->peerids.end(); it++)
 						{
-							jobs[i]->get_waitingtask(iteration)->add_inputpath(*it);
+							jobs[i]->get_waitingtask(iteration)->numiblocks.push_back(jobs[i]->numiblocks[index]);
+							jobs[i]->get_waitingtask(iteration)->peerids.push_back(*it);
+
+							index++;
 							iteration++;
 
-							if(iteration >= numreducetasks)
+							if(iteration >= jobs[i]->getnumreduce())
 								iteration = 0;
 						}
 
 						jobs[i]->set_stage(REDUCE_STAGE);
+					}
+				}
+				else if(jobs[i]->get_stage() == REDUCE_STAGE) // if reduce stage is finished
+				{
+					// send message to the job to complete the job
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, "complete");
+					nbwrite(jobs[i]->getjobfd(), write_buf);
+					cout<<"[master]Job "<<jobs[i]->getjobid()<<" completed successfully"<<endl;
 
-						/*
-						// fork reduce tasks
-						for(set<string>::iterator it = jobs[i]->get_keybegin();it != jobs[i]->get_keyend(); it++)
+					jobs[i]->set_stage(COMPLETED_STAGE);
+					// clear the job from the vector and finish
+					delete jobs[i];
+					jobs.erase(jobs.begin()+i);
+					i--;
+
+					continue;
+				}
+				else
+				{
+					// pass the case for INITIAL_STAGE and COMPLETED_STAGE
+				}
+			}
+		}
+
+		// receive message from cache server
+		readbytes = nbread(ipcfd, read_buf);
+
+		if(readbytes > 0)
+		{
+			if(strncmp(read_buf, "numblocks", 9) == 0)
+			{
+				char* token;
+				int jobid;
+				token = strtok(read_buf, " "); // token: "numblocks"
+				token = strtok(NULL, " "); // token: jobid
+				jobid = atoi(token);
+				token = strtok(NULL, " "); // first number of block
+
+				for(int i = 0; jobs.size(); i++)
+				{
+					if(jobs[i]->getjobid() == jobid)
+					{
+						while(token != NULL)
 						{
-							master_task* newtask = new master_task(jobs[i], REDUCE);
-							jobs[i]->add_task(newtask);
-							newtask->add_inputpath(*it);
+							jobs[i]->numiblocks.push_back(atoi(token));
+
+							token = strtok(NULL, " ");
 						}
-						jobs[i]->set_stage(REDUCE_STAGE);
-						*/
-					}
-					else if(jobs[i]->get_stage() == REDUCE_STAGE) // if reduce stage is finished
-					{
-						// send message to the job to complete the job
-						memset(write_buf, 0, BUF_SIZE);
-						strcpy(write_buf, "complete");
-						nbwrite(jobs[i]->getjobfd(), write_buf);
-						cout<<"[master]Job "<<jobs[i]->getjobid()<<" completed successfully"<<endl;
 
-						jobs[i]->set_stage(COMPLETED_STAGE);
-						// clear the job from the vector and finish
-						delete jobs[i];
-						jobs.erase(jobs.begin()+i);
-						i--;
 
-						continue;
-					}
-					else
-					{
-						// pass the case for INITIAL_STAGE and COMPLETED_STAGE
+						jobs[i]->status = RESPOND_RECEIVED;
+						break;
 					}
 				}
 			}
 		}
+		else if(readbytes == 0)
+		{
+			cout<<"[master]Connection to cache server abnormally closed"<<endl;
+			usleep(100000);
+		}
+
+
 
 		// process and schedule jobs and tasks
 
@@ -959,142 +1072,47 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 			if(jobs[i]->get_lastwaitingtask() == NULL)
 				continue;
 
-			master_task* thetask = jobs[i]->get_lastwaitingtask();
-			string thepath = thetask->get_inputpath(0); // first input as a representative input
-			string address; 
-			stringstream tmpss;
-
-			memset(write_buf, 0, HASHLENGTH);
-			strcpy(write_buf, thepath.c_str());
-
-			// determine the hash value and count the query
-			uint32_t hashvalue = h(write_buf, HASHLENGTH);
-			nodeindex = thehistogram->get_index(hashvalue);
-
-			thehistogram->count_query(hashvalue);
-
-			if(slaves[nodeindex]->getnumrunningtasks() >= slaves[nodeindex]->getmaxtask()) // no available task slot
-				continue;
-
-			// write to the slave the task information
-			stringstream ss;
-			ss << "tasksubmit ";
-			ss << jobs[i]->getjobid();
-			ss << " ";
-			ss << thetask->gettaskid();
-			ss << " ";
-			if(thetask->get_taskrole() == MAP)
-				ss << "MAP";
-			else if(thetask->get_taskrole() == REDUCE)
-				ss << "REDUCE";
-
-			ss << " ";
-			ss << thetask->get_job()->getargcount();
-
-			// NOTE: there should be at least 1 arguments(program path name)
-			ss << " ";
-
-			for(int j = 0; j < thetask->get_job()->getargcount(); j++)
+			for(int k = 0; k < jobs[i]->get_numwaiting_tasks(); k++)
 			{
-				ss << " ";
-				ss << thetask->get_job()->getargvalue(j);
-			}
-
-			string message = ss.str();
-
-			memset(write_buf, 0, BUF_SIZE);
-			strcpy(write_buf, message.c_str());
-			nbwrite(slaves[nodeindex]->getfd(), write_buf);
-
-			// prepare inputpath message
-			int iter = 0;
-			message = "inputpath";
-
-			while(iter < thetask->get_numinputpaths())
-			{
-				if(message.length() + thetask->get_inputpath(iter).length() + 1 < BUF_SIZE)
+				master_task* thetask = jobs[i]->get_waitingtask(k);
+				if(thetask->get_taskrole() == MAP)
 				{
-					message.append(" ");
-					message.append(thetask->get_inputpath(iter));
-				}
-				else
-				{
-					if(thetask->get_inputpath(iter).length() + 10 > BUF_SIZE)
-						cout<<"[master]The length of inputpath exceeded the limit"<<endl;
+					string thepath = thetask->get_inputpath(0); // first input as a representative input
+					string address; 
+					stringstream tmpss;
 
-					// send message to slave
-					memset(write_buf, 0, BUF_SIZE);
-					strcpy(write_buf, message.c_str());
-					nbwrite(slaves[nodeindex]->getfd(), write_buf);
+					memset(write_buf, 0, HASHLENGTH);
+					strcpy(write_buf, thepath.c_str());
 
-					message = "inputpath ";
-					message.append(thetask->get_inputpath(iter));
-				}
-				iter++;
-			}
+					// determine the hash value and count the query
+					uint32_t hashvalue = h(write_buf, HASHLENGTH);
+					nodeindex = thehistogram->get_index(hashvalue);
 
-			// send remaining paths
-			if(message.length() > strlen("inputpath "))
-			{
-				memset(write_buf, 0, BUF_SIZE);
-				strcpy(write_buf, message.c_str());
-				nbwrite(slaves[nodeindex]->getfd(), write_buf);
-			}
+					if(slaves[nodeindex]->getnumrunningtasks() >= slaves[nodeindex]->getmaxmaptask()) // choose alternative slot
+						continue;
+					/*
+					if(slaves[nodeindex]->getnumrunningtasks() >= slaves[nodeindex]->getmaxmaptask()) // choose alternative slot
+					{
+						nodeindex = -1;
+						for(int h = 0; (unsigned)h < slaves.size(); h++)
+						{
+							if(slaves[h]->getnumrunningtasks() >= slaves[h]->getmaxmaptask())
+							{
+								continue;
+							}
+							else
+							{
+								nodeindex = h;
+								break;
+							}
+						}
+						if(nodeindex == -1)
+							continue;
+					}
+					*/
 
-			// notify end of inputpaths
-			memset(write_buf, 0, BUF_SIZE);
-			strcpy(write_buf, "Einput");
-			nbwrite(slaves[nodeindex]->getfd(), write_buf);
+					thehistogram->count_query(hashvalue);
 
-			// forward waiting task to salve slot
-			jobs[i]->schedule_task(thetask, slaves[nodeindex]);
-
-
-
-
-/*
-jobs[i]->scheduled++;
-if(jobs[i]->get_numtasks() == jobs[i]->scheduled)
-{
-	memset(write_buf, 0, BUF_SIZE);
-	strcpy(write_buf, "complete");
-	nbwrite(jobs[i]->getjobfd(), write_buf);
-	cout<<"[master]Job "<<jobs[i]->getjobid()<<" completed successfully"<<endl;
-
-	jobs[i]->set_stage(COMPLETED_STAGE);
-	// clear the job from the vector and finish
-	delete jobs[i];
-	jobs.erase(jobs.begin()+i);
-}
-i--;
-*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-			continue;
-
-			/*
-			hashvalue = (hashvalue)%nodelist.size();
-			address = nodelist[hashvalue];
-
-			// seek the target slave in which the input file is located on
-			for(int j = 0; (unsigned)j < slaves.size(); j++)
-			{
-				if(address == slaves[j]->get_address()) // if the slave is target slave
-				{
-					if(slaves[j]->getnumrunningtasks() >= slaves[j]->getmaxtask()) // no available task slot
-						break;
-						
 					// write to the slave the task information
 					stringstream ss;
 					ss << "tasksubmit ";
@@ -1102,31 +1120,21 @@ i--;
 					ss << " ";
 					ss << thetask->gettaskid();
 					ss << " ";
-					if(thetask->get_taskrole() == MAP)
-						ss << "MAP";
-					else if(thetask->get_taskrole() == REDUCE)
-						ss << "REDUCE";
-else
-cout<<"[master]Debugging: the role of the task not defined in the initialization step";
-
-
+					ss << "MAP";
 					ss << " ";
 					ss << thetask->get_job()->getargcount();
 
-					// NOTE: there should be at least 1 arguments(program path name)
-					ss << " ";
-
-					for(int k=0;k<thetask->get_job()->getargcount();k++)
+					for(int j = 0; j < thetask->get_job()->getargcount(); j++)
 					{
-						ss<<" ";
-						ss<<thetask->get_job()->getargvalue(k);
+						ss << " ";
+						ss << thetask->get_job()->getargvalue(j);
 					}
 
 					string message = ss.str();
 
 					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, message.c_str());
-					nbwrite(slaves[j]->getfd(), write_buf);
+					nbwrite(slaves[nodeindex]->getfd(), write_buf);
 
 					// prepare inputpath message
 					int iter = 0;
@@ -1134,7 +1142,7 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 
 					while(iter < thetask->get_numinputpaths())
 					{
-						if(message.length() + thetask->get_inputpath(iter).length() + 1 <= BUF_SIZE)
+						if(message.length() + thetask->get_inputpath(iter).length() + 1 < BUF_SIZE)
 						{
 							message.append(" ");
 							message.append(thetask->get_inputpath(iter));
@@ -1147,7 +1155,7 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 							// send message to slave
 							memset(write_buf, 0, BUF_SIZE);
 							strcpy(write_buf, message.c_str());
-							nbwrite(slaves[j]->getfd(), write_buf);
+							nbwrite(slaves[nodeindex]->getfd(), write_buf);
 
 							message = "inputpath ";
 							message.append(thetask->get_inputpath(iter));
@@ -1160,23 +1168,69 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 					{
 						memset(write_buf, 0, BUF_SIZE);
 						strcpy(write_buf, message.c_str());
-						nbwrite(slaves[j]->getfd(), write_buf);
+						nbwrite(slaves[nodeindex]->getfd(), write_buf);
 					}
 
 					// notify end of inputpaths
 					memset(write_buf, 0, BUF_SIZE);
 					strcpy(write_buf, "Einput");
-					nbwrite(slaves[j]->getfd(), write_buf);
+					nbwrite(slaves[nodeindex]->getfd(), write_buf);
 
 					// forward waiting task to slave slot
-					jobs[i]->schedule_task(thetask, slaves[j]);
-
-					break;
+					jobs[i]->schedule_task(thetask, slaves[nodeindex]);
 				}
+				else // reduce
+				{
+					nodeindex = thetask->peerids[0];
+
+					if(slaves[nodeindex]->getnumrunningtasks() >= slaves[nodeindex]->getmaxreducetask()) // no available task slot
+						continue;
+
+					// write to the slave the task information
+					stringstream ss;
+					ss << "tasksubmit ";
+					ss << jobs[i]->getjobid();
+					ss << " ";
+					ss << thetask->gettaskid();
+					ss << " ";
+					ss << "REDUCE";
+					ss << " ";
+					ss << thetask->get_job()->getargcount();
+
+					for(int j = 0; j < thetask->get_job()->getargcount(); j++)
+					{
+						ss << " ";
+						ss << thetask->get_job()->getargvalue(j);
+					}
+
+					string message = ss.str();
+
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, message.c_str());
+					nbwrite(slaves[nodeindex]->getfd(), write_buf);
+
+					message = "inputpath";
+
+					for(int j = 0; (unsigned)j < thetask->peerids.size(); j++) // don't need to worry about BUF_SIZE overflow in reducer case
+					{
+						stringstream ss;
+
+						ss << " ";
+						ss << thetask->peerids[j];
+						ss << " ";
+						ss << thetask->numiblocks[j];
+						message.append(ss.str());
+					}
+
+					memset(write_buf, 0, BUF_SIZE);
+					strcpy(write_buf, message.c_str());
+					nbwrite(slaves[nodeindex]->getfd(), write_buf);
+					// forward waiting task to slave slot
+					jobs[i]->schedule_task(thetask, slaves[nodeindex]);
+				}
+
+				continue;
 			}
-			*/
-
-
 		}
 
 		gettimeofday(&time_end, NULL);
@@ -1235,6 +1289,5 @@ master_job* find_jobfromid(int id)
 		if(jobs[i]->getjobid() == id)
 			return jobs[i];
 	}
-cout<<"[master]No such a job with input job id in find_jobfromid() function."<<endl;
 	return NULL;
 }

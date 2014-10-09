@@ -12,6 +12,9 @@ ECLIPSE_DEP += $(MR_HOME)/file_distributor/filebridge.hh
 ECLIPSE_DEP += $(MR_HOME)/file_distributor/messagebuffer.hh 
 ECLIPSE_DEP += $(MR_HOME)/file_distributor/file_connclient.hh 
 ECLIPSE_DEP += $(MR_HOME)/file_distributor/writecount.hh 
+ECLIPSE_DEP += $(MR_HOME)/file_distributor/iwriter.hh 
+ECLIPSE_DEP += $(MR_HOME)/file_distributor/idistributor.hh 
+ECLIPSE_DEP += $(MR_HOME)/file_distributor/ireader.hh 
 ECLIPSE_DEP += $(MR_HOME)/orthrus/histogram.hh 
 ECLIPSE_DEP += $(MR_HOME)/orthrus/cache.hh 
 ECLIPSE_DEP += $(MR_HOME)/orthrus/datablock.hh 
@@ -20,6 +23,7 @@ ECLIPSE_DEP += $(MR_HOME)/common/msgaggregator.hh
 CACHESERVER_DEP = $(MR_HOME)/orthrus/histogram.hh
 CACHESERVER_DEP += $(MR_HOME)/orthrus/cacheserver.cc
 CACHESERVER_DEP += $(MR_HOME)/orthrus/cacheclient.hh
+CACHESERVER_DEP += $(MR_HOME)/orthrus/iwfrequest.hh
 DHT_FLAG = -I $(MR_HOME)/DHT/
 DHT_FLAG += -I $(MR_HOME)/common/ 
 DHT_FLAG += $(DHT_OBJ)
@@ -88,7 +92,7 @@ $(MR_HOME)/make_version/mcc_dht: $(MR_HOME)/mcc/dht/mcc.cc $(MR_HOME)/mcc/dht/mc
 	touch $(MR_HOME)/make_version/mcc_dht
 
 $(MR_HOME)/bin/eclipse: $(MR_DEF) $(MR_HOME)/orthrus/launcher.cc $(MR_HOME)/common/hash.o $(ECLIPSE_DEP)
-	g++ -g $(CCFLAGS) -std=c++11 $(MR_HOME)/orthrus/launcher.cc -I $(MR_HOME) -I $(MR_HOME)/common -I $(MR_HOME)/orthrus $(MR_HOME)/common/hash.o -o $(MR_HOME)/bin/eclipse
+	g++ -g $(CCFLAGS) $(MR_HOME)/orthrus/launcher.cc -I $(MR_HOME) -I $(MR_HOME)/common -I $(MR_HOME)/orthrus $(MR_HOME)/common/hash.o -o $(MR_HOME)/bin/eclipse
 
 $(MR_HOME)/bin/cacheserver: $(MR_DEF) $(CACHESERVER_DEP)
 	g++ $(CCFLAGS) $(MR_HOME)/orthrus/cacheserver.cc -I $(MR_HOME) -I $(MR_HOME)/common -o $(MR_HOME)/bin/cacheserver

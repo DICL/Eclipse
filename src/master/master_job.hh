@@ -11,6 +11,12 @@
 
 using namespace std;
 
+enum mapstatus
+{
+	TASK_FINISHED,
+	REQUEST_SENT,
+	RESPOND_RECEIVED
+};
 class master_job
 {
 private:
@@ -19,16 +25,18 @@ private:
 	int argcount;
 	int nummap;
 	int numreduce;
-	bool confset;
 	char** argvalues; // contains program name
 	job_stage stage;
 	vector<string> inputpaths;
-	set<string> keys; // set of keys for the reducers
 	vector<master_task*> tasks;
 	vector<master_task*> waiting_tasks;
 	vector<master_task*> running_tasks;
 	vector<master_task*> completed_tasks;
+
 public:
+	enum mapstatus status;
+	set<int> peerids;
+	vector<int> numiblocks; // the order is matched with peerids(set)
 
 
 
@@ -74,14 +82,6 @@ public:
 	void schedule_task(master_task* atask, connslave* aslave);
 	void finish_task(master_task* atask, connslave* aslave);
 	master_task* find_taskfromid(int id);
-	void add_key(string akey);
-	bool is_key();
-	int get_numkey();
-	void setconf();
-	bool is_confset();
-	string pop_key();
-	set<string>::iterator get_keybegin();
-	set<string>::iterator get_keyend();
 	
 };
 
@@ -94,11 +94,24 @@ master_job::master_job()
 	this->argcount = -1;
 	this->argvalues = NULL;
 	this->stage = INITIAL_STAGE;
-	this->confset = false;
+	status = TASK_FINISHED;
 }
 
 master_job::master_job(int id, int fd)
 {
+
+
+
+
+
+
+
+
+
+
+
+
+
 	scheduled = 0;
 
 
@@ -117,7 +130,7 @@ master_job::master_job(int id, int fd)
 	this->argcount = -1;
 	this->argvalues = NULL;
 	this->stage = INITIAL_STAGE;
-	this->confset = false;
+	status = TASK_FINISHED;
 }
 
 master_job::~master_job()
@@ -347,55 +360,6 @@ job_stage master_job::get_stage()
 void master_job::set_stage(job_stage astage)
 {
 	this->stage = astage;
-}
-
-void master_job::add_key(string akey)
-{
-	// key should be distinct
-	if(keys.find(akey) != keys.end())
-		return;
-
-	keys.insert(akey);
-}
-
-bool master_job::is_key()
-{
-	if(keys.empty())
-		return false;
-	else
-		return true;
-}
-
-int master_job::get_numkey()
-{
-	return (int)keys.size();
-}
-
-string master_job::pop_key()
-{
-	string ret = *keys.begin();
-	keys.erase(keys.begin());
-	return ret;
-}
-
-set<string>::iterator master_job::get_keybegin()
-{
-	return keys.begin();
-}
-
-set<string>::iterator master_job::get_keyend()
-{
-	return keys.end();
-}
-
-void master_job::setconf()
-{
-	confset = true;
-}
-
-bool master_job::is_confset()
-{
-	return confset;
 }
 
 

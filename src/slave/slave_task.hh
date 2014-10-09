@@ -24,6 +24,8 @@ private:
 	vector<string> inputpaths; // a vector of inputpaths. inputpaths can be multiple
 
 public:
+	vector<int> peerids;
+	vector<int> numiblocks;
 	slave_task();
 	slave_task(int id);
 	~slave_task();

@@ -1,7 +1,13 @@
-for (( i=21; i<=36; i++ ))
+collectl &
+
+for (( i=1; i<=38; i++ ))
 do
-	echo raven$i
-	ssh raven$i collectl &
+	if (( i < 10 ))
+	then
+		ssh raven0$i collectl &
+	else
+		ssh raven$i collectl &
+	fi
 done
 
 wait

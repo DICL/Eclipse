@@ -84,7 +84,7 @@ void histogram::initialize()
 	// initialize the query count
 	for(int i = 0; i < numbin; i++)
 	{
-		querycount[i] = 0.0;
+		querycount[i] = 1.0/(double)numbin;
 	}
 }
 
@@ -92,7 +92,7 @@ void histogram::init_count()
 {
 	for(int i = 0; i < numbin; i++)
 	{
-		querycount[i] = 0.0;
+		querycount[i] = 1.0/(double)numbin;
 	}
 }
 

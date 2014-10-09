@@ -15,17 +15,15 @@ private:
 	master_job* job;
 	mr_role role; // MAP or REDUCE
 	task_status status;
+
+	// FOR MAP
 	vector<string> inputpaths;// a vector of inputpaths. inputpaths can be multiple
 
-	// variables for map task
-	int abc;
-	// variables for map task
-
-	// variables for reduce task
-	int def;
-	// variables for reduce task
-
 public:
+	// FOR REDUCER
+	vector<int> peerids; // list of peer ids in which the idata is located
+	vector<int> numiblocks; // list of number of blocks for each peer
+
 	master_task();	
 	master_task(mr_role arole);
 	master_task(master_job* ajob);

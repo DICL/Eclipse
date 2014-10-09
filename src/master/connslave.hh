@@ -9,7 +9,8 @@ class connslave // connection to the slave
 {
 private:
 	int fd;
-	int maxtask;
+	int maxmaptask;
+	int maxreducetask;
 	string address;
 	vector<master_task*> running_tasks;
 
@@ -20,8 +21,10 @@ public:
 	connslave(string anaddress);
 	~connslave();
 	int getfd();
-	int getmaxtask();
-	void setmaxtask(int num);
+	int getmaxmaptask();
+	int getmaxreducetask();
+	void setmaxmaptask(int num);
+	void setmaxreducetask(int num);
 	int getnumrunningtasks();
 	master_task* getrunningtask(int index);
 	void add_runningtask(master_task* atask);
@@ -33,25 +36,29 @@ public:
 
 connslave::connslave(int fd)
 {
-	this->maxtask = 0;
+	this->maxmaptask = 0;
+	this->maxreducetask = 0;
 	this->fd = fd;
 }
 
 connslave::connslave(string anaddress)
 {
-	this->maxtask = 0;
+	this->maxmaptask = 0;
+	this->maxreducetask = 0;
 	this->address = anaddress;
 }
 
 connslave::connslave(int maxtask, int fd)
 {
-	this->maxtask = maxtask;
+	this->maxmaptask = maxtask;
+	this->maxreducetask = maxtask;
 	this->fd = fd;
 }
 
 connslave::connslave(int maxtask, int fd, string anaddress)
 {
-	this->maxtask = maxtask;
+	this->maxmaptask = maxtask;
+	this->maxreducetask = maxtask;
 	this->fd = fd;
 	this->address = anaddress;
 }
@@ -71,9 +78,14 @@ void connslave::setfd(int number)
 	this->fd = number;
 }
 
-int connslave::getmaxtask()
+int connslave::getmaxmaptask()
 {
-	return this->maxtask;
+	return this->maxmaptask;
+}
+
+int connslave::getmaxreducetask()
+{
+	return this->maxreducetask;
 }
 
 int connslave::getnumrunningtasks()
@@ -81,9 +93,14 @@ int connslave::getnumrunningtasks()
 	return this->running_tasks.size();
 }
 
-void connslave::setmaxtask(int num)
+void connslave::setmaxmaptask(int num)
 {
-	this->maxtask = num;
+	this->maxmaptask = num;
+}
+
+void connslave::setmaxreducetask(int num)
+{
+	this->maxreducetask = num;
 }
 
 master_task* connslave::getrunningtask(int index)

@@ -9,30 +9,36 @@
 
 using namespace std;
 
-#define MR_PATH "/home/youngmoon01/mr_storage/"
-#define IPC_PATH "/scratch/youngmoon01/socketfile"
+// HDFS
 #define HDMR_PATH "/user/youngmoon01/mr_storage/"
-#define LIB_PATH "/home/youngmoon01/MRR/src/"
-#define BUF_SIZE (8*1024) // 4 KB sized buffer. determines maximum size of a record
-#define BUF_THRESHOLD (7*1024) // the buffer flush threshold is set to 1 KB
-#define BUF_CUT 1024
-#define CACHESIZE (1500*1024*1024) // 1500 MB
-#define BLOCKSIZE (16*1024) // 16 KB sized block <- should be multiple of BUF_SIZE
-
-// EM-KDE
-#define ALPHA 0.01
-#define NUMBIN 100 // number of histogram bins in the EM-KDE scheduling
-#define UPDATEINTERVAL 500 // update interval in msec
-#define KERNELWIDTH 2 // number of bins affected by count_query() function: 1 + 2*KERNELWIDTH (except the boundary bins)
-
-#define TASK_SLOT 8
 #define HDFS_PATH "/home/youngmoon01/hadoop-2.2.0/include/"
 #define JAVA_LIB "/home/youngmoon01/jdk1.7.0_17/jre/lib/amd64/server/"
 #define HDFS_LIB "/home/youngmoon01/hadoop-2.2.0/lib/native/"
 #define HADOOP_FLAG "-lhdfs"
 #define JAVA_FLAG "-ljvm"
 
+
 #define DHT_PATH "/scratch/youngmoon01/mr_storage/"
+#define MR_PATH "/home/youngmoon01/mr_storage/"
+#define IPC_PATH "/scratch/youngmoon01/socketfile"
+#define LIB_PATH "/home/youngmoon01/MRR/src/"
+#define BUF_SIZE (8*1024) // determines maximum size of a record
+#define BUF_THRESHOLD (7*1024) // the buffer flush threshold
+#define BUF_CUT 512
+#define CACHESIZE (1*1024*1024*1024) // 1 GB of cache size
+#define BLOCKSIZE (512*1024) // 512 KB sized block <- should be multiple of BUF_SIZE
+
+#define IBLOCKSIZE (64*1024*1024) // size of intermediate flush threshold
+
+// EM-KDE
+#define ALPHA 0.001
+#define NUMBIN 100 // number of histogram bins in the EM-KDE scheduling
+#define UPDATEINTERVAL 5000 // update interval in msec
+#define KERNELWIDTH 2 // number of bins affected by count_query() function: 1 + 2*KERNELWIDTH (except the boundary bins)
+
+#define MAP_SLOT 4
+#define REDUCE_SLOT 4
+
 
 #define RAVENLEADER "192.168.1.201"
 #define ADDRESSPREFIX "192.168.1."

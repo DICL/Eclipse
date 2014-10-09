@@ -26,11 +26,8 @@ private:
 	vector<slave_task*> tasks;
 	vector<slave_task*> running_tasks;
 	vector<slave_task*> completed_tasks;
-	set<string> reported_keys;
 	
 public:
-	msgaggregator keybuffer;
-
 	slave_job();
 	slave_job(int id, int fd);
 	~slave_job();
@@ -45,7 +42,6 @@ public:
 	slave_task* get_completedtask(int index);
 	void add_task(slave_task* atask);
 	slave_task* get_task(int index);
-	void add_key(string key);
 };
 
 void slave_job::finish_task(slave_task* atask)
@@ -72,13 +68,6 @@ slave_job::slave_job(int id, int fd)
 {
 	this->jobid = id;
 	masterfd = fd;
-	stringstream ss;
-	ss << "key ";
-	ss << id;
-	ss << "\n";
-	string initial = ss.str();
-	keybuffer.configure_initial(initial);
-	keybuffer.set_fd(masterfd);
 }
 
 slave_job::~slave_job()
@@ -89,14 +78,6 @@ slave_job::~slave_job()
 void slave_job::set_jobid(int id)
 {
 	this->jobid = id;
-	string initial;
-	stringstream ss;
-	ss << "key ";
-	ss << id;
-	ss << "\n";
-	initial = ss.str();
-	keybuffer.configure_initial(initial);
-	keybuffer.set_fd(masterfd);
 }
 
 int slave_job::get_jobid()
@@ -148,15 +129,6 @@ slave_task* slave_job::get_task(int index)
 	}
 	else 
 		return this->tasks[index];
-}
-
-void slave_job::add_key(string key)
-{
-	// vector keys should have distinct string keys
-	if(reported_keys.find(key) != reported_keys.end())
-		return;
-	reported_keys.insert(key);
-	keybuffer.add_record(key);
 }
 
 slave_task* slave_job::get_completedtask(int index)
@@ -359,8 +331,6 @@ private:
 	vector<slave_task*> tasks;
 	vector<slave_task*> running_tasks;
 	vector<slave_task*> completed_tasks;
-	set<string> reported_keys;
-	set<string> unreported_keys;
 	
 public:
 	slave_job();
@@ -377,9 +347,6 @@ public:
 	slave_task* get_completedtask(int index);
 	void add_task(slave_task* atask);
 	slave_task* get_task(int index);
-	void add_key(string key);
-	bool is_unreportedkey(); // return true if there are unreported keys
-	string pop_unreportedkey(); // pop first element in the unreported_keys
 };
 
 void slave_job::finish_task(slave_task* atask)
@@ -465,37 +432,6 @@ slave_task* slave_job::get_task(int index)
 	}
 	else 
 		return this->tasks[index];
-}
-
-void slave_job::add_key(string key)
-{
-	// NOTE: if key is already in the key set, key will be ignored
-
-	// vector keys should have distinct string keys
-	if(reported_keys.find(key) != reported_keys.end())
-		return;
-	if(unreported_keys.find(key) != unreported_keys.end())
-		return;
-
-	unreported_keys.insert(key);
-}
-
-bool slave_job::is_unreportedkey()
-{
-	if(unreported_keys.empty())
-		return false;
-	else
-		return true;
-}
-
-string slave_job::pop_unreportedkey()
-{
-	string ret;
-	ret = *unreported_keys.begin();
-	this->unreported_keys.erase(this->unreported_keys.begin());
-	reported_keys.insert(ret);
-
-	return ret;
 }
 
 slave_task* slave_job::get_completedtask(int index)

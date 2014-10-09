@@ -3,8 +3,6 @@ wc -l \
 Makefile \
 countline.sh \
 run.sh \
-run_without_fd.sh \
-clear_mr.sh \
 killall.sh \
 setup.conf \
 \

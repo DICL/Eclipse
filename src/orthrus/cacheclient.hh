@@ -20,7 +20,7 @@ class master_connection
 
 master_connection::master_connection()
 {
-	// do nothing
+	fd = -1;
 }
 
 master_connection::master_connection(int num)
@@ -47,6 +47,7 @@ class cacheclient
 
 	public:
 		cacheclient(int number, string anaddress);
+		cacheclient(string anaddress);
 		int get_fd();
 		void set_fd(int num);
 		string get_address(); 
@@ -56,6 +57,12 @@ class cacheclient
 cacheclient::cacheclient(int number, string anaddress)
 {
 	fd = number;
+	address = anaddress;
+}
+
+cacheclient::cacheclient(string anaddress)
+{
+	fd = -1;
 	address = anaddress;
 }
 
