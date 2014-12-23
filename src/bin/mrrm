@@ -1,10 +1,22 @@
 #!/bin/sh
 
-for file in `ls -a $DHT_PATH`
+if (( $# < 1 ))
+then
+	echo "mrrm: At least one argument should be provided."
+	exit
+fi
+
+numarg=$#
+
+# skip the hostname
+for (( i=1; i<=$numarg; i++ ))
 do
-	if [[ $file != hostname && $file != . && $file != .. ]]
+	if [ $1 != "hostname" ]
 	then
-		rm -f $DHT_PATH/$file
+		mrrm_core $1
+		sh $MR_PATH/mrrm.sh
 	fi
+	shift
 done
 
+rm -f $MR_PATH/mrrm.sh

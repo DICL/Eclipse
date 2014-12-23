@@ -33,7 +33,7 @@ CCFLAGS = -Wall -g
 all:
 	echo Type ether: [make nfs], [make hdfs], [make dht] [make clean]
 
-dht: $(MR_HOME)/make_version/master_dht $(MR_HOME)/make_version/slave_dht $(MR_HOME)/make_version/client_dht $(MR_HOME)/make_version/mcc_dht $(MR_HOME)/bin/mrcat_core $(MR_HOME)/bin/fd_core $(MR_HOME)/common/hash.o $(MR_HOME)/bin/eclipse $(MR_HOME)/bin/cacheserver
+dht: $(MR_HOME)/make_version/master_dht $(MR_HOME)/make_version/slave_dht $(MR_HOME)/make_version/client_dht $(MR_HOME)/make_version/mcc_dht $(MR_HOME)/bin/mrcat_core $(MR_HOME)/bin/mrrm_core $(MR_HOME)/bin/fd_core $(MR_HOME)/common/hash.o $(MR_HOME)/bin/eclipse $(MR_HOME)/bin/cacheserver
 	touch $(MR_HOME)/make_version/dht_mode
 
 nfs: $(MR_HOME)/make_version/master_nfs_hdfs $(MR_HOME)/make_version/slave_nfs_hdfs $(MR_HOME)/make_version/client_nfs_hdfs $(MR_HOME)/make_version/mcc_nfs $(MR_HOME)/common/hash.o
@@ -123,6 +123,9 @@ $(MR_HOME)/bin/fd_core: $(MR_HOME)/file_distributor/fd_core.cc $(MR_DEF) $(MR_HO
 
 $(MR_HOME)/bin/mrcat_core: $(MR_HOME)/file_distributor/mrcat_core.cc $(MR_DEF) $(MR_HOME)/common/hash.o
 	g++ $(CCFLAGS) $(MR_HOME)/file_distributor/mrcat_core.cc -o $(MR_HOME)/bin/mrcat_core -I $(MR_HOME)/ $(MR_HOME)/common/hash.o
+
+$(MR_HOME)/bin/mrrm_core: $(MR_HOME)/file_distributor/mrrm_core.cc $(MR_DEF) $(MR_HOME)/common/hash.o
+	g++ $(CCFLAGS) $(MR_HOME)/file_distributor/mrrm_core.cc -o $(MR_HOME)/bin/mrrm_core -I $(MR_HOME)/ $(MR_HOME)/common/hash.o
 
 $(MR_HOME)/common/utils.o: $(MR_HOME)/common/utils.cc $(MR_HOME)/common/utils.hh
 	g++ $(CCFLAGS) -c $(MR_HOME)/common/utils.cc -o $(MR_HOME)/common/utils.o -I $(MR_HOME)/common

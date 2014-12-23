@@ -1,0 +1,8 @@
+#!/bin/sh
+for file in `ls -a $DHT_PATH`
+do
+	if [[ $file != hostname && $file != . && $file != .. ]]
+	then
+		rm -f $DHT_PATH/$file
+	fi
+done

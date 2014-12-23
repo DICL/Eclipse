@@ -1,11 +1,5 @@
 #usage: sh run.sh
 
-# transfer the text files if dht mode is built
-if [ -e $MR_HOME/make_version/dht_mode ]
-then
-	fd
-fi
-
 echo "Launching master..."
 $MR_HOME/bin/master &
 

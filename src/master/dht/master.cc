@@ -1088,9 +1088,10 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 					uint32_t hashvalue = h(write_buf, HASHLENGTH);
 					nodeindex = thehistogram->get_index(hashvalue);
 
+					/*
 					if(slaves[nodeindex]->getnumrunningtasks() >= slaves[nodeindex]->getmaxmaptask()) // choose alternative slot
 						continue;
-					/*
+					*/
 					if(slaves[nodeindex]->getnumrunningtasks() >= slaves[nodeindex]->getmaxmaptask()) // choose alternative slot
 					{
 						nodeindex = -1;
@@ -1109,7 +1110,6 @@ cout<<"[master]Debugging: the role of the task not defined in the initialization
 						if(nodeindex == -1)
 							continue;
 					}
-					*/
 
 					thehistogram->count_query(hashvalue);
 

@@ -191,7 +191,7 @@ void init_mapreduce(int argc, char** argv)
 		}
 		else
 		{
-			cout<<"Connection to the mater node successfully established"<<endl;
+			cout<<"Connection to the master node successfully established"<<endl;
 		}
 
 		// a blocking read "whoareyou" signal from master

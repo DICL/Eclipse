@@ -9,7 +9,11 @@ killall.sh \
 setup.conf \
 \
 bin/fd \
+bin/mrclear \
+bin/mrclear_core \
 bin/mrls \
+bin/mrput \
+bin/mrget \
 bin/mrrm \
 bin/mrcat \
 \
@@ -53,6 +57,7 @@ file_distributor/idistributor.hh \
 file_distributor/ireader.hh \
 file_distributor/fd_core.cc \
 file_distributor/mrcat_core.cc \
+file_distributor/mrrm_core.cc \
 file_distributor/fileserver.hh \
 file_distributor/filebridge.hh \
 file_distributor/filepeer.hh \

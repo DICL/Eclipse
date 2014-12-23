@@ -107,7 +107,6 @@ void idistributor::process_message(char* token, char* buf)
 				{
 					// create new iwriter
 					thewriter = new iwriter(jobid, networkidx);
-cout<<"[fileserver:"<<networkidx<<"]iwriter generated with job id: "<<jobid<<endl;
 					iwriters->push_back(thewriter);
 				}
 			}

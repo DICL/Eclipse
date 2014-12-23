@@ -36,12 +36,10 @@ using namespace std;
 #define UPDATEINTERVAL 5000 // update interval in msec
 #define KERNELWIDTH 2 // number of bins affected by count_query() function: 1 + 2*KERNELWIDTH (except the boundary bins)
 
-#define MAP_SLOT 4
-#define REDUCE_SLOT 4
+#define MAP_SLOT 16
+#define REDUCE_SLOT 16
 
 
-#define RAVENLEADER "192.168.1.201"
-#define ADDRESSPREFIX "192.168.1."
 #define HASHLENGTH 64
 
 #define BACKLOG 16384
