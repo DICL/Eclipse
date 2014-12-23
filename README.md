@@ -17,6 +17,12 @@ Eclipse outperforms better by addressing some key facts such as dealing with the
 HDFS storage bottleneck, providing a better concurrency scheduling, imposing austere 
 memory management and implementing an efficient suffle phase. 
 
+TODO LIST
+=========
+ - [x] Merge all the branch to start new workflow
+ - [ ] Integrate with GNU/lustre fs
+ - [ ] Change Network current interface (sockets) to MPI
+
 <!-- Links -->
 [vicente]:  https://github.com/vicentebolea
 [ym]:       https://github.com/youngmoon01
