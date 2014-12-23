@@ -1,4 +1,4 @@
-![Eclipse](https://raw.github.com/DICL/Eclipse/master/logo.png "Logo")
+![Eclipse](https://raw.github.com/DICL/Eclipse/master/logo.jpg "Logo")
 
 AUTHOR
 ======
