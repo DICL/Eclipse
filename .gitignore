@@ -15,3 +15,8 @@
 
 *.swp
 *.swo
+*.blg
+*.log
+*.aux
+*.pdf
+*.dvi
