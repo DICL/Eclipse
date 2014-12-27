@@ -14,7 +14,7 @@ MAKE = make
 AR = ar
 
 CXXFLAGS  = -Wall -g -std=gnu++98 -rdynamic
-INCLUDE   = -I./lib/ -I./src/common/ -L./lib/ 
+INCLUDE   = -I./lib/ -I./src/common/ -I ./lib/unittest-cpp/ -L./lib/ 
 BINLIB    = -lstdc++ -lsimring
 LIBDIR   := $(realpath ./lib/)
 
