@@ -1,13 +1,4 @@
 ########################
-# Policies List        #
-# ===================  #
-# - DATA_MIGRATION     #
-# - LRU POP POLICY     #
-# - PUSH POLICY        #
-# - BDEMA              #
-# - ROUND_ROBIN        #
-#                      #
-########################
 
 CXX = gcc
 MAKE = make
@@ -17,16 +8,11 @@ CXXFLAGS  = -Wall -g -std=gnu++98 -rdynamic
 INCLUDE   = -I./lib/ -I./src/common/ -I ./lib/unittest-cpp/ -L./lib/ 
 BINLIB    = -lstdc++ -lsimring
 LIBDIR   := $(realpath ./lib/)
+SRC       = $(shell find src/ -name "*.cc" -o -name "*.hh")
+ARTISTIC_STYLE_OPTIONS = -A2 -s2 -C -E --unpad-paren --pad-paren-out --pad-header \
+						 --break-blocks=all --convert-tabs --pad-oper -n
 
-#Experiments parameters
-OPTIONS  = -D__STDC_FORMAT_MACROS
-OPTIONS += -DALPHA=0.03f
-OPTIONS += -DCACHESIZE=1000
-OPTIONS += -DDATA_MIGRATION
-
-POLICY = -DDATA_MIGRATION
-
-export POLICY CXX CXXFLAGS MAKE AR OPTIONS INCLUDE BINLIB LIBDIR
+export CXX CXXFLAGS MAKE AR OPTIONS INCLUDE BINLIB LIBDIR ARTISTIC_STYLE_OPTIONS
 .PHONY: lib dist node docs src
 
 all: lib src
@@ -43,8 +29,8 @@ clean:
 	-$(MAKE) -C lib/ clean
 	-$(MAKE) -C src/ clean
 
-test: 
-	-$(MAKE) -C src/ test
+style:
+	astyle $(ARTISTIC_STYLE_OPTIONS) $(SRC)
 
 tags:
 	-ctags -R --c++-kinds=+p --fields=+iaS --extra=+q -o .tags .
