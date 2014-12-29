@@ -8,7 +8,8 @@ using namespace std;
 
 class master_job;
 
-class master_task {
+class master_task
+{
   private:
     int taskid;
     master_job* job;

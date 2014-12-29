@@ -8,7 +8,8 @@
 
 using namespace std;
 
-class histogram {
+class histogram
+{
   private:
     int numserver; // number of server
     int numbin; // number of bin -> number of histogram bin
@@ -38,14 +39,16 @@ class histogram {
     int get_numserver();
 };
 
-histogram::histogram() {
+histogram::histogram()
+{
   numbin = -1;
   numserver = -1;
   boundaries = NULL;
   querycount = NULL;
 }
 
-histogram::histogram (int numserver, int numbin) {
+histogram::histogram (int numserver, int numbin)
+{
   boundaries = NULL;
   querycount = NULL;
   
@@ -58,7 +61,8 @@ histogram::histogram (int numserver, int numbin) {
   this->initialize();
 }
 
-histogram::~histogram() {
+histogram::~histogram()
+{
   if (boundaries != NULL)
     delete boundaries;
     
@@ -66,29 +70,35 @@ histogram::~histogram() {
     delete querycount;
 }
 
-void histogram::initialize() {
+void histogram::initialize()
+{
   unsigned max = MAX_UINT;
   
   // initialize the boundary
-  for (int i = 0; i < numserver - 1; i++) {
+  for (int i = 0; i < numserver - 1; i++)
+  {
     boundaries[i] = (int) ( ( (double) max / (double) numserver) * ( (double) (i + 1)));
   }
   
   boundaries[numserver - 1] = max;
   
   // initialize the query count
-  for (int i = 0; i < numbin; i++) {
+  for (int i = 0; i < numbin; i++)
+  {
     querycount[i] = 1.0 / (double) numbin;
   }
 }
 
-void histogram::init_count() {
-  for (int i = 0; i < numbin; i++) {
+void histogram::init_count()
+{
+  for (int i = 0; i < numbin; i++)
+  {
     querycount[i] = 1.0 / (double) numbin;
   }
 }
 
-void histogram::set_numbin (int num) {
+void histogram::set_numbin (int num)
+{
   numbin = num;
   
   if (querycount != NULL)
@@ -97,10 +107,12 @@ void histogram::set_numbin (int num) {
   querycount = new double[num];
 }
 
-int histogram::get_numbin() {
+int histogram::get_numbin()
+{
   return numbin;
 }
-void histogram::set_numserver (int num) {
+void histogram::set_numserver (int num)
+{
   numserver = num;
   
   if (boundaries != NULL)
@@ -109,60 +121,78 @@ void histogram::set_numserver (int num) {
   boundaries = new unsigned[num];
 }
 
-int histogram::get_numserver() {
+int histogram::get_numserver()
+{
   return numserver;
 }
 
-unsigned histogram::get_boundary (int index) {   // the index starts from 0
-  if (index >= numserver) {
+unsigned histogram::get_boundary (int index)     // the index starts from 0
+{
+  if (index >= numserver)
+  {
     cout << "[histogram]Index requested is out of range" << endl;
     return -1;
     
-  } else {
+  }
+  
+  else
+  {
     return boundaries[index];
   }
 }
 
-void histogram::set_boundary (int index, unsigned boundary) {
+void histogram::set_boundary (int index, unsigned boundary)
+{
   boundaries[index] = boundary;
 }
 
-double histogram::get_count (int index) {
-  if (index >= numbin) {
+double histogram::get_count (int index)
+{
+  if (index >= numbin)
+  {
     cout << "[histogram]Index requested is out of range" << endl;
     return -1.0;
     
-  } else {
+  }
+  
+  else
+  {
     return querycount[index];
   }
   
   return -1.0;
 }
 
-void histogram::set_count (int index, double count) {
+void histogram::set_count (int index, double count)
+{
   querycount[index] = count;
 }
 
-void histogram::updateboundary() { // update the boundary according to the query counts
+void histogram::updateboundary()   // update the boundary according to the query counts
+{
   // sum up the count of all bin and divide it by number of servers(query per server)
   double qps = 0.0;
   double temp = 0.0;
   double stmeter = 0.0;
   int j = 0;
   
-  for (int i = 0; i < numbin; i++) {
+  for (int i = 0; i < numbin; i++)
+  {
     qps += querycount[i];
   }
   
   qps = qps / numserver;
   
   // calculate the new boundary of each server(except the boundary of last server)
-  for (int i = 0; i < numserver - 1; i++) {
-    while (temp + querycount[j] * (1.0 - stmeter) < qps) {
+  for (int i = 0; i < numserver - 1; i++)
+  {
+    while (temp + querycount[j] * (1.0 - stmeter) < qps)
+    {
       temp += querycount[j] * (1.0 - stmeter);
       j++;
       
-      if (j >= numbin) {
+      if (j >= numbin)
+      {
         j--;
         break;
       }
@@ -185,7 +215,8 @@ void histogram::updateboundary() { // update the boundary according to the query
   // don't need to do because it is EM-KDE and old queries are automatically faded out
 }
 
-int histogram::count_query (unsigned query) {
+int histogram::count_query (unsigned query)
+{
   // accumulate the query count to the target bin
   int index = (int) ( ( (double) query / (double) MAX_UINT) * (double) numbin);
   
@@ -196,7 +227,8 @@ int histogram::count_query (unsigned query) {
     cout << "[histogram]Debugging: Cannot find index of requested query." << endl;
     
   // alpha adjustment
-  for (int i = 0; i < numbin; i++) {
+  for (int i = 0; i < numbin; i++)
+  {
     querycount[i] *= (1.0 - ALPHA);
   }
   
@@ -219,15 +251,18 @@ int histogram::count_query (unsigned query) {
     
   increment = ALPHA / ( (double) (indexend - indexstart + 1));
   
-  for (int i = indexstart; i <= indexend; i++) {
+  for (int i = indexstart; i <= indexend; i++)
+  {
     querycount[i] += increment;
   }
   
   return index; // returns the target index as representative histogram bin
 }
 
-int histogram::get_index (unsigned query) {   // return the server index range of which includes the input query
-  for (int i = 0; i < numserver; i++) {
+int histogram::get_index (unsigned query)     // return the server index range of which includes the input query
+{
+  for (int i = 0; i < numserver; i++)
+  {
     if (query <= boundaries[i])
       return i;
   }

@@ -10,7 +10,8 @@
 
 using namespace std;
 
-class idistributor {
+class idistributor
+{
   private:
     vector<filepeer*>* peers; // node lists
     vector<msgaggregator*> msgbuffers;
@@ -28,7 +29,8 @@ class idistributor {
     void flush();
 };
 
-idistributor::idistributor (vector<filepeer*>* apeers, vector<iwriter*>* aniwriters, writecount* acount, int ajobid, int anetworkidx) {
+idistributor::idistributor (vector<filepeer*>* apeers, vector<iwriter*>* aniwriters, writecount* acount, int ajobid, int anetworkidx)
+{
   peers = apeers;
   iwriters = aniwriters;
   thewriter = NULL;
@@ -37,17 +39,22 @@ idistributor::idistributor (vector<filepeer*>* apeers, vector<iwriter*>* aniwrit
   networkidx = anetworkidx;
   
   // set up initial configuration of message buffers
-  for (int i = 0; (unsigned) i < peers->size(); i++) {
+  for (int i = 0; (unsigned) i < peers->size(); i++)
+  {
     stringstream ss;
     
     ss << "Iwrite ";
     ss << jobid;
     ss << "\n";
     
-    if (i == networkidx) {
+    if (i == networkidx)
+    {
       msgbuffers.push_back (NULL);
       
-    } else {
+    }
+    
+    else
+    {
       msgbuffers.push_back (new msgaggregator ( (*peers) [i]->get_fd()));
       msgbuffers[i]->configure_initial (ss.str());   // Iwrite [job id] [node index]\n[file name]\n[record] ...
       msgbuffers[i]->set_msgbuf (& (*peers) [i]->msgbuf);
@@ -55,23 +62,27 @@ idistributor::idistributor (vector<filepeer*>* apeers, vector<iwriter*>* aniwrit
   }
 }
 
-idistributor::~idistributor() {
+idistributor::~idistributor()
+{
   // flush remaining messages
   flush();
   
   // clear up message buffers
-  for (int i = 0; (unsigned) i < peers->size(); i++) {
+  for (int i = 0; (unsigned) i < peers->size(); i++)
+  {
     if (i != networkidx)
       delete msgbuffers[i];
   }
 }
 
-void idistributor::process_message (char* token, char* buf) {
+void idistributor::process_message (char* token, char* buf)
+{
   string key;
   
   token = strtok (token,  " ");   // tokenize first key
   
-  while (token != NULL) {
+  while (token != NULL)
+  {
     key = token;
     token = strtok (NULL, "\n");   // tokenize value
     
@@ -80,17 +91,22 @@ void idistributor::process_message (char* token, char* buf) {
     uint32_t hashvalue = h (buf, HASHLENGTH);
     hashvalue = hashvalue % (peers->size());
     
-    if (hashvalue == (unsigned) networkidx) {
-      if (thewriter == NULL) {
+    if (hashvalue == (unsigned) networkidx)
+    {
+      if (thewriter == NULL)
+      {
         // write to the local iwriter
-        for (int i = 0; (unsigned) i < iwriters->size(); i++) {
-          if ( (*iwriters) [i]->get_jobid() == jobid) {
+        for (int i = 0; (unsigned) i < iwriters->size(); i++)
+        {
+          if ( (*iwriters) [i]->get_jobid() == jobid)
+          {
             thewriter = (*iwriters) [i];
             break;
           }
         }
         
-        if (thewriter == NULL) {   // no iwriter with the job id
+        if (thewriter == NULL)     // no iwriter with the job id
+        {
           // create new iwriter
           thewriter = new iwriter (jobid, networkidx);
           iwriters->push_back (thewriter);
@@ -102,7 +118,10 @@ void idistributor::process_message (char* token, char* buf) {
       
       thecount->add_peer (hashvalue);
       
-    } else {
+    }
+    
+    else
+    {
       key.append (" ");
       key.append (token);
       msgbuffers[hashvalue]->add_record (key);
@@ -114,9 +133,11 @@ void idistributor::process_message (char* token, char* buf) {
   }
 }
 
-void idistributor::flush() {
+void idistributor::flush()
+{
   // flush all message aggregator
-  for (int i = 0; (unsigned) i < peers->size(); i++) {
+  for (int i = 0; (unsigned) i < peers->size(); i++)
+  {
     if (i != networkidx)
       msgbuffers[i]->flush();
   }

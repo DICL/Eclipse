@@ -3,7 +3,8 @@
 
 #include <iostream>
 
-class connclient { // connection to the client
+class connclient   // connection to the client
+{
   private:
     int fd;
     
@@ -15,19 +16,23 @@ class connclient { // connection to the client
     
 };
 
-connclient::connclient (int fd) {
+connclient::connclient (int fd)
+{
   this->fd = fd;
 }
 
-connclient::~connclient() {
+connclient::~connclient()
+{
   close (fd);
 }
 
-int connclient::getfd() {
+int connclient::getfd()
+{
   return this->fd;
 }
 
-void connclient::setfd (int num) {
+void connclient::setfd (int num)
+{
   this->fd = num;
 }
 

@@ -13,7 +13,8 @@
 
 using namespace std;
 
-class file_connclient {
+class file_connclient
+{
   private:
     int fd;
     int dstid;
@@ -47,7 +48,8 @@ class file_connclient {
     //file_role get_role();
 };
 
-file_connclient::file_connclient (int number) {
+file_connclient::file_connclient (int number)
+{
   fd = number;
   thecount = NULL;
   Icachewriter = NULL;
@@ -71,60 +73,74 @@ file_connclient::file_connclient (int number) {
 //  msgbuf.push_back(new messagebuffer());
 //}
 
-file_connclient::~file_connclient() {
-  for (int i = 0; (unsigned) i < msgbuf.size(); i++) {
+file_connclient::~file_connclient()
+{
+  for (int i = 0; (unsigned) i < msgbuf.size(); i++)
+  {
     delete msgbuf[i];
   }
   
   if (thecount != NULL)
     delete thecount;
     
-  if (Icachewriter != NULL) {
+  if (Icachewriter != NULL)
+  {
     Icachewriter->complete();
     delete Icachewriter;
   }
   
-  if (thedistributor != NULL) {
+  if (thedistributor != NULL)
+  {
     delete thedistributor;
   }
 }
 
-int file_connclient::get_fd() {
+int file_connclient::get_fd()
+{
   return this->fd;
 }
 
-void file_connclient::set_fd (int num) {
+void file_connclient::set_fd (int num)
+{
   this->fd = num;
 }
 
-entrywriter* file_connclient::get_Icachewriter() {
+entrywriter* file_connclient::get_Icachewriter()
+{
   return Icachewriter;
 }
-void file_connclient::set_Icachewriter (entrywriter* thewriter) {
+void file_connclient::set_Icachewriter (entrywriter* thewriter)
+{
   Icachewriter = thewriter;
 }
 
-filepeer* file_connclient::get_Itargetpeer() {
+filepeer* file_connclient::get_Itargetpeer()
+{
   return Itargetpeer;
 }
 
-void file_connclient::set_Itargetpeer (filepeer* thepeer) {
+void file_connclient::set_Itargetpeer (filepeer* thepeer)
+{
   Itargetpeer = thepeer;
 }
 
-int file_connclient::get_dstid() {
+int file_connclient::get_dstid()
+{
   return dstid;
 }
 
-void file_connclient::set_dstid (int anumber) {
+void file_connclient::set_dstid (int anumber)
+{
   dstid = anumber;
 }
 
-void file_connclient::set_Icachekey (string key) {
+void file_connclient::set_Icachekey (string key)
+{
   Icachekey = key;
 }
 
-string file_connclient::get_Icachekey() {
+string file_connclient::get_Icachekey()
+{
   return Icachekey;
 }
 

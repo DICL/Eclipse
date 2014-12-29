@@ -12,7 +12,8 @@
 
 using namespace std;
 
-class filebridge {
+class filebridge
+{
   private:
     int id; // this id will be sent to peer to link this filebridge
     int dstid; // the bridge id of remote peer, -1 as default, positive value when the dsttype is PEER
@@ -85,7 +86,8 @@ class filebridge {
     bool read_record (string& record);   // reads next record
 };
 
-filebridge::filebridge (int anid) {
+filebridge::filebridge (int anid)
+{
   id = anid;
   dstid = -1;
   //writefilefd = -1;
@@ -100,7 +102,8 @@ filebridge::filebridge (int anid) {
   //keybuffer.configure_initial("Ikey\n");
 }
 
-filebridge::~filebridge() {
+filebridge::~filebridge()
+{
   // clear up all things
   if (thecount != NULL)
     delete thecount;
@@ -113,23 +116,28 @@ filebridge::~filebridge() {
   //close(this->writefilefd);
 }
 
-void filebridge::set_entryreader (entryreader* areader) {
+void filebridge::set_entryreader (entryreader* areader)
+{
   srcentryreader = areader;
 }
 
-void filebridge::set_entrywriter (entrywriter* awriter) {
+void filebridge::set_entrywriter (entrywriter* awriter)
+{
   dstentrywriter = awriter;
 }
 
-void filebridge::set_dstpeer (filepeer* apeer) {
+void filebridge::set_dstpeer (filepeer* apeer)
+{
   this->dstpeer = apeer;
 }
 
-void filebridge::set_distributor (idistributor* thedistributor) {
+void filebridge::set_distributor (idistributor* thedistributor)
+{
   theidistributor = thedistributor;
 }
 
-idistributor* filebridge::get_distributor() {
+idistributor* filebridge::get_distributor()
+{
   return theidistributor;
 }
 
@@ -153,7 +161,8 @@ idistributor* filebridge::get_distributor() {
 //  this->dtype = atype;
 //}
 
-filepeer* filebridge::get_dstpeer() {
+filepeer* filebridge::get_dstpeer()
+{
   return dstpeer;
 }
 
@@ -177,15 +186,18 @@ filepeer* filebridge::get_dstpeer() {
 //  return this->filename;
 //}
 
-entryreader* filebridge::get_entryreader() {
+entryreader* filebridge::get_entryreader()
+{
   return srcentryreader;
 }
 
-entrywriter* filebridge::get_entrywriter() {
+entrywriter* filebridge::get_entrywriter()
+{
   return dstentrywriter;
 }
 
-void filebridge::open_readfile (string fname) {
+void filebridge::open_readfile (string fname)
+{
   string fpath = DHT_PATH;
   fpath.append (fname);
   
@@ -197,7 +209,8 @@ void filebridge::open_readfile (string fname) {
   return;
 }
 
-bool filebridge::read_record (string& record) {   // reads next record
+bool filebridge::read_record (string& record)     // reads next record
+{
   getline (this->readfilestream, record);
   
   if (this->readfilestream.eof())
@@ -259,39 +272,48 @@ void filebridge::write_record(string& record, char* write_buf)
 }
 */
 
-file_connclient* filebridge::get_dstclient() {
+file_connclient* filebridge::get_dstclient()
+{
   return this->dstclient;
 }
 
-void filebridge::set_srctype (bridgetype atype) {
+void filebridge::set_srctype (bridgetype atype)
+{
   this->srctype = atype;
 }
 
-void filebridge::set_dsttype (bridgetype atype) {
+void filebridge::set_dsttype (bridgetype atype)
+{
   this->dsttype = atype;
 }
 
-bridgetype filebridge::get_srctype() {
+bridgetype filebridge::get_srctype()
+{
   return this->srctype;
 }
 
-bridgetype filebridge::get_dsttype() {
+bridgetype filebridge::get_dsttype()
+{
   return this->dsttype;
 }
 
-int filebridge::get_id() {
+int filebridge::get_id()
+{
   return id;
 }
 
-int filebridge::get_dstid() {
+int filebridge::get_dstid()
+{
   return dstid;
 }
 
-void filebridge::set_id (int num) {
+void filebridge::set_id (int num)
+{
   id = num;
 }
 
-void filebridge::set_dstid (int num) {
+void filebridge::set_dstid (int num)
+{
   dstid = num;
 }
 
@@ -300,22 +322,27 @@ void filebridge::set_dstid (int num) {
 //  return this->dstclient->get_role();
 //}
 
-void filebridge::set_dstclient (file_connclient* aclient) {
+void filebridge::set_dstclient (file_connclient* aclient)
+{
   this->dstclient = aclient;
 }
-void filebridge::set_Icachekey (string key) {
+void filebridge::set_Icachekey (string key)
+{
   Icachekey = key;
 }
 
-string filebridge::get_Icachekey() {
+string filebridge::get_Icachekey()
+{
   return Icachekey;
 }
 
-void filebridge::set_jobdirpath (string path) {
+void filebridge::set_jobdirpath (string path)
+{
   jobdirpath = path;
 }
 
-string filebridge::get_jobdirpath() {
+string filebridge::get_jobdirpath()
+{
   return jobdirpath;
 }
 

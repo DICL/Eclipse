@@ -4,14 +4,19 @@
 
 using namespace std;
 
-int main (int argc, char** argv) {
-  if (argc < 2) {
+int main (int argc, char** argv)
+{
+  if (argc < 2)
+  {
     cout << "Insufficient arguments: at least 1 argument needed" << endl;
     cout << "usage: mcc [source code] (options)" << endl;
     cout << "Exiting..." << endl;
     return 1;
     
-  } else {
+  }
+  
+  else
+  {
     cout << "Compiling the code..." << endl;
     cout << "\tRemember followings," << endl;
     cout << "\t1. Your program cannot use the words 'MAP', 'REDUCE' as arguments of your program." << endl;
@@ -29,7 +34,8 @@ int main (int argc, char** argv) {
   string hashpath = LIB_PATH;
   hashpath.append ("common/hash.o");
   
-  for (int i = 1; i < argc; i++) {
+  for (int i = 1; i < argc; i++)
+  {
     argvalue[i] = new char[strlen (argv[i] + 1)];
     memset (argvalue[i], 0, strlen (argv[i]) + 1);
     strcpy (argvalue[i], argv[i]);

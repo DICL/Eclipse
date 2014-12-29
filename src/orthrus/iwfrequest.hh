@@ -1,7 +1,8 @@
 #ifndef __IWFREQUEST__
 #define __IWFREQUEST__
 
-class iwfrequest {
+class iwfrequest
+{
   private:
     int received;
     int requested;
@@ -18,25 +19,31 @@ class iwfrequest {
     void add_receive (int index, int numblock);
 };
 
-iwfrequest::iwfrequest (int ajobid) {
+iwfrequest::iwfrequest (int ajobid)
+{
   jobid = ajobid;
   received = 0;
   requested = 0;
 }
 
-void iwfrequest::add_request (int num) {
+void iwfrequest::add_request (int num)
+{
   peerids.push_back (num);
   numblocks.push_back (-1);
   requested++;
 }
 
-int iwfrequest::get_jobid() {
+int iwfrequest::get_jobid()
+{
   return jobid;
 }
 
-void iwfrequest::add_receive (int index, int numblock) {
-  for (int i = 0; (unsigned) i < peerids.size(); i++) {
-    if (peerids[i] == index) {
+void iwfrequest::add_receive (int index, int numblock)
+{
+  for (int i = 0; (unsigned) i < peerids.size(); i++)
+  {
+    if (peerids[i] == index)
+    {
       numblocks[i] = numblock;
       received++;
       return;
@@ -47,7 +54,8 @@ void iwfrequest::add_receive (int index, int numblock) {
   
 }
 
-bool iwfrequest::is_finished() {
+bool iwfrequest::is_finished()
+{
   if (received == requested)
     return true;
     

@@ -7,7 +7,8 @@
 #include <mapreduce/definitions.hh>
 
 using namespace std;
-class file_connclient {
+class file_connclient
+{
   private:
     int fd;
     int writefilefd;
@@ -31,65 +32,77 @@ class file_connclient {
     void write_record (string record, char* write_buf);
 };
 
-file_connclient::file_connclient (int fd) {
+file_connclient::file_connclient (int fd)
+{
   this->fd = fd;
   this->writefilefd = -1;
   this->role = UNDEFINED;
 }
 
-file_connclient::file_connclient (int fd, file_client_role arole, string aname) {
+file_connclient::file_connclient (int fd, file_client_role arole, string aname)
+{
   this->fd = fd;
   this->filename = aname;
   this->writefilefd = -1;
   this->role = UNDEFINED;
 }
 
-file_connclient::~file_connclient() {
+file_connclient::~file_connclient()
+{
   // closing socket fd will be done exclusively
   close (this->writefilefd);
 }
 
-int file_connclient::get_fd() {
+int file_connclient::get_fd()
+{
   return this->fd;
 }
 
-void file_connclient::set_role (file_client_role arole) {
+void file_connclient::set_role (file_client_role arole)
+{
   this->role = arole;
 }
 
-file_client_role file_connclient::get_role() {
+file_client_role file_connclient::get_role()
+{
   return this->role;
 }
 
-void file_connclient::set_filename (string aname) {
+void file_connclient::set_filename (string aname)
+{
   this->filename = aname;
 }
 
-string file_connclient::get_filename() {
+string file_connclient::get_filename()
+{
   return this->filename;
 }
 
-void file_connclient::open_readfile (string fname) {
+void file_connclient::open_readfile (string fname)
+{
   string fpath = DHT_PATH;
   fpath.append (fname);
   
   this->readfilestream.open (fpath.c_str());
   
-  if (!this->readfilestream.is_open()) {
+  if (!this->readfilestream.is_open())
+  {
     cout << "[fileserver]File does not exist for reading" << endl;
   }
   
   return;
 }
 
-void file_connclient::open_writefile (string fname) {
+void file_connclient::open_writefile (string fname)
+{
   string fpath = DHT_PATH;
   fpath.append (fname);
   this->writefilefd = open (fpath.c_str(), O_APPEND | O_SYNC | O_WRONLY | O_CREAT, 0644);
   return;
 }
 
-bool file_connclient::read_record (string* record) {
+bool file_connclient::read_record (string* record)
+{
   getline (this->readfilestream, *record);
   
   if (this->readfilestream.eof())
@@ -99,7 +112,8 @@ bool file_connclient::read_record (string* record) {
     return true;
 }
 
-void file_connclient::write_record (string record, char* write_buf) {
+void file_connclient::write_record (string record, char* write_buf)
+{
   struct flock alock;
   struct flock ulock;
   

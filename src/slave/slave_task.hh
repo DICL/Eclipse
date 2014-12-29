@@ -10,7 +10,8 @@ using namespace std;
 
 class slave_job;
 
-class slave_task {
+class slave_task
+{
   private:
     int taskid;
     int pid;

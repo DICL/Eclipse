@@ -28,9 +28,11 @@ bool master_is_set = false;
 vector<string> nodelist;
 
 
-int main (int argc, char** argv) {
+int main (int argc, char** argv)
+{
   // usage
-  if (argc < 2) {
+  if (argc < 2)
+  {
     cout << "Insufficient arguments: at least 1 argument needed" << endl;
     cout << "usage: client [request]" << endl;
     cout << "Exiting..." << endl;
@@ -46,26 +48,40 @@ int main (int argc, char** argv) {
   
   conf >> token;
   
-  while (!conf.eof()) {
-    if (token == "port") {
+  while (!conf.eof())
+  {
+    if (token == "port")
+    {
       conf >> token;
       port = atoi (token.c_str());
       
-    } else if (token == "dhtport") {
+    }
+    
+    else if (token == "dhtport")
+    {
       conf >> token;
       dhtport = atoi (token.c_str());
       
-    } else if (token == "max_job") {
+    }
+    
+    else if (token == "max_job")
+    {
       // ignore and just pass through this case
       conf >> token;
       
-    } else if (token == "master_address") {
+    }
+    
+    else if (token == "master_address")
+    {
       conf >> token;
       memset (master_address, 0, token.length() + 1);
       strcpy (master_address, token.c_str());
       master_is_set = true;
       
-    } else {
+    }
+    
+    else
+    {
       cout << "[client]Unknown configure record: " << token << endl;
     }
     
@@ -75,12 +91,14 @@ int main (int argc, char** argv) {
   conf.close();
   
   // verify initialization
-  if (port == -1) {
+  if (port == -1)
+  {
     cout << "[client]port should be specified in the setup.conf" << endl;
     exit (1);
   }
   
-  if (master_is_set == false) {
+  if (master_is_set == false)
+  {
     cout << "[client]master_address should be specified in the setup.conf" << endl;
     exit (1);
   }
@@ -95,41 +113,59 @@ int main (int argc, char** argv) {
   
   nodelistfile >> token;
   
-  while (!nodelistfile.eof()) {
+  while (!nodelistfile.eof())
+  {
     nodelist.push_back (token);
     nodelistfile >> token;
   }
   
   // copy request command to write buffer
-  if (strncmp (argv[1], "stop", 4) == 0) {
+  if (strncmp (argv[1], "stop", 4) == 0)
+  {
     memset (write_buf, 0, BUF_SIZE);
     strcpy (write_buf, "stop");
     
-  } else if (strncmp (argv[1], "numslave", 8) == 0) {
+  }
+  
+  else if (strncmp (argv[1], "numslave", 8) == 0)
+  {
     memset (write_buf, 0, BUF_SIZE);
     strcpy (write_buf, "numslave");
     
-  } else if (strncmp (argv[1], "numclient", 9) == 0) {
+  }
+  
+  else if (strncmp (argv[1], "numclient", 9) == 0)
+  {
     memset (write_buf, 0, BUF_SIZE);
     strcpy (write_buf, "numclient");
     
-  } else if (strncmp (argv[1], "numjob", 6) == 0) {
+  }
+  
+  else if (strncmp (argv[1], "numjob", 6) == 0)
+  {
     memset (write_buf, 0, BUF_SIZE);
     strcpy (write_buf, "numjob");
     
-  } else if (strncmp (argv[1], "help", 4) == 0) {
+  }
+  
+  else if (strncmp (argv[1], "help", 4) == 0)
+  {
     // TODO: lists request and their usage
     
     exit (0);
     
-  } else {
+  }
+  
+  else
+  {
     memset (write_buf, 0, BUF_SIZE);
     strcpy (write_buf, argv[1]);
   }
   
   masterfd = connect_to_server (master_address, port);
   
-  if (masterfd < 0) {
+  if (masterfd < 0)
+  {
     cout << "Connecting to master failed" << endl;
     exit (1);
   }
@@ -149,7 +185,8 @@ int main (int argc, char** argv) {
   return 0;
 }
 
-int connect_to_server (char *host, unsigned short port) {
+int connect_to_server (char *host, unsigned short port)
+{
   int clientfd;
   struct sockaddr_in serveraddr;
   struct hostent *hp;
@@ -157,14 +194,16 @@ int connect_to_server (char *host, unsigned short port) {
   // SOCK_STREAM -> tcp
   clientfd = socket (AF_INET, SOCK_STREAM, 0);
   
-  if (clientfd < 0) {
+  if (clientfd < 0)
+  {
     cout << "Openning socket failed" << endl;
     exit (1);
   }
   
   hp = gethostbyname (host);
   
-  if (hp == NULL) {
+  if (hp == NULL)
+  {
     cout << "Cannot find host by host name" << endl;
     return -1;
   }
@@ -178,24 +217,34 @@ int connect_to_server (char *host, unsigned short port) {
   return clientfd;
 }
 
-void* signal_listener (void* args) {
+void* signal_listener (void* args)
+{
   int serverfd = * ( (int*) args);
   int readbytes = 0;
   char tmp_buf[BUF_SIZE];
   
-  while (1) {
+  while (1)
+  {
     readbytes = nbread (serverfd, read_buf);
     
-    if (readbytes == 0) {   // connection closed from master
+    if (readbytes == 0)     // connection closed from master
+    {
       cout << "Connection from master is abnormally closed" << endl;
       close (serverfd);
       exit (0);
       
-    } else if (readbytes < 0) {   // no signal arrived
+    }
+    
+    else if (readbytes < 0)       // no signal arrived
+    {
       continue;
       
-    } else { // a signal arrived from master
-      if (strncmp (read_buf, "whoareyou", 9) == 0) {
+    }
+    
+    else     // a signal arrived from master
+    {
+      if (strncmp (read_buf, "whoareyou", 9) == 0)
+      {
         // respond to "whoareyou"
         memset (tmp_buf, 0, strlen ("client") + 1);
         strcpy (tmp_buf, "client");
@@ -204,13 +253,15 @@ void* signal_listener (void* args) {
         // request to master
         nbwrite (serverfd, write_buf);
         
-        if (strncmp (write_buf, "stop", 4) == 0) {     // if argument is "stop"
+        if (strncmp (write_buf, "stop", 4) == 0)       // if argument is "stop"
+        {
           // send close message to cacheserver
           int fd;
           
           fd = connect_to_server (master_address, dhtport);
           
-          if (fd <= 0) {
+          if (fd <= 0)
+          {
             cout << "[client]Error occured during the connection to the cacheserver" << endl;
           }
           
@@ -229,18 +280,27 @@ void* signal_listener (void* args) {
           */
         }
         
-      } else if (strncmp (read_buf, "close", 5) == 0) {
+      }
+      
+      else if (strncmp (read_buf, "close", 5) == 0)
+      {
         cout << "Close request from master" << endl;
         close (serverfd);
         cout << "Exiting client..." << endl;
         exit (0);
         
-      } else if (strncmp (read_buf, "result", 6) == 0) {
+      }
+      
+      else if (strncmp (read_buf, "result", 6) == 0)
+      {
         cout << read_buf << endl;
         close (serverfd);
         exit (0);
         
-      } else {
+      }
+      
+      else
+      {
         cout << "Signal from master: " << read_buf << endl;
       }
     }

@@ -5,7 +5,8 @@
 
 using namespace std;
 
-int main() {
+int main()
+{
   uint32_t result;
   char read_buf[256];
   string abc;

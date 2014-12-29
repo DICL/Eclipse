@@ -10,7 +10,8 @@ using namespace std;
 // lookup: check_being_written() should be explicitly called from a caller
 // update_size() should be periodically called from super class
 
-class cache {
+class cache
+{
   private:
     unsigned size;
     unsigned capacity;
@@ -29,21 +30,26 @@ class cache {
     bool try_fit_size();
 };
 
-cache::cache() {
+cache::cache()
+{
   size = 0;
   capacity = CACHESIZE;
 }
 
-cache::cache (unsigned num) {
+cache::cache (unsigned num)
+{
   size = 0;
   capacity = num;
 }
 
-dataentry* cache::lookup (string filename) {
+dataentry* cache::lookup (string filename)
+{
   dataentry* ret = NULL;
   
-  for (int i = 0; (unsigned) i < entries.size(); i++) {
-    if (filename == entries[i]->get_filename()) {
+  for (int i = 0; (unsigned) i < entries.size(); i++)
+  {
+    if (filename == entries[i]->get_filename())
+    {
       ret = entries[i];
       
       // make the entry the most recent
@@ -56,11 +62,14 @@ dataentry* cache::lookup (string filename) {
   return NULL;
 }
 
-dataentry* cache::lookup (unsigned index) {
+dataentry* cache::lookup (unsigned index)
+{
   dataentry* ret = NULL;
   
-  for (int i = 0; (unsigned) i < entries.size(); i++) {
-    if (index == entries[i]->get_index()) {
+  for (int i = 0; (unsigned) i < entries.size(); i++)
+  {
+    if (index == entries[i]->get_index())
+    {
       ret = entries[i];
       
       // make the entry the most recent
@@ -73,11 +82,13 @@ dataentry* cache::lookup (unsigned index) {
   return NULL;
 }
 
-void cache::new_entry (dataentry* entry) {
+void cache::new_entry (dataentry* entry)
+{
   entries.insert (entries.begin(), entry);
 }
 
-void cache::update_size() {
+void cache::update_size()
+{
   size = 0;
   
   for (int i = 0; (unsigned) i < entries.size(); i++)
@@ -87,21 +98,28 @@ void cache::update_size() {
     try_fit_size();
 }
 
-bool cache::try_fit_size() {
-  for (int i = 1; (unsigned) i <= entries.size(); i++) {
+bool cache::try_fit_size()
+{
+  for (int i = 1; (unsigned) i <= entries.size(); i++)
+  {
     dataentry* theentry = * (entries.end() - i);
     
-    if (!theentry->is_locked()) {
+    if (!theentry->is_locked())
+    {
       entries.erase ( (entries.end() - i));
       i--;
       
       size -= theentry->get_size();
       delete theentry;
       
-      if (size > capacity) {
+      if (size > capacity)
+      {
         continue;
         
-      } else {
+      }
+      
+      else
+      {
         return true;
       }
     }
@@ -111,7 +129,8 @@ bool cache::try_fit_size() {
 }
 
 
-unsigned cache::get_size() {
+unsigned cache::get_size()
+{
   return size;
 }
 

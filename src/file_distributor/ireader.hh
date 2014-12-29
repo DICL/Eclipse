@@ -10,7 +10,8 @@
 
 using namespace std;
 
-class ireader {
+class ireader
+{
   private:
     int jobid;
     int pos;
@@ -50,7 +51,8 @@ class ireader {
     bool read_idata();
 };
 
-ireader::ireader (int ajobid, int anumiblock, int anetworkidx, int abridgeid, bridgetype adsttype) {
+ireader::ireader (int ajobid, int anumiblock, int anetworkidx, int abridgeid, bridgetype adsttype)
+{
   jobid = ajobid;
   numiblock = anumiblock;
   networkidx = anetworkidx;
@@ -63,7 +65,8 @@ ireader::ireader (int ajobid, int anumiblock, int anetworkidx, int abridgeid, br
   pos = 0;
   
   // prepare reading idata from multiple file block according to jobid and numiblock
-  for (int i = 0; i < numiblock; i++) {
+  for (int i = 0; i < numiblock; i++)
+  {
     string filename;
     stringstream ss;
     ss << DHT_PATH;
@@ -92,11 +95,15 @@ ireader::ireader (int ajobid, int anumiblock, int anetworkidx, int abridgeid, br
     pair<map<string, vector<int>*>::iterator, bool> ret;
     ret = keyorder.insert (pair<string, vector<int>*> (key, NULL));
     
-    if (ret.second) {   // currently unique key
+    if (ret.second)     // currently unique key
+    {
       ret.first->second = new vector<int>;
       ret.first->second->push_back (i);
       
-    } else { // key already exist
+    }
+    
+    else     // key already exist
+    {
       // add file index to the vector
       ret.first->second->push_back (i);
     }
@@ -107,20 +114,25 @@ ireader::ireader (int ajobid, int anumiblock, int anetworkidx, int abridgeid, br
   readingfile = keyorder.begin()->second->back();
   keyorder.begin()->second->pop_back();
   
-  if (keyorder.begin()->second->size() == 0) {
+  if (keyorder.begin()->second->size() == 0)
+  {
     delete keyorder.begin()->second;
     keyorder.erase (keyorder.begin());
   }
   
   // prepare write_buf
-  if (dsttype == CLIENT) {
+  if (dsttype == CLIENT)
+  {
     memset (write_buf, 0, BUF_SIZE);
     strcpy (write_buf + pos, currentkey.c_str());
     pos += currentkey.length();
     write_buf[pos] = '\n';
     pos++;
     
-  } else {
+  }
+  
+  else
+  {
     string bidstring;
     stringstream ss;
     ss << bridgeid;
@@ -139,24 +151,33 @@ ireader::ireader (int ajobid, int anumiblock, int anetworkidx, int abridgeid, br
   }
 }
 
-bool ireader::read_idata() {
-  while (pos < BUF_THRESHOLD) {
+bool ireader::read_idata()
+{
+  while (pos < BUF_THRESHOLD)
+  {
     // read one record
     string record;
     
     getline (*files[readingfile], record);
     remaining_record[readingfile]--;
     
-    if (pos + record.length() >= BUF_SIZE) {   // overflow if this record is added to the write_buf
-      if (dsttype == CLIENT) {
+    if (pos + record.length() >= BUF_SIZE)     // overflow if this record is added to the write_buf
+    {
+      if (dsttype == CLIENT)
+      {
         // flush
-        if (dstclient->msgbuf.size() > 1) {
+        if (dstclient->msgbuf.size() > 1)
+        {
           dstclient->msgbuf.back()->set_buffer (write_buf, dstclient->get_fd());
           dstclient->msgbuf.push_back (new messagebuffer());
           
-        } else {
+        }
+        
+        else
+        {
           if (nbwritebuf (dstclient->get_fd(),
-                          write_buf, dstclient->msgbuf.back()) <= 0) {
+                          write_buf, dstclient->msgbuf.back()) <= 0)
+          {
             dstclient->msgbuf.push_back (new messagebuffer());
           }
         }
@@ -165,15 +186,23 @@ bool ireader::read_idata() {
         pos = 0;
         memset (write_buf, 0, BUF_SIZE);
         
-      } else { // PEER
+      }
+      
+      else     // PEER
+      {
         // flush
-        if (dstpeer->msgbuf.size() > 1) {
+        if (dstpeer->msgbuf.size() > 1)
+        {
           dstpeer->msgbuf.back()->set_buffer (write_buf, dstpeer->get_fd());
           dstpeer->msgbuf.push_back (new messagebuffer());
           
-        } else {
+        }
+        
+        else
+        {
           if (nbwritebuf (dstpeer->get_fd(),
-                          write_buf, dstpeer->msgbuf.back()) <= 0) {
+                          write_buf, dstpeer->msgbuf.back()) <= 0)
+          {
             dstpeer->msgbuf.push_back (new messagebuffer());
           }
         }
@@ -205,28 +234,37 @@ bool ireader::read_idata() {
     write_buf[pos] = '\n';
     pos++;
     
-    if (remaining_record[readingfile] == 0) {   // [another file for same key] or [next key]
+    if (remaining_record[readingfile] == 0)     // [another file for same key] or [next key]
+    {
       // read next key of the file
       string key;
       int remain;
       getline (*files[readingfile], key);
       
-      if (files[readingfile]->eof()) {   // no more key value for this file
+      if (files[readingfile]->eof())     // no more key value for this file
+      {
         // clear this file
         files[readingfile]->close();
         delete files[readingfile];
         finishedcount++;
         
-        if (files.size() == (unsigned) finishedcount) {     // all key value are sent
-          if (dsttype == CLIENT) {
+        if (files.size() == (unsigned) finishedcount)       // all key value are sent
+        {
+          if (dsttype == CLIENT)
+          {
             // flush current record
-            if (dstclient->msgbuf.size() > 1) {
+            if (dstclient->msgbuf.size() > 1)
+            {
               dstclient->msgbuf.back()->set_buffer (write_buf, dstclient->get_fd());
               dstclient->msgbuf.push_back (new messagebuffer());
               
-            } else {
+            }
+            
+            else
+            {
               if (nbwritebuf (dstclient->get_fd(),
-                              write_buf, dstclient->msgbuf.back()) <= 0) {
+                              write_buf, dstclient->msgbuf.back()) <= 0)
+              {
                 dstclient->msgbuf.push_back (new messagebuffer());
               }
             }
@@ -235,37 +273,55 @@ bool ireader::read_idata() {
             pos = 0;
             memset (write_buf, 0, BUF_SIZE);
             
-            if (dstclient->msgbuf.size() > 1) {
+            if (dstclient->msgbuf.size() > 1)
+            {
               dstclient->msgbuf.back()->set_buffer (write_buf, dstclient->get_fd());
               dstclient->msgbuf.push_back (new messagebuffer());
               
-            } else {
+            }
+            
+            else
+            {
               if (nbwritebuf (dstclient->get_fd(),
-                              write_buf, dstclient->msgbuf.back()) <= 0) {
+                              write_buf, dstclient->msgbuf.back()) <= 0)
+              {
                 dstclient->msgbuf.push_back (new messagebuffer());
               }
             }
             
-            if (dstclient->msgbuf.size() > 1) {
+            if (dstclient->msgbuf.size() > 1)
+            {
               dstclient->msgbuf.back()->set_buffer (write_buf, dstclient->get_fd());
               dstclient->msgbuf.push_back (new messagebuffer());
               
-            } else {
+            }
+            
+            else
+            {
               if (nbwritebuf (dstclient->get_fd(),
-                              write_buf, dstclient->msgbuf.back()) <= 0) {
+                              write_buf, dstclient->msgbuf.back()) <= 0)
+              {
                 dstclient->msgbuf.push_back (new messagebuffer());
               }
             }
             
-          } else { // PEER
+          }
+          
+          else     // PEER
+          {
             // flush current record
-            if (dstpeer->msgbuf.size() > 1) {
+            if (dstpeer->msgbuf.size() > 1)
+            {
               dstpeer->msgbuf.back()->set_buffer (write_buf, dstpeer->get_fd());
               dstpeer->msgbuf.push_back (new messagebuffer());
               
-            } else {
+            }
+            
+            else
+            {
               if (nbwritebuf (dstpeer->get_fd(),
-                              write_buf, dstpeer->msgbuf.back()) <= 0) {
+                              write_buf, dstpeer->msgbuf.back()) <= 0)
+              {
                 dstpeer->msgbuf.push_back (new messagebuffer());
               }
             }
@@ -282,24 +338,34 @@ bool ireader::read_idata() {
             pos += bidstring.length();
             write_buf[pos] = '\n';
             
-            if (dstpeer->msgbuf.size() > 1) {
+            if (dstpeer->msgbuf.size() > 1)
+            {
               dstpeer->msgbuf.back()->set_buffer (write_buf, dstpeer->get_fd());
               dstpeer->msgbuf.push_back (new messagebuffer());
               
-            } else {
+            }
+            
+            else
+            {
               if (nbwritebuf (dstpeer->get_fd(),
-                              write_buf, dstpeer->msgbuf.back()) <= 0) {
+                              write_buf, dstpeer->msgbuf.back()) <= 0)
+              {
                 dstpeer->msgbuf.push_back (new messagebuffer());
               }
             }
             
-            if (dstpeer->msgbuf.size() > 1) {
+            if (dstpeer->msgbuf.size() > 1)
+            {
               dstpeer->msgbuf.back()->set_buffer (write_buf, dstpeer->get_fd());
               dstpeer->msgbuf.push_back (new messagebuffer());
               
-            } else {
+            }
+            
+            else
+            {
               if (nbwritebuf (dstpeer->get_fd(),
-                              write_buf, dstpeer->msgbuf.back()) <= 0) {
+                              write_buf, dstpeer->msgbuf.back()) <= 0)
+              {
                 dstpeer->msgbuf.push_back (new messagebuffer());
               }
             }
@@ -309,18 +375,25 @@ bool ireader::read_idata() {
           return false;
         }
         
-      } else { // another key in this file
+      }
+      
+      else     // another key in this file
+      {
       
         // register another key of this file to the map
         string remainstr;
         pair<map<string, vector<int>*>::iterator, bool> ret;
         ret = keyorder.insert (pair<string, vector<int>*> (key, NULL));
         
-        if (ret.second) {   // currently unique key
+        if (ret.second)     // currently unique key
+        {
           ret.first->second = new vector<int>;
           ret.first->second->push_back (readingfile);
           
-        } else { // key already exist
+        }
+        
+        else     // key already exist
+        {
           // add file index to the vector
           ret.first->second->push_back (readingfile);
         }
@@ -332,34 +405,46 @@ bool ireader::read_idata() {
       }
       
       // determine next key(same or different from current key)
-      if (currentkey == keyorder.begin()->first) {   // another file for same key
+      if (currentkey == keyorder.begin()->first)     // another file for same key
+      {
         readingfile = keyorder.begin()->second->back();
         keyorder.begin()->second->pop_back();
         
-        if (keyorder.begin()->second->size() == 0) {
+        if (keyorder.begin()->second->size() == 0)
+        {
           delete keyorder.begin()->second;
           keyorder.erase (keyorder.begin());
         }
         
-      } else { // different key
+      }
+      
+      else     // different key
+      {
         currentkey = keyorder.begin()->first;
         readingfile = keyorder.begin()->second->back();
         keyorder.begin()->second->pop_back();
         
-        if (keyorder.begin()->second->size() == 0) {
+        if (keyorder.begin()->second->size() == 0)
+        {
           delete keyorder.begin()->second;
           keyorder.erase (keyorder.begin());
         }
         
-        if (dsttype == CLIENT) {
+        if (dsttype == CLIENT)
+        {
           // flush
-          if (dstclient->msgbuf.size() > 1) {
+          if (dstclient->msgbuf.size() > 1)
+          {
             dstclient->msgbuf.back()->set_buffer (write_buf, dstclient->get_fd());
             dstclient->msgbuf.push_back (new messagebuffer());
             
-          } else {
+          }
+          
+          else
+          {
             if (nbwritebuf (dstclient->get_fd(),
-                            write_buf, dstclient->msgbuf.back()) <= 0) {
+                            write_buf, dstclient->msgbuf.back()) <= 0)
+            {
               dstclient->msgbuf.push_back (new messagebuffer());
             }
           }
@@ -369,26 +454,39 @@ bool ireader::read_idata() {
           memset (write_buf, 0, BUF_SIZE);
           
           // notify target end of key
-          if (dstclient->msgbuf.size() > 1) {
+          if (dstclient->msgbuf.size() > 1)
+          {
             dstclient->msgbuf.back()->set_buffer (write_buf, dstclient->get_fd());
             dstclient->msgbuf.push_back (new messagebuffer());
             
-          } else {
+          }
+          
+          else
+          {
             if (nbwritebuf (dstclient->get_fd(),
-                            write_buf, dstclient->msgbuf.back()) <= 0) {
+                            write_buf, dstclient->msgbuf.back()) <= 0)
+            {
               dstclient->msgbuf.push_back (new messagebuffer());
             }
           }
           
-        } else { // PEER
+        }
+        
+        else     // PEER
+        {
           // flush
-          if (dstpeer->msgbuf.size() > 1) {
+          if (dstpeer->msgbuf.size() > 1)
+          {
             dstpeer->msgbuf.back()->set_buffer (write_buf, dstpeer->get_fd());
             dstpeer->msgbuf.push_back (new messagebuffer());
             
-          } else {
+          }
+          
+          else
+          {
             if (nbwritebuf (dstpeer->get_fd(),
-                            write_buf, dstpeer->msgbuf.back()) <= 0) {
+                            write_buf, dstpeer->msgbuf.back()) <= 0)
+            {
               dstpeer->msgbuf.push_back (new messagebuffer());
             }
           }
@@ -407,13 +505,18 @@ bool ireader::read_idata() {
           pos++;
           
           // notify target end of key
-          if (dstpeer->msgbuf.size() > 1) {
+          if (dstpeer->msgbuf.size() > 1)
+          {
             dstpeer->msgbuf.back()->set_buffer (write_buf, dstpeer->get_fd());
             dstpeer->msgbuf.push_back (new messagebuffer());
             
-          } else {
+          }
+          
+          else
+          {
             if (nbwritebuf (dstpeer->get_fd(),
-                            write_buf, dstpeer->msgbuf.back()) <= 0) {
+                            write_buf, dstpeer->msgbuf.back()) <= 0)
+            {
               dstpeer->msgbuf.push_back (new messagebuffer());
             }
           }
@@ -431,15 +534,21 @@ bool ireader::read_idata() {
   }
   
   // write to the target
-  if (dsttype == CLIENT) {
+  if (dsttype == CLIENT)
+  {
     // flush
-    if (dstclient->msgbuf.size() > 1) {
+    if (dstclient->msgbuf.size() > 1)
+    {
       dstclient->msgbuf.back()->set_buffer (write_buf, dstclient->get_fd());
       dstclient->msgbuf.push_back (new messagebuffer());
       
-    } else {
+    }
+    
+    else
+    {
       if (nbwritebuf (dstclient->get_fd(),
-                      write_buf, dstclient->msgbuf.back()) <= 0) {
+                      write_buf, dstclient->msgbuf.back()) <= 0)
+      {
         dstclient->msgbuf.push_back (new messagebuffer());
       }
     }
@@ -448,15 +557,23 @@ bool ireader::read_idata() {
     pos = 0;
     memset (write_buf, 0, BUF_SIZE);
     
-  } else { // PEER
+  }
+  
+  else     // PEER
+  {
     // flush
-    if (dstpeer->msgbuf.size() > 1) {
+    if (dstpeer->msgbuf.size() > 1)
+    {
       dstpeer->msgbuf.back()->set_buffer (write_buf, dstpeer->get_fd());
       dstpeer->msgbuf.push_back (new messagebuffer());
       
-    } else {
+    }
+    
+    else
+    {
       if (nbwritebuf (dstpeer->get_fd(),
-                      write_buf, dstpeer->msgbuf.back()) <= 0) {
+                      write_buf, dstpeer->msgbuf.back()) <= 0)
+      {
         dstpeer->msgbuf.push_back (new messagebuffer());
       }
     }
@@ -478,32 +595,39 @@ bool ireader::read_idata() {
   return true;
 }
 
-file_connclient* ireader::get_dstclient() {
+file_connclient* ireader::get_dstclient()
+{
   return dstclient;
 }
 
-filepeer* ireader::get_dstpeer() {
+filepeer* ireader::get_dstpeer()
+{
   return dstpeer;
 }
 
-int ireader::get_jobid() {
+int ireader::get_jobid()
+{
   return jobid;
 }
 
-int ireader::get_numiblock() {
+int ireader::get_numiblock()
+{
   return numiblock;
 }
 
-void ireader::set_bridgeid (int anid) {
+void ireader::set_bridgeid (int anid)
+{
   bridgeid = anid;
 }
 
-void ireader::set_dstpeer (filepeer* apeer) {
+void ireader::set_dstpeer (filepeer* apeer)
+{
   dsttype = PEER;
   dstpeer = apeer;
 }
 
-void ireader::set_dstclient (file_connclient* aclient) {
+void ireader::set_dstclient (file_connclient* aclient)
+{
   dsttype = CLIENT;
   dstclient = aclient;
 }

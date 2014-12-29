@@ -7,7 +7,8 @@
 
 using namespace std;
 
-int main (int argc, char** argv) {
+int main (int argc, char** argv)
+{
   // initialize data structures from nodelist.conf
   ifstream nodelistfile;
   vector<string> nodelist;
@@ -19,7 +20,8 @@ int main (int argc, char** argv) {
   
   nodelistfile >> token;
   
-  while (!nodelistfile.eof()) {
+  while (!nodelistfile.eof())
+  {
     nodelist.push_back (token);
     nodelistfile >> token;
   }
@@ -33,13 +35,18 @@ int main (int argc, char** argv) {
   input.open (argv[1]);
   output.open (argv[2]);
   
-  while (1) {
+  while (1)
+  {
     getline (input, filename);
     
-    if (input.eof()) {
+    if (input.eof())
+    {
       break;
       
-    } else {
+    }
+    
+    else
+    {
       string address;
       stringstream ss;
       

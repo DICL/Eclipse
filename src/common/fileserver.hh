@@ -11,7 +11,8 @@
 
 using namespace std;
 
-class fileserver { // each slave node has an object of fileserver
+class fileserver   // each slave node has an object of fileserver
+{
   private:
     int serverfd;
     vector<file_connclient*> clients;
@@ -23,22 +24,28 @@ class fileserver { // each slave node has an object of fileserver
     int run_server (int port, bool* server_continue);   // run this function at another thread
 };
 
-fileserver::fileserver() {
+fileserver::fileserver()
+{
   this->serverfd = -1;
 }
 
-int fileserver::run_server (int port, bool* server_continue) {
+int fileserver::run_server (int port, bool* server_continue)
+{
   int fd;
   struct sockaddr_in serveraddr;
   
   // socket open
   fd = socket (AF_INET, SOCK_STREAM, 0);
   
-  if (fd < 0) {
+  if (fd < 0)
+  {
     cout << "[fileserver]Socket opening failed" << endl;
     return -1;
     
-  } else {
+  }
+  
+  else
+  {
     this->serverfd = fd;
   }
   
@@ -48,13 +55,15 @@ int fileserver::run_server (int port, bool* server_continue) {
   serveraddr.sin_addr.s_addr = htonl (INADDR_ANY);
   serveraddr.sin_port = htons ( (unsigned short) port);
   
-  if (bind (fd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0) {
+  if (bind (fd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
+  {
     cout << "[fileserver]Binding failed" << endl;
     return -1;
   }
   
   // listen
-  if (listen (fd, BACKLOG) < 0) {
+  if (listen (fd, BACKLOG) < 0)
+  {
     cout << "[master]Listening failed" << endl;
     return -1;
   }
@@ -67,10 +76,12 @@ int fileserver::run_server (int port, bool* server_continue) {
   int addrlen = sizeof (connaddr);
   
   // listen connections and signals from clients
-  while (*server_continue) {
+  while (*server_continue)
+  {
     tmpfd = accept (serverfd, (struct sockaddr *) &connaddr, (socklen_t *) &addrlen);
     
-    if (tmpfd > 0) {   // new file client is connected
+    if (tmpfd > 0)     // new file client is connected
+    {
       char* token;
       file_client_role inputrole = UNDEFINED;
       string filename;
@@ -79,10 +90,14 @@ int fileserver::run_server (int port, bool* server_continue) {
       
       token = strtok (read_buf, " ");   // <- read or write
       
-      if (strncmp (token, "read", 4) == 0) {
+      if (strncmp (token, "read", 4) == 0)
+      {
         inputrole = READ;
         
-      } else if (strncmp (token, "write", 5) == 0) {
+      }
+      
+      else if (strncmp (token, "write", 5) == 0)
+      {
         inputrole = WRITE;
       }
       
@@ -105,23 +120,32 @@ int fileserver::run_server (int port, bool* server_continue) {
       fcntl (tmpfd, F_SETFL, O_NONBLOCK);
     }
     
-    for (int i = 0; (unsigned) i < this->clients.size(); i++) {
-      if (clients[i]->get_role() == UNDEFINED) {
+    for (int i = 0; (unsigned) i < this->clients.size(); i++)
+    {
+      if (clients[i]->get_role() == UNDEFINED)
+      {
         cout << "[fileserver]The role is not defined for a clients" << endl;
         
-      } else if (clients[i]->get_role() == READ) {
+      }
+      
+      else if (clients[i]->get_role() == READ)
+      {
         // read file and transfer it to client.
         // close the connection and delete client from vector after all record is transferred.
         string record;
         
-        if (clients[i]->read_record (&record)) {
+        if (clients[i]->read_record (&record))
+        {
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, record.c_str());
           
           // TODO: consider if we need to change nbwrite to write
           nbwrite (clients[i]->get_fd(), write_buf);
           
-        } else { // if all record is transferred
+        }
+        
+        else     // if all record is transferred
+        {
           // close the fd to notify that all file is transferred.
           close (clients[i]->get_fd());
           
@@ -131,21 +155,31 @@ int fileserver::run_server (int port, bool* server_continue) {
           i--;
         }
         
-      } else { // WRITE role
+      }
+      
+      else     // WRITE role
+      {
         // read the contents of the file from client until the pipe is closed
         string record;
         int readbytes;
         
         readbytes = nbread (clients[i]->get_fd(), read_buf);
         
-        if (readbytes == 0) {
+        if (readbytes == 0)
+        {
           close (clients[i]->get_fd());
           
-        } else if (readbytes > 0) {
+        }
+        
+        else if (readbytes > 0)
+        {
           record = read_buf;
           clients[i]->write_record (record, write_buf);
           
-        } else { // if there is no message from the client
+        }
+        
+        else     // if there is no message from the client
+        {
           // do nothing as dafault
           continue;
         }

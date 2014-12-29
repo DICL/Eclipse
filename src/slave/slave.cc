@@ -30,7 +30,8 @@ char master_address[BUF_SIZE];
 vector<slave_job*> running_jobs; // a vector of job, one or multiple tasks of which are running on this slave node
 vector<slave_task*> running_tasks; // a vector of running tasks
 
-int main (int argc, char** argv) {
+int main (int argc, char** argv)
+{
   // initialize data structures from setup.conf
   ifstream conf;
   string token;
@@ -40,29 +41,46 @@ int main (int argc, char** argv) {
   
   conf >> token;
   
-  while (!conf.eof()) {
-    if (token == "dhtport") {
+  while (!conf.eof())
+  {
+    if (token == "dhtport")
+    {
       conf >> token;
       dhtport = atoi (token.c_str());
       
-    } else if (token == "port") {
+    }
+    
+    else if (token == "port")
+    {
       conf >> token;
       port = atoi (token.c_str());
       
-    } else if (token == "max_job") {
+    }
+    
+    else if (token == "max_job")
+    {
       // ignore and just pass through this case
       conf >> token;
       
-    } else if (token == "num_slave") {
+    }
+    
+    else if (token == "num_slave")
+    {
       // ignore and just pass through this case
       conf >> token;
       
-    } else if (token == "master_address") {
+    }
+    
+    else if (token == "master_address")
+    {
       conf >> token;
       strcpy (master_address, token.c_str());
       master_is_set = true;
       
-    } else {
+    }
+    
+    else
+    {
       cout << "[slave]Unknown configure record: " << token << endl;
     }
     
@@ -72,12 +90,14 @@ int main (int argc, char** argv) {
   conf.close();
   
   // verify initialization
-  if (port == -1) {
+  if (port == -1)
+  {
     cout << "[slave]port should be specified in the setup.conf" << endl;
     return 1;
   }
   
-  if (master_is_set == false) {
+  if (master_is_set == false)
+  {
     cout << "[slave]master_address should be specified in the setup.conf" << endl;
     return 1;
   }
@@ -85,7 +105,8 @@ int main (int argc, char** argv) {
   // connect to master
   masterfd = connect_to_server (master_address, port);
   
-  if (masterfd < 0) {
+  if (masterfd < 0)
+  {
     cout << "[slave]Connecting to master failed" << endl;
     return 1;
   }
@@ -98,7 +119,8 @@ int main (int argc, char** argv) {
   return 0;
 }
 
-int connect_to_server (char* host, unsigned short port) {
+int connect_to_server (char* host, unsigned short port)
+{
   int clientfd;
   struct sockaddr_in serveraddr;
   struct hostent* hp;
@@ -106,7 +128,8 @@ int connect_to_server (char* host, unsigned short port) {
   //SOCK_STREAM -> tcp
   clientfd = socket (AF_INET, SOCK_STREAM, 0);
   
-  if (clientfd < 0) {
+  if (clientfd < 0)
+  {
     cout << "[slave]Openning socket failed" << endl;
     exit (1);
   }
@@ -125,15 +148,18 @@ int connect_to_server (char* host, unsigned short port) {
   return clientfd;
 }
 
-void signal_listener() {
+void signal_listener()
+{
   // get signal from master, jobs and tasks
   int readbytes = 0;
   
-  while (1) {
+  while (1)
+  {
     // check signal arrived from master
     readbytes = nbread (masterfd, read_buf);
     
-    if (readbytes == 0) {   //connection closed from master
+    if (readbytes == 0)     //connection closed from master
+    {
       cout << "[slave]Connection from master is abnormally closed" << endl;
       
       if (close (masterfd) < 0)
@@ -142,15 +168,24 @@ void signal_listener() {
       cout << "[slave]Exiting slave..." << endl;
       exit (0);
       
-    } else if (readbytes < 0) {
+    }
+    
+    else if (readbytes < 0)
+    {
       // do nothing
-    } else { // signal arrived from master
-      if (strncmp (read_buf, "whoareyou", 9) == 0) {
+    }
+    else     // signal arrived from master
+    {
+      if (strncmp (read_buf, "whoareyou", 9) == 0)
+      {
         memset (write_buf, 0, BUF_SIZE);
         strcpy (write_buf, "slave");
         nbwrite (masterfd, write_buf);
         
-      } else if (strncmp (read_buf, "close", 5) == 0) {
+      }
+      
+      else if (strncmp (read_buf, "close", 5) == 0)
+      {
         cout << "[slave]Close request from master" << endl;
         
         if (close (masterfd < 0))
@@ -159,7 +194,10 @@ void signal_listener() {
         cout << "[slave]Exiting slave..." << endl;
         exit (0);
         
-      } else if (strncmp (read_buf, "tasksubmit", 10) == 0) {
+      }
+      
+      else if (strncmp (read_buf, "tasksubmit", 10) == 0)
+      {
         // launch the forwarded task
         slave_job* thejob = NULL;
         slave_task* thetask = NULL;
@@ -168,23 +206,30 @@ void signal_listener() {
         token = strtok (NULL, " ");   // token -> jobid expected
         
         // parse task configure
-        while (token != NULL) {
-          if (strncmp (token, "jobid", 5) == 0) {
+        while (token != NULL)
+        {
+          if (strncmp (token, "jobid", 5) == 0)
+          {
             int id;
             token = strtok (NULL, " ");
             id = atoi (token);
             
             thejob = find_jobfromid (id);
             
-            if (thejob == NULL) {   // if task in this job already running in this slave
+            if (thejob == NULL)     // if task in this job already running in this slave
+            {
               thejob = new slave_job (id);
               running_jobs.push_back (thejob);
             }
             
-          } else if (strncmp (token, "taskid", 6) == 0) {
+          }
+          
+          else if (strncmp (token, "taskid", 6) == 0)
+          {
             int id;
             
-            if (thejob == NULL) {
+            if (thejob == NULL)
+            {
               cout << "Debugging: the job is set to null in";
               cout << "the slave side when a task is forwarded." << endl;
               token = strtok (NULL, " ");
@@ -201,8 +246,12 @@ void signal_listener() {
             // add this task in 'thejob'
             thejob->add_task (thetask);
             
-          } else if (strncmp (token, "role", 4) == 0) {
-            if (thetask == NULL) {
+          }
+          
+          else if (strncmp (token, "role", 4) == 0)
+          {
+            if (thetask == NULL)
+            {
               cout << "Debugging: the task is set to null in ";
               cout << "the slave side when a task is forwarded." << endl;
               token = strtok (NULL, " ");
@@ -211,30 +260,44 @@ void signal_listener() {
             
             token = strtok (NULL, " ");   // "MAP" or "REDUCE"
             
-            if (strncmp (token, "MAP", 3) == 0) {
+            if (strncmp (token, "MAP", 3) == 0)
+            {
               thetask->set_taskrole (MAP);
               
-            } else if (strncmp (token, "REDUCE", 6) == 0) {
+            }
+            
+            else if (strncmp (token, "REDUCE", 6) == 0)
+            {
               thetask->set_taskrole (REDUCE);
               
-            } else {
+            }
+            
+            else
+            {
               cout << "Debugging: the task role is undefined well." << endl;
               thetask->set_taskrole (JOB);
             }
             
-          } else if (strncmp (token, "inputpath", 9) == 0) {
+          }
+          
+          else if (strncmp (token, "inputpath", 9) == 0)
+          {
             string tmp; // used for temporarily storing the paths
             int numpaths;
             token = strtok (NULL, " ");   // token -> number of input paths
             numpaths = atoi (token);
             
-            for (int i = 0; i < numpaths; i++) {
+            for (int i = 0; i < numpaths; i++)
+            {
               token = strtok (NULL, " ");
               tmp = token;
               thetask->add_inputpath (tmp);
             }
             
-          } else if (strncmp (token, "argcount", 8) == 0) {
+          }
+          
+          else if (strncmp (token, "argcount", 8) == 0)
+          {
             // deal with argcount and argvalues together in this bracket
             // because both configure should be successive
             int count;
@@ -247,7 +310,8 @@ void signal_listener() {
             token = strtok (NULL, " ");   // token -> argvalues
             
             // check the message protocol
-            if (strncmp (token, "argvalues", 9) != 0) {
+            if (strncmp (token, "argvalues", 9) != 0)
+            {
               cout << "Debugging: the 'tasksubmit' protocol conflicts in the slave." << endl;
               // process next configure
               token = strtok (NULL, " ");
@@ -255,7 +319,8 @@ void signal_listener() {
             }
             
             // parse all arguments
-            for (int i = 0; i < count; i++) {
+            for (int i = 0; i < count; i++)
+            {
               token = strtok (NULL, " ");
               values[i] = new char[strlen (token) + 1];
               strcpy (values[i], token);
@@ -263,7 +328,10 @@ void signal_listener() {
             
             thetask->set_argvalues (values);
             
-          } else {
+          }
+          
+          else
+          {
             cout << token << ": unknown task configure in the slave side" << endl;
           }
           
@@ -274,16 +342,21 @@ void signal_listener() {
         // launch the forwarded task
         launch_task (thetask);
         
-      } else {
+      }
+      
+      else
+      {
         cout << "[slave]Undefined signal from master: " << read_buf << endl;
         cout << "[slave]Undefined signal size: " << readbytes << endl;
       }
     }
     
     // check the running_jobs
-    for (int i = 0; (unsigned) i < running_jobs.size(); i++) {
+    for (int i = 0; (unsigned) i < running_jobs.size(); i++)
+    {
       // send key information of the job to the master node
-      while (running_jobs[i]->is_unreportedkey()) {
+      while (running_jobs[i]->is_unreportedkey())
+      {
         stringstream ss;
         string key = running_jobs[i]->pop_unreportedkey();
         string keystr = "key";
@@ -302,7 +375,8 @@ void signal_listener() {
       }
       
       // check if all tasks in the job are finished
-      if (running_jobs[i]->get_numrunningtasks() == 0) {   // all task is finished
+      if (running_jobs[i]->get_numrunningtasks() == 0)     // all task is finished
+      {
         // clear job from the vectors
         slave_job* deleted_job = running_jobs[i];
         running_jobs.erase (running_jobs.begin() + i);
@@ -313,16 +387,24 @@ void signal_listener() {
     }
     
     // check message from tasks through pipe
-    for (int i = 0; (unsigned) i < running_tasks.size(); i++) {
+    for (int i = 0; (unsigned) i < running_tasks.size(); i++)
+    {
       readbytes = nbread (running_tasks[i]->get_readfd(), read_buf);
       
-      if (readbytes == 0) {
+      if (readbytes == 0)
+      {
         // ignore this case as default
-      } else if (readbytes < 0) {
+      }
+      else if (readbytes < 0)
+      {
         continue;
         
-      } else {
-        if (strncmp (read_buf, "complete", 8) == 0) {
+      }
+      
+      else
+      {
+        if (strncmp (read_buf, "complete", 8) == 0)
+        {
           cout << "[slave]Task with taskid " << running_tasks[i]->get_taskid();
           cout << " and job id " << running_tasks[i]->get_job()->get_jobid();
           cout << " completed successfully" << endl;
@@ -335,7 +417,10 @@ void signal_listener() {
           // mark the task as completed
           running_tasks[i]->set_status (COMPLETED);
           
-        } else if (strncmp (read_buf, "requestconf", 11) == 0) {
+        }
+        
+        else if (strncmp (read_buf, "requestconf", 11) == 0)
+        {
           // parse all task configure
           stringstream message;
           message << "taskconf ";
@@ -352,7 +437,8 @@ void signal_listener() {
           message << " inputpaths ";
           message << running_tasks[i]->get_numinputpaths(); // number of inputpaths
           
-          for (int j = 0; j < running_tasks[i]->get_numinputpaths(); j++) {
+          for (int j = 0; j < running_tasks[i]->get_numinputpaths(); j++)
+          {
             message << " ";
             message << running_tasks[i]->get_inputpath (j);
           }
@@ -362,13 +448,19 @@ void signal_listener() {
           strcpy (write_buf, message.str().c_str());
           nbwrite (running_tasks[i]->get_writefd(), write_buf);
           
-        } else if (strncmp (read_buf, "key", 3) == 0) {
+        }
+        
+        else if (strncmp (read_buf, "key", 3) == 0)
+        {
           char* token;
           token = strtok (read_buf, " ");   // token <- key
           token = strtok (NULL, " ");   // token <- key value
           running_tasks[i]->get_job()->add_key (token);
           
-        } else {
+        }
+        
+        else
+        {
           cout << "[slave]Undefined message protocol from task" << endl;
           cout << "       Message: " << read_buf << endl;
         }
@@ -376,9 +468,12 @@ void signal_listener() {
     }
     
     // check task clear
-    for (int i = 0; (unsigned) i < running_tasks.size(); i++) {
-      if (waitpid (running_tasks[i]->get_pid(), & (running_tasks[i]->pstat), WNOHANG)) {       // waitpid returned nonzero
-        if (running_tasks[i]->get_status() == COMPLETED) {   // successful termination
+    for (int i = 0; (unsigned) i < running_tasks.size(); i++)
+    {
+      if (waitpid (running_tasks[i]->get_pid(), & (running_tasks[i]->pstat), WNOHANG))         // waitpid returned nonzero
+      {
+        if (running_tasks[i]->get_status() == COMPLETED)     // successful termination
+        {
           // send 'taskcomplete' message to the master
           stringstream ss;
           string msg = "taskcomplete";
@@ -398,7 +493,10 @@ void signal_listener() {
           running_tasks.erase (running_tasks.begin() + i);
           i--;
           
-        } else {
+        }
+        
+        else
+        {
           cout << "[slave]A ";
           
           if (running_tasks[i]->get_taskrole() == MAP)
@@ -429,7 +527,8 @@ void signal_listener() {
   exit (0);
 }
 
-void launch_task (slave_task* atask) {
+void launch_task (slave_task* atask)
+{
   int pid;
   int fd1[2]; // two set of fds between slave and task(1)
   int fd2[2]; // two set of fds between slave and task(2)
@@ -449,7 +548,8 @@ void launch_task (slave_task* atask) {
   
   pid = fork();
   
-  if (pid == 0) {   // child side
+  if (pid == 0)     // child side
+  {
     // pass all arguments
     char** args;
     int count;
@@ -461,7 +561,8 @@ void launch_task (slave_task* atask) {
     args = new char*[count + 4];
     
     // pass original arguments
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < count; i++)
+    {
       args[i] = new char[strlen (atask->get_argvalues() [i]) + 1];
       strcpy (args[i], atask->get_argvalues() [i]);
     }
@@ -475,17 +576,24 @@ void launch_task (slave_task* atask) {
     strcpy (args[count + 1], ss2.str().c_str());
     
     // pass task type
-    if (atask->get_taskrole() == MAP) {
+    if (atask->get_taskrole() == MAP)
+    {
       args[count + 2] = new char[4];
       strcpy (args[count + 2], "MAP");
       //args[count+2] = "MAP";
       
-    } else if (atask->get_taskrole() == REDUCE) {
+    }
+    
+    else if (atask->get_taskrole() == REDUCE)
+    {
       args[count + 2] = new char[6];
       strcpy (args[count + 2], "REDUCE");
       //args[count+2] = "REDUCE";
       
-    } else {
+    }
+    
+    else
+    {
       cout << "[slave]Debugging: the role of the task is not defined in launch_task() function" << endl;
       args[count + 2] = new char[4];
       strcpy (args[count + 2], "JOB");
@@ -496,11 +604,13 @@ void launch_task (slave_task* atask) {
     args[count + 3] = NULL;
     
     // launch the task with the passed arguments
-    while (execv (args[0], args) == -1) {
+    while (execv (args[0], args) == -1)
+    {
       cout << "Debugging: execv failed" << endl;
       cout << "Arguments:";
       
-      for (int i = 0; i < count + 3; i++) {
+      for (int i = 0; i < count + 3; i++)
+      {
         cout << " " << args[i];
       }
       
@@ -510,10 +620,16 @@ void launch_task (slave_task* atask) {
       sleep (1);
     }
     
-  } else if (pid < 0) {
+  }
+  
+  else if (pid < 0)
+  {
     cout << "[slave]Task could not have been started due to child process forking failure" << endl;
     
-  } else { // parent side
+  }
+  
+  else     // parent side
+  {
     // close pipe fds for task side
     close (fd2[0]);
     close (fd1[1]);
@@ -536,9 +652,12 @@ void launch_task (slave_task* atask) {
   }
 }
 
-slave_job* find_jobfromid (int id) {
-  for (int i = 0; (unsigned) i < running_jobs.size(); i++) {
-    if (running_jobs[i]->get_jobid() == id) {
+slave_job* find_jobfromid (int id)
+{
+  for (int i = 0; (unsigned) i < running_jobs.size(); i++)
+  {
+    if (running_jobs[i]->get_jobid() == id)
+    {
       return running_jobs[i];
     }
   }

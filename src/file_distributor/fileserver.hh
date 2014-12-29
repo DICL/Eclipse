@@ -29,7 +29,8 @@
 
 using namespace std;
 
-class fileserver { // each slave node has an object of fileserver
+class fileserver   // each slave node has an object of fileserver
+{
   private:
     int serverfd;
     int cacheserverfd;
@@ -59,7 +60,8 @@ class fileserver { // each slave node has an object of fileserver
     filebridge* find_Icachebridge (string inputname, int& bridgeindex);
 };
 
-fileserver::fileserver() {
+fileserver::fileserver()
+{
   networkidx = -1;
   serverfd = -1;
   cacheserverfd = -1;
@@ -67,7 +69,8 @@ fileserver::fileserver() {
   fbidclock = 0; // fb id starts from 0
 }
 
-int fileserver::run_server (int port, string master_address) {
+int fileserver::run_server (int port, string master_address)
+{
   int buffersize = 8388608; // 8 MB buffer size
   
   // read hostname from hostname file
@@ -87,20 +90,24 @@ int fileserver::run_server (int port, string master_address) {
   
   nodelistfile >> word;
   
-  while (!nodelistfile.eof()) {
+  while (!nodelistfile.eof())
+  {
     nodelist.push_back (word);
     nodelistfile >> word;
   }
   
   nodelistfile.close();
   
-  if (access (IPC_PATH, F_OK) == 0) {
+  if (access (IPC_PATH, F_OK) == 0)
+  {
     unlink (IPC_PATH);
   }
   
   // determine the network topology by reading node list information
-  for (int i = 0; (unsigned) i < nodelist.size(); i++) {
-    if (nodelist[i] == localhostname) {
+  for (int i = 0; (unsigned) i < nodelist.size(); i++)
+  {
+    if (nodelist[i] == localhostname)
+    {
       networkidx = i;
       break;
     }
@@ -115,7 +122,8 @@ int fileserver::run_server (int port, string master_address) {
     // SOCK_STREAM -> tcp
     cacheserverfd = socket (AF_INET, SOCK_STREAM, 0);
     
-    if (cacheserverfd < 0) {
+    if (cacheserverfd < 0)
+    {
       cout << "[fileserver:" << networkidx << "]Openning socket failed" << endl;
       exit (1);
     }
@@ -127,7 +135,8 @@ int fileserver::run_server (int port, string master_address) {
     memcpy (&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
     serveraddr.sin_port = htons (port);
     
-    while (connect (cacheserverfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0) {
+    while (connect (cacheserverfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
+    {
       cout << "[fileserver:" << networkidx << "]Cannot connect to the cache server. Retrying..." << endl;
       
       //cout<<"\thost name: "<<nodelist[i]<<endl;
@@ -142,7 +151,8 @@ int fileserver::run_server (int port, string master_address) {
   }
   
   // connect to other peer eclipse nodes
-  for (int i = 0; i < networkidx; i++) {
+  for (int i = 0; i < networkidx; i++)
+  {
     int clientfd = -1;
     struct sockaddr_in serveraddr;
     struct hostent *hp = NULL;
@@ -150,14 +160,16 @@ int fileserver::run_server (int port, string master_address) {
     // SOCK_STREAM -> tcp
     clientfd = socket (AF_INET, SOCK_STREAM, 0);
     
-    if (clientfd < 0) {
+    if (clientfd < 0)
+    {
       cout << "[fileserver:" << networkidx << "]Openning socket failed" << endl;
       exit (1);
     }
     
     hp = gethostbyname (nodelist[i].c_str());
     
-    if (hp == NULL) {
+    if (hp == NULL)
+    {
       cout << "[fileserver:" << networkidx << "]Cannot find host by host name" << endl;
       return -1;
     }
@@ -167,7 +179,8 @@ int fileserver::run_server (int port, string master_address) {
     memcpy (&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
     serveraddr.sin_port = htons (port);
     
-    while (connect (clientfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0) {
+    while (connect (clientfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
+    {
       cout << "[fileserver:" << networkidx << "]Cannot connect to: " << nodelist[i] << endl;
       cout << "Retrying..." << endl;
       
@@ -193,7 +206,8 @@ int fileserver::run_server (int port, string master_address) {
   
   fd = socket (AF_INET, SOCK_STREAM, 0);
   
-  if (fd < 0) {
+  if (fd < 0)
+  {
     cout << "[fileserver:" << networkidx << "]Socket opening failed" << endl;
     exit (-1);
   }
@@ -207,13 +221,15 @@ int fileserver::run_server (int port, string master_address) {
   serveraddr.sin_addr.s_addr = htonl (INADDR_ANY);
   serveraddr.sin_port = htons ( (unsigned short) port);
   
-  if (bind (fd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0) {
+  if (bind (fd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
+  {
     cout << "[fileserver:" << networkidx << "]\033[0;31mBinding failed\033[0m" << endl;
     exit (-1);
   }
   
   // listen
-  if (listen (fd, BACKLOG) < 0) {
+  if (listen (fd, BACKLOG) < 0)
+  {
     cout << "[master]Listening failed" << endl;
     exit (-1);
     return -1;
@@ -223,23 +239,28 @@ int fileserver::run_server (int port, string master_address) {
   peers.push_back (new filepeer (-1, localhostname));
   
   // register the other peers in order
-  for (int i = networkidx + 1; (unsigned) i < nodelist.size(); i++) {
+  for (int i = networkidx + 1; (unsigned) i < nodelist.size(); i++)
+  {
     peers.push_back (new filepeer (-1, nodelist[i]));
   }
   
   // listen connections from peers and complete the eclipse network
-  for (int i = networkidx + 1; (unsigned) i < nodelist.size(); i++) {
+  for (int i = networkidx + 1; (unsigned) i < nodelist.size(); i++)
+  {
     struct sockaddr_in connaddr;
     int addrlen = sizeof (connaddr);
     
     tmpfd = accept (fd, (struct sockaddr *) &connaddr, (socklen_t *) &addrlen);
     
-    if (tmpfd > 0) {
+    if (tmpfd > 0)
+    {
       char* haddrp = inet_ntoa (connaddr.sin_addr);
       string address = haddrp;
       
-      for (int j = networkidx + 1; (unsigned) j < nodelist.size(); j++) {
-        if (peers[j]->get_address() == address) {
+      for (int j = networkidx + 1; (unsigned) j < nodelist.size(); j++)
+      {
+        if (peers[j]->get_address() == address)
+        {
           peers[j]->set_fd (tmpfd);
         }
       }
@@ -249,12 +270,18 @@ int fileserver::run_server (int port, string master_address) {
       setsockopt (tmpfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
       setsockopt (tmpfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
       
-    } else if (tmpfd < 0) {   // connection failed
+    }
+    
+    else if (tmpfd < 0)       // connection failed
+    {
       // retry with same index
       i--;
       continue;
       
-    } else {
+    }
+    
+    else
+    {
       cout << "connection closed......................." << endl;
     }
   }
@@ -268,7 +295,8 @@ int fileserver::run_server (int port, string master_address) {
   struct sockaddr_un serveraddr2;
   ipcfd = socket (AF_UNIX, SOCK_STREAM, 0);
   
-  if (ipcfd < 0) {
+  if (ipcfd < 0)
+  {
     cout << "[fileserver:" << networkidx << "]AF_UNIX socket openning failed" << endl;
     exit (-1);
   }
@@ -278,13 +306,15 @@ int fileserver::run_server (int port, string master_address) {
   serveraddr2.sun_family = AF_UNIX;
   strcpy (serveraddr2.sun_path, IPC_PATH);
   
-  if (bind (ipcfd, (struct sockaddr *) &serveraddr2, SUN_LEN (&serveraddr2)) < 0) {
+  if (bind (ipcfd, (struct sockaddr *) &serveraddr2, SUN_LEN (&serveraddr2)) < 0)
+  {
     cout << "[fileserver:" << networkidx << "]\033[0;31mIPC Binding failed\033[0m" << endl;
     exit (-1);
   }
   
   // listen
-  if (listen (ipcfd, BACKLOG) < 0) {
+  if (listen (ipcfd, BACKLOG) < 0)
+  {
     cout << "[master]Listening failed" << endl;
     exit (-1);
   }
@@ -312,12 +342,14 @@ int fileserver::run_server (int port, string master_address) {
   
   
   // start main loop which listen to connections and signals from clients and peers
-  while (1) {
+  while (1)
+  {
 //gettimeofday(&time_start2, NULL);
     // local clients
     tmpfd = accept (ipcfd, NULL, NULL);
     
-    if (tmpfd > 0) {   // new file client is connected
+    if (tmpfd > 0)     // new file client is connected
+    {
       // create new clients
       clients.push_back (new file_connclient (tmpfd));
       
@@ -333,12 +365,14 @@ int fileserver::run_server (int port, string master_address) {
 //timeslot1 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
 //gettimeofday(&time_start2, NULL);
 
-    for (int i = 0; (unsigned) i < clients.size(); i++) {
+    for (int i = 0; (unsigned) i < clients.size(); i++)
+    {
       int readbytes = -1;
       
       readbytes = nbread (clients[i]->get_fd(), read_buf);
       
-      if (readbytes > 0) {
+      if (readbytes > 0)
+      {
         char* token;
         string filename;
         
@@ -346,7 +380,8 @@ int fileserver::run_server (int port, string master_address) {
 //        strcpy(write_buf, read_buf);
 
         // The message is either: Rread(raw), Iread(intermediate), Iwrite(intermediate), Owrite(output)
-        if (strncmp (read_buf, "Rread", 5) == 0) {
+        if (strncmp (read_buf, "Rread", 5) == 0)
+        {
           string cachekey;
           string appname;
           int jobid;
@@ -381,29 +416,37 @@ int fileserver::run_server (int port, string master_address) {
           filebridge* thebridge = new filebridge (fbidclock++);
           bridges.push_back (thebridge);
           
-          if (index == networkidx) {   // local input data
+          if (index == networkidx)     // local input data
+          {
             // check whether the intermediate result is hit
             dataentry* theentry = thecache->lookup (cachekey);
             
             
-            if (theentry == NULL) {   // when the intermediate result is not hit
+            if (theentry == NULL)     // when the intermediate result is not hit
+            {
               cout << "\033[0;31mLocal Icache miss\033[0m" << endl;
               // send 0 packet to the client to notify that Icache is not hit
               memset (write_buf, 0, BUF_CUT);
               
-              if (clients[i]->msgbuf.size() > 1) {
+              if (clients[i]->msgbuf.size() > 1)
+              {
                 clients[i]->msgbuf.back()->set_buffer (write_buf, clients[i]->get_fd());
                 clients[i]->msgbuf.push_back (new messagebuffer());
                 
-              } else {
-                if (nbwritebuf (clients[i]->get_fd(), write_buf, clients[i]->msgbuf.back()) <= 0) {
+              }
+              
+              else
+              {
+                if (nbwritebuf (clients[i]->get_fd(), write_buf, clients[i]->msgbuf.back()) <= 0)
+                {
                   clients[i]->msgbuf.push_back (new messagebuffer());
                 }
               }
               
               theentry = thecache->lookup (filename);
               
-              if (theentry == NULL) {   // when data is not in cache
+              if (theentry == NULL)     // when data is not in cache
+              {
                 cout << "\033[0;31mLocal Cache miss\033[0m" << endl;
                 
                 // set an entry writer
@@ -416,7 +459,8 @@ int fileserver::run_server (int port, string master_address) {
                 
                 address = nodelist[hashvalue];
                 
-                if ( (unsigned) networkidx == hashvalue) {
+                if ( (unsigned) networkidx == hashvalue)
+                {
                   // 1. read data from disk
                   // 2. store it in the cache
                   // 3. send it to client
@@ -437,7 +481,10 @@ int fileserver::run_server (int port, string master_address) {
                   // open read file and start sending data to client
                   thebridge->open_readfile (filename);
                   
-                } else { // remote DHT peer
+                }
+                
+                else     // remote DHT peer
+                {
                   // 1. request to the DHT peer (read from peer)
                   // 2. store it in the cache
                   // 3. send it to client
@@ -471,26 +518,36 @@ int fileserver::run_server (int port, string master_address) {
                   
                   filepeer* thepeer = find_peer (address);
                   
-                  if (thepeer->msgbuf.size() > 1) {
+                  if (thepeer->msgbuf.size() > 1)
+                  {
                     thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
                     thepeer->msgbuf.push_back (new messagebuffer());
                     
-                  } else {
+                  }
+                  
+                  else
+                  {
                     if (nbwritebuf (thepeer->get_fd(),
-                                    write_buf, thepeer->msgbuf.back()) <= 0) {
+                                    write_buf, thepeer->msgbuf.back()) <= 0)
+                    {
                       thepeer->msgbuf.push_back (new messagebuffer());
                     }
                   }
                 }
                 
-              } else { // when the data is in the cache
-                if (theentry->is_being_written()) {
+              }
+              
+              else     // when the data is in the cache
+              {
+                if (theentry->is_being_written())
+                {
                   // determine the DHT file location
                   hashvalue = hashvalue % nodelist.size();
                   
                   address = nodelist[hashvalue];
                   
-                  if ( (unsigned) networkidx == hashvalue) {
+                  if ( (unsigned) networkidx == hashvalue)
+                  {
                     // 1. read data from disk
                     // 2. store it in the cache
                     // 3. send it to client
@@ -509,7 +566,10 @@ int fileserver::run_server (int port, string master_address) {
                     // open read file and start sending data to client
                     thebridge->open_readfile (filename);
                     
-                  } else { // remote DHT peer
+                  }
+                  
+                  else     // remote DHT peer
+                  {
                     // 1. request to the DHT peer (read from peer)
                     // 2. store it in the cache
                     // 3. send it to client
@@ -542,19 +602,27 @@ int fileserver::run_server (int port, string master_address) {
                     
                     filepeer* thepeer = find_peer (address);
                     
-                    if (thepeer->msgbuf.size() > 1) {
+                    if (thepeer->msgbuf.size() > 1)
+                    {
                       thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
                       thepeer->msgbuf.push_back (new messagebuffer());
                       
-                    } else {
+                    }
+                    
+                    else
+                    {
                       if (nbwritebuf (thepeer->get_fd(),
-                                      write_buf, thepeer->msgbuf.back()) <= 0) {
+                                      write_buf, thepeer->msgbuf.back()) <= 0)
+                      {
                         thepeer->msgbuf.push_back (new messagebuffer());
                       }
                     }
                   }
                   
-                } else {
+                }
+                
+                else
+                {
                   // 1. read from cache
                   // 2. and send it to client
                   
@@ -573,19 +641,27 @@ int fileserver::run_server (int port, string master_address) {
                 }
               }
               
-            } else { // intermediate result hit
+            }
+            
+            else     // intermediate result hit
+            {
               cout << "\033[0;32m[" << networkidx << "]Local Icache hit\033[0m" << endl;
 //cout<<"[fileserver:"<<networkidx<<"]Cachekey hit: "<<cachekey<<endl;
               // send 1 packet to the client to notify that Icache is hit
               memset (write_buf, 0, BUF_CUT);
               write_buf[0] = 1;
               
-              if (clients[i]->msgbuf.size() > 1) {
+              if (clients[i]->msgbuf.size() > 1)
+              {
                 clients[i]->msgbuf.back()->set_buffer (write_buf, clients[i]->get_fd());
                 clients[i]->msgbuf.push_back (new messagebuffer());
                 
-              } else {
-                if (nbwritebuf (clients[i]->get_fd(), write_buf, clients[i]->msgbuf.back()) <= 0) {
+              }
+              
+              else
+              {
+                if (nbwritebuf (clients[i]->get_fd(), write_buf, clients[i]->msgbuf.back()) <= 0)
+                {
                   clients[i]->msgbuf.push_back (new messagebuffer());
                 }
               }
@@ -711,7 +787,10 @@ int fileserver::run_server (int port, string master_address) {
             }
             */
             
-          } else { // remote cache peer
+          }
+          
+          else     // remote cache peer
+          {
             // 1. request to the remote cache peer
             // 2. send it to client
             
@@ -746,19 +825,27 @@ int fileserver::run_server (int port, string master_address) {
             
             filepeer* thepeer = find_peer (address);
             
-            if (thepeer->msgbuf.size() > 1) {
+            if (thepeer->msgbuf.size() > 1)
+            {
               thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
               thepeer->msgbuf.push_back (new messagebuffer());
               
-            } else {
+            }
+            
+            else
+            {
               if (nbwritebuf (thepeer->get_fd(),
-                              write_buf, thepeer->msgbuf.back()) <= 0) {
+                              write_buf, thepeer->msgbuf.back()) <= 0)
+              {
                 thepeer->msgbuf.push_back (new messagebuffer());
               }
             }
           }
           
-        } else if (strncmp (read_buf, "Iread", 5) == 0) {
+        }
+        
+        else if (strncmp (read_buf, "Iread", 5) == 0)
+        {
 //cout<<"[fileserver:"<<networkidx<<"]Iread message: "<<read_buf<<endl;
           int jobid;
           int peerid;
@@ -774,13 +861,17 @@ int fileserver::run_server (int port, string master_address) {
           token = strtok (NULL, " ");   // <- numiblock
           numiblock = atoi (token);
           
-          if (peerid == networkidx) {   // local
+          if (peerid == networkidx)     // local
+          {
             // generate ireader and link to the client
             ireader* thereader = new ireader (jobid, numiblock, peerid, 0, CLIENT);
             thereader->set_dstclient (clients[i]);
             ireaders.push_back (thereader);
             
-          } else { // remote
+          }
+          
+          else     // remote
+          {
             // send iwriter request to the target peer
             filebridge* thebridge = new filebridge (fbidclock++);
             bridges.push_back (thebridge);
@@ -814,16 +905,21 @@ int fileserver::run_server (int port, string master_address) {
             
             filepeer* thepeer = peers[peerid];
             
-            if (thepeer->msgbuf.size() > 1) {
+            if (thepeer->msgbuf.size() > 1)
+            {
               thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
               thepeer->msgbuf.push_back (new messagebuffer());
               
-            } else {
+            }
+            
+            else
+            {
               //cout<<endl;
               //cout<<"from: "<<localhostname<<endl;
               //cout<<"to: "<<thepeer->get_address()<<endl;
               if (nbwritebuf (thepeer->get_fd(),
-                              write_buf, thepeer->msgbuf.back()) <= 0) {
+                              write_buf, thepeer->msgbuf.back()) <= 0)
+              {
                 thepeer->msgbuf.push_back (new messagebuffer());
               }
             }
@@ -831,7 +927,10 @@ int fileserver::run_server (int port, string master_address) {
             //nbwrite(find_peer(address)->get_fd(), write_buf);
           }
           
-        } else if (strncmp (read_buf, "ICwrite", 6) == 0) {     // "ICwrite" message from client
+        }
+        
+        else if (strncmp (read_buf, "ICwrite", 6) == 0)         // "ICwrite" message from client
+        {
           string cachekey;
           string appname;
           string inputpath;
@@ -861,11 +960,15 @@ int fileserver::run_server (int port, string master_address) {
           entrywriter* thewriter = clients[i]->get_Icachewriter();
           filepeer* thepeer = clients[i]->get_Itargetpeer();
           
-          if (thewriter != NULL) {   // target is local and writing is ongoing
+          if (thewriter != NULL)     // target is local and writing is ongoing
+          {
 //cout<<"[fileserver:"<<networkidx<<"]Cachekey of written data: "<<cachekey<<endl;
             thewriter->write_record (token);
             
-          } else if (thepeer != NULL) {   // target is remote peer and writing is ongoing
+          }
+          
+          else if (thepeer != NULL)       // target is remote peer and writing is ongoing
+          {
             string message = "Icache ";
             message.append (appname);
             message.append (" ");
@@ -878,18 +981,26 @@ int fileserver::run_server (int port, string master_address) {
 //cout<<"[fileserver:"<<networkidx<<"]Sending Icache message: "<<write_buf<<endl;
 
             // send token to the remote cache to store it
-            if (thepeer->msgbuf.size() > 1) {
+            if (thepeer->msgbuf.size() > 1)
+            {
               thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
               thepeer->msgbuf.push_back (new messagebuffer());
               
-            } else {
+            }
+            
+            else
+            {
               if (nbwritebuf (thepeer->get_fd(),
-                              write_buf, thepeer->msgbuf.back()) <= 0) {
+                              write_buf, thepeer->msgbuf.back()) <= 0)
+              {
                 thepeer->msgbuf.push_back (new messagebuffer());
               }
             }
             
-          } else { // target should be determined
+          }
+          
+          else     // target should be determined
+          {
             // determine the target cache of data
             string address;
             memset (write_buf, 0, HASHLENGTH);
@@ -901,7 +1012,8 @@ int fileserver::run_server (int port, string master_address) {
             
             address = nodelist[index];
             
-            if (index == networkidx) {   // local target cache
+            if (index == networkidx)     // local target cache
+            {
               // set a entry writer
 //cout<<"[fileserver:"<<networkidx<<"]Cachekey of new data entry: "<<cachekey<<endl;
               dataentry* newentry = new dataentry (cachekey, hashvalue);
@@ -912,7 +1024,10 @@ int fileserver::run_server (int port, string master_address) {
               
               thewriter->write_record (token);
               
-            } else { // remote peer cache
+            }
+            
+            else     // remote peer cache
+            {
               thepeer = peers[index];
               clients[i]->set_Itargetpeer (thepeer);
               clients[i]->set_Icachekey (cachekey);
@@ -929,13 +1044,18 @@ int fileserver::run_server (int port, string master_address) {
 //cout<<"[fileserver:"<<networkidx<<"]Sending Icache message: "<<write_buf<<endl;
 
               // send token to the remote cache to store it
-              if (thepeer->msgbuf.size() > 1) {
+              if (thepeer->msgbuf.size() > 1)
+              {
                 thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
                 thepeer->msgbuf.push_back (new messagebuffer());
                 
-              } else {
+              }
+              
+              else
+              {
                 if (nbwritebuf (thepeer->get_fd(),
-                                write_buf, thepeer->msgbuf.back()) <= 0) {
+                                write_buf, thepeer->msgbuf.back()) <= 0)
+                {
                   thepeer->msgbuf.push_back (new messagebuffer());
                 }
               }
@@ -943,11 +1063,15 @@ int fileserver::run_server (int port, string master_address) {
           }
           
           // find or allocate idistributor
-          if (clients[i]->thedistributor == NULL) {
+          if (clients[i]->thedistributor == NULL)
+          {
             clients[i]->thedistributor = new idistributor ( (&peers), (&iwriters), clients[i]->thecount, jobid, networkidx);
             clients[i]->thedistributor->process_message (token, write_buf);
             
-          } else {
+          }
+          
+          else
+          {
             // process the intermediate data
             clients[i]->thedistributor->process_message (token, write_buf);
           }
@@ -1018,7 +1142,10 @@ int fileserver::run_server (int port, string master_address) {
           }
           */
           
-        } else if (strncmp (read_buf, "Iwrite", 6) == 0) {     // "Iwrite" message from client
+        }
+        
+        else if (strncmp (read_buf, "Iwrite", 6) == 0)         // "Iwrite" message from client
+        {
           int jobid;
           
           // extract job id
@@ -1029,16 +1156,23 @@ int fileserver::run_server (int port, string master_address) {
           token += strlen (token) + 2;   // jump "_" and " "
           
           // find or allocate idistributor
-          if (clients[i]->thedistributor == NULL) {
+          if (clients[i]->thedistributor == NULL)
+          {
             clients[i]->thedistributor = new idistributor ( (&peers), (&iwriters), clients[i]->thecount, jobid, networkidx);
             clients[i]->thedistributor->process_message (token, write_buf);
             
-          } else {
+          }
+          
+          else
+          {
             // process the intermediate data
             clients[i]->thedistributor->process_message (token, write_buf);
           }
           
-        } else if (strncmp (read_buf, "Owrite", 6) == 0) {
+        }
+        
+        else if (strncmp (read_buf, "Owrite", 6) == 0)
+        {
           string record;
           
           // pre-copy the contents of read_buf to write_buf
@@ -1060,11 +1194,15 @@ int fileserver::run_server (int port, string master_address) {
           uint32_t hashvalue = h (read_buf, HASHLENGTH);
           hashvalue = hashvalue % nodelist.size();
           
-          if (hashvalue == (unsigned) networkidx) {     // write to local disk
+          if (hashvalue == (unsigned) networkidx)       // write to local disk
+          {
             // write to the disk
             write_file (filename, record);
             
-          } else { // remote peer
+          }
+          
+          else     // remote peer
+          {
             // write to the peer with pre-prepared write_buf
             filepeer* thepeer = peers[hashvalue];
             
@@ -1073,22 +1211,31 @@ int fileserver::run_server (int port, string master_address) {
               
               
             // write to the peer
-            if (thepeer->msgbuf.size() > 1) {
+            if (thepeer->msgbuf.size() > 1)
+            {
               thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
               thepeer->msgbuf.push_back (new messagebuffer());
               
-            } else {
+            }
+            
+            else
+            {
               if (nbwritebuf (thepeer->get_fd(),
-                              write_buf, thepeer->msgbuf.back()) <= 0) {
+                              write_buf, thepeer->msgbuf.back()) <= 0)
+              {
                 thepeer->msgbuf.push_back (new messagebuffer());
               }
             }
           }
           
-        } else if (strncmp (read_buf, "MWwrite", 7) == 0) {
+        }
+        
+        else if (strncmp (read_buf, "MWwrite", 7) == 0)
+        {
 //cout<<"MWwrite"<<endl;
           // flush and clear the distributor
-          if (clients[i]->thedistributor != NULL) {
+          if (clients[i]->thedistributor != NULL)
+          {
             delete clients[i]->thedistributor;
             clients[i]->thedistributor = NULL;
           }
@@ -1106,18 +1253,25 @@ int fileserver::run_server (int port, string master_address) {
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, message.c_str());
           
-          if (thecount->size() > 0) {
+          if (thecount->size() > 0)
+          {
             set<int>::iterator it = thecount->peerids.begin();
             ss << *it;
             
-            if (*it != networkidx) {
-              if (peers[*it]->msgbuf.size() > 1) {
+            if (*it != networkidx)
+            {
+              if (peers[*it]->msgbuf.size() > 1)
+              {
                 peers[*it]->msgbuf.back()->set_buffer (write_buf, peers[*it]->get_fd());
                 peers[*it]->msgbuf.push_back (new messagebuffer());
                 
-              } else {
+              }
+              
+              else
+              {
                 if (nbwritebuf (peers[*it]->get_fd(),
-                                write_buf, peers[*it]->msgbuf.back()) <= 0) {
+                                write_buf, peers[*it]->msgbuf.back()) <= 0)
+                {
                   peers[*it]->msgbuf.push_back (new messagebuffer());
                 }
               }
@@ -1125,18 +1279,25 @@ int fileserver::run_server (int port, string master_address) {
             
             it++;
             
-            for (/* nothing */; it != thecount->peerids.end(); it++) {
+            for (/* nothing */; it != thecount->peerids.end(); it++)
+            {
               ss << " ";
               ss << *it;
               
-              if (*it != networkidx) {
-                if (peers[*it]->msgbuf.size() > 1) {
+              if (*it != networkidx)
+              {
+                if (peers[*it]->msgbuf.size() > 1)
+                {
                   peers[*it]->msgbuf.back()->set_buffer (write_buf, peers[*it]->get_fd());
                   peers[*it]->msgbuf.push_back (new messagebuffer());
                   
-                } else {
+                }
+                
+                else
+                {
                   if (nbwritebuf (peers[*it]->get_fd(),
-                                  write_buf, peers[*it]->msgbuf.back()) <= 0) {
+                                  write_buf, peers[*it]->msgbuf.back()) <= 0)
+                  {
                     peers[*it]->msgbuf.push_back (new messagebuffer());
                   }
                 }
@@ -1148,26 +1309,39 @@ int fileserver::run_server (int port, string master_address) {
             memset (write_buf, 0, BUF_SIZE);
             strcpy (write_buf, message.c_str());
             
-            if (clients[i]->msgbuf.size() > 1) {
+            if (clients[i]->msgbuf.size() > 1)
+            {
               clients[i]->msgbuf.back()->set_buffer (write_buf, clients[i]->get_fd());
               clients[i]->msgbuf.push_back (new messagebuffer());
               
-            } else {
-              if (nbwritebuf (clients[i]->get_fd(), write_buf, clients[i]->msgbuf.back()) <= 0) {
+            }
+            
+            else
+            {
+              if (nbwritebuf (clients[i]->get_fd(), write_buf, clients[i]->msgbuf.back()) <= 0)
+              {
                 clients[i]->msgbuf.push_back (new messagebuffer());
               }
             }
             
-          } else {
+          }
+          
+          else
+          {
             // send null packet for empty peer list
             memset (write_buf, 0, BUF_SIZE);
             
-            if (clients[i]->msgbuf.size() > 1) {
+            if (clients[i]->msgbuf.size() > 1)
+            {
               clients[i]->msgbuf.back()->set_buffer (write_buf, clients[i]->get_fd());
               clients[i]->msgbuf.push_back (new messagebuffer());
               
-            } else {
-              if (nbwritebuf (clients[i]->get_fd(), write_buf, clients[i]->msgbuf.back()) <= 0) {
+            }
+            
+            else
+            {
+              if (nbwritebuf (clients[i]->get_fd(), write_buf, clients[i]->msgbuf.back()) <= 0)
+              {
                 clients[i]->msgbuf.push_back (new messagebuffer());
               }
             }
@@ -1181,7 +1355,8 @@ int fileserver::run_server (int port, string master_address) {
           entrywriter* thewriter = clients[i]->get_Icachewriter();
           filepeer* thepeer = clients[i]->get_Itargetpeer();
           
-          if (thepeer != NULL) {
+          if (thepeer != NULL)
+          {
             // send End of Icache message "EIcache"
             string message = "EIcache ";
             message.append (clients[i]->get_Icachekey());
@@ -1189,27 +1364,36 @@ int fileserver::run_server (int port, string master_address) {
             memset (write_buf, 0, BUF_SIZE);
             strcpy (write_buf, message.c_str());
             
-            if (thepeer->msgbuf.size() > 1) {
+            if (thepeer->msgbuf.size() > 1)
+            {
               thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
               thepeer->msgbuf.push_back (new messagebuffer());
               
-            } else {
+            }
+            
+            else
+            {
               if (nbwritebuf (thepeer->get_fd(),
-                              write_buf, thepeer->msgbuf.back()) <= 0) {
+                              write_buf, thepeer->msgbuf.back()) <= 0)
+              {
                 thepeer->msgbuf.push_back (new messagebuffer());
               }
             }
             
             clients[i]->set_Itargetpeer (NULL);
             
-          } else if (thewriter != NULL) {
+          }
+          
+          else if (thewriter != NULL)
+          {
             thewriter->complete();
             
             delete thewriter;
             clients[i]->set_Icachewriter (NULL);
           }
           
-          if (thecount->size() == 0) {
+          if (thecount->size() == 0)
+          {
             // clear the count
             delete thecount;
             clients[i]->thecount = NULL;
@@ -1222,7 +1406,10 @@ int fileserver::run_server (int port, string master_address) {
             i--;
           }
           
-        } else if (strncmp (read_buf, "RWwrite", 7) == 0) {
+        }
+        
+        else if (strncmp (read_buf, "RWwrite", 7) == 0)
+        {
           // clear the count
           delete clients[i]->thecount;
           clients[i]->thecount = NULL;
@@ -1234,7 +1421,10 @@ int fileserver::run_server (int port, string master_address) {
           clients.erase (clients.begin() + i);
           i--;
           
-        } else {
+        }
+        
+        else
+        {
           cout << "[fileserver:" << networkidx << "]Debugging: Unknown message";
         }
         
@@ -1249,7 +1439,8 @@ int fileserver::run_server (int port, string master_address) {
 //gettimeofday(&time_start2, NULL);
 
     // receives read/write request or data stream
-    for (int i = 0; (unsigned) i < peers.size(); i++) {
+    for (int i = 0; (unsigned) i < peers.size(); i++)
+    {
       // pass and continue when the conneciton to the peer have been closed
       if (peers[i]->get_fd() < 0)
         continue;
@@ -1257,8 +1448,10 @@ int fileserver::run_server (int port, string master_address) {
       int readbytes;
       readbytes = nbread (peers[i]->get_fd(), read_buf);
       
-      if (readbytes > 0) {
-        if (strncmp (read_buf, "Ilook", 5) == 0) {     // read request to cache(Icache)
+      if (readbytes > 0)
+      {
+        if (strncmp (read_buf, "Ilook", 5) == 0)       // read request to cache(Icache)
+        {
 //cout<<"[fileserver:"<<networkidx<<"]Ilook message: "<<read_buf<<endl;
 //cout<<"[fileserver:"<<networkidx<<"]network idx: "<<networkidx<<endl;
           char* token;
@@ -1291,7 +1484,8 @@ int fileserver::run_server (int port, string master_address) {
           //dataentry* theentry = thecache->lookup(cachekey);
           dataentry* theentry = NULL;
           
-          if (theentry == NULL) {   // when the intermediate result is not hit
+          if (theentry == NULL)     // when the intermediate result is not hit
+          {
             cout << "\033[0;31mRemote Icache miss\033[0m" << endl;
 //cout<<"[fileserver:"<<networkidx<<"]Cache key not hit after receiving Ilook: "<<cachekey<<endl;
 
@@ -1302,20 +1496,26 @@ int fileserver::run_server (int port, string master_address) {
             memset (write_buf, 0, BUF_SIZE);
             strcpy (write_buf, message.c_str());
             
-            if (peers[i]->msgbuf.size() > 1) {
+            if (peers[i]->msgbuf.size() > 1)
+            {
               peers[i]->msgbuf.back()->set_buffer (write_buf, peers[i]->get_fd());
               peers[i]->msgbuf.push_back (new messagebuffer());
               
-            } else {
+            }
+            
+            else
+            {
               if (nbwritebuf (peers[i]->get_fd(),
-                              write_buf, peers[i]->msgbuf.back()) <= 0) {
+                              write_buf, peers[i]->msgbuf.back()) <= 0)
+              {
                 peers[i]->msgbuf.push_back (new messagebuffer());
               }
             }
             
             theentry = thecache->lookup (filename);
             
-            if (theentry == NULL) {   // raw input data is not hit
+            if (theentry == NULL)     // raw input data is not hit
+            {
               cout << "\033[0;31mRemote Cache miss\033[0m" << endl;
               
               // determine the hash value
@@ -1333,7 +1533,8 @@ int fileserver::run_server (int port, string master_address) {
               
               string address = nodelist[index];
               
-              if (networkidx == index) {   // local DHT file
+              if (networkidx == index)     // local DHT file
+              {
                 filebridge* thebridge = new filebridge (fbidclock++);
                 bridges.push_back (thebridge);
                 
@@ -1352,7 +1553,10 @@ int fileserver::run_server (int port, string master_address) {
                 // open read file and start sending data to peer
                 thebridge->open_readfile (filename);
                 
-              } else { // remote DHT file
+              }
+              
+              else     // remote DHT file
+              {
                 filebridge* thebridge = new filebridge (fbidclock++);
                 bridges.push_back (thebridge);
                 
@@ -1376,22 +1580,31 @@ int fileserver::run_server (int port, string master_address) {
                 
                 filepeer* thepeer = peers[index];
                 
-                if (thepeer->msgbuf.size() > 1) {
+                if (thepeer->msgbuf.size() > 1)
+                {
                   thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
                   thepeer->msgbuf.push_back (new messagebuffer());
                   //continue; // escape the acceleration loop
                   
-                } else {
+                }
+                
+                else
+                {
                   if (nbwritebuf (thepeer->get_fd(),
-                                  write_buf, thepeer->msgbuf.back()) <= 0) {
+                                  write_buf, thepeer->msgbuf.back()) <= 0)
+                  {
                     thepeer->msgbuf.push_back (new messagebuffer());
                     //continue; // escape the acceleration loop
                   }
                 }
               }
               
-            } else { // raw input data is hit
-              if (theentry->is_being_written()) {
+            }
+            
+            else     // raw input data is hit
+            {
+              if (theentry->is_being_written())
+              {
                 cout << "\033[0;31mRemote Cache miss\033[0m" << endl;
                 
                 // determine the hash value
@@ -1404,7 +1617,8 @@ int fileserver::run_server (int port, string master_address) {
                 
                 string address = nodelist[index];
                 
-                if (networkidx == index) {   // local DHT file
+                if (networkidx == index)     // local DHT file
+                {
                   filebridge* thebridge = new filebridge (fbidclock++);
                   bridges.push_back (thebridge);
                   
@@ -1421,7 +1635,10 @@ int fileserver::run_server (int port, string master_address) {
                   // open read file and start sending data to peer
                   thebridge->open_readfile (filename);
                   
-                } else { // remote DHT file
+                }
+                
+                else     // remote DHT file
+                {
                   filebridge* thebridge = new filebridge (fbidclock++);
                   bridges.push_back (thebridge);
                   
@@ -1444,21 +1661,29 @@ int fileserver::run_server (int port, string master_address) {
                   
                   filepeer* thepeer = peers[index];
                   
-                  if (thepeer->msgbuf.size() > 1) {
+                  if (thepeer->msgbuf.size() > 1)
+                  {
                     thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
                     thepeer->msgbuf.push_back (new messagebuffer());
                     //continue; // escape the acceleration loop
                     
-                  } else {
+                  }
+                  
+                  else
+                  {
                     if (nbwritebuf (thepeer->get_fd(),
-                                    write_buf, thepeer->msgbuf.back()) <= 0) {
+                                    write_buf, thepeer->msgbuf.back()) <= 0)
+                    {
                       thepeer->msgbuf.push_back (new messagebuffer());
                       //continue; // escape the acceleration loop
                     }
                   }
                 }
                 
-              } else {
+              }
+              
+              else
+              {
                 cout << "\033[0;32m[" << networkidx << "]Remote Cache hit\033[0m" << endl;
                 
                 // prepare the read stream from cache
@@ -1475,7 +1700,10 @@ int fileserver::run_server (int port, string master_address) {
               }
             }
             
-          } else { // when the intermediate result is hit
+          }
+          
+          else     // when the intermediate result is hit
+          {
 //cout<<"[fileserver:"<<networkidx<<"]Cache key hit after receiving Ilook: "<<cachekey<<endl;
             // send 'Ihit'
             string message = "Ihit ";
@@ -1484,13 +1712,18 @@ int fileserver::run_server (int port, string master_address) {
             memset (write_buf, 0, BUF_SIZE);
             strcpy (write_buf, message.c_str());
             
-            if (peers[i]->msgbuf.size() > 1) {
+            if (peers[i]->msgbuf.size() > 1)
+            {
               peers[i]->msgbuf.back()->set_buffer (write_buf, peers[i]->get_fd());
               peers[i]->msgbuf.push_back (new messagebuffer());
               
-            } else {
+            }
+            
+            else
+            {
               if (nbwritebuf (peers[i]->get_fd(),
-                              write_buf, peers[i]->msgbuf.back()) <= 0) {
+                              write_buf, peers[i]->msgbuf.back()) <= 0)
+              {
                 peers[i]->msgbuf.push_back (new messagebuffer());
               }
             }
@@ -1511,7 +1744,10 @@ int fileserver::run_server (int port, string master_address) {
             thebridge->set_distributor (thedistributor);
           }
           
-        } else if (strncmp (read_buf, "RDread", 6) == 0) {     // read request to disk
+        }
+        
+        else if (strncmp (read_buf, "RDread", 6) == 0)         // read request to disk
+        {
           string address;
           string filename;
           int dstid;
@@ -1546,7 +1782,10 @@ int fileserver::run_server (int port, string master_address) {
 //cout<<"[fileserver:"<<networkidx<<"]reading file name: "<<filename<<endl;
           thebridge->open_readfile (filename);
           
-        } else if (strncmp (read_buf, "Iread", 5) == 0) {
+        }
+        
+        else if (strncmp (read_buf, "Iread", 5) == 0)
+        {
           char* token;
           
           int jobid;
@@ -1567,7 +1806,10 @@ int fileserver::run_server (int port, string master_address) {
           thereader->set_dstpeer (peers[i]);
           ireaders.push_back (thereader);
           
-        } else if (strncmp (read_buf, "Iwrite", 6) == 0) {
+        }
+        
+        else if (strncmp (read_buf, "Iwrite", 6) == 0)
+        {
           char* token;
           int jobid;
           string key;
@@ -1579,14 +1821,17 @@ int fileserver::run_server (int port, string master_address) {
           
           iwriter* thewriter = NULL;
           
-          for (int j = 0; (unsigned) j < iwriters.size(); j++) {
-            if (iwriters[j]->get_jobid() == jobid) {
+          for (int j = 0; (unsigned) j < iwriters.size(); j++)
+          {
+            if (iwriters[j]->get_jobid() == jobid)
+            {
               thewriter = iwriters[j];
               break;
             }
           }
           
-          if (thewriter == NULL) {   // no iwriter with the job id
+          if (thewriter == NULL)     // no iwriter with the job id
+          {
             // create new iwriter
             thewriter = new iwriter (jobid, networkidx);
             iwriters.push_back (thewriter);
@@ -1595,7 +1840,8 @@ int fileserver::run_server (int port, string master_address) {
           // tokenize first key value pair
           token = strtok (NULL, " ");
           
-          while (token != NULL) {
+          while (token != NULL)
+          {
             key = token;
             token = strtok (NULL, "\n");   // tokenize value
             
@@ -1605,7 +1851,10 @@ int fileserver::run_server (int port, string master_address) {
             token = strtok (NULL, " ");   // next key
           }
           
-        } else if (strncmp (read_buf, "Owrite", 5) == 0) {
+        }
+        
+        else if (strncmp (read_buf, "Owrite", 5) == 0)
+        {
           string record;
           string address;
           string filename;
@@ -1621,7 +1870,10 @@ int fileserver::run_server (int port, string master_address) {
           
           write_file (filename, record);
           
-        } else if (strncmp (read_buf, "Eread", 5) == 0) {     // end of file read stream notification
+        }
+        
+        else if (strncmp (read_buf, "Eread", 5) == 0)         // end of file read stream notification
+        {
           char* token;
           int id;
           int bridgeindex = -1;
@@ -1631,8 +1883,10 @@ int fileserver::run_server (int port, string master_address) {
           
           id = atoi (token);
           
-          for (int j = 0; (unsigned) j < bridges.size(); j++) {
-            if (bridges[j]->get_id() == id) {
+          for (int j = 0; (unsigned) j < bridges.size(); j++)
+          {
+            if (bridges[j]->get_id() == id)
+            {
               bridgeindex = j;
               break;
             }
@@ -1646,13 +1900,15 @@ int fileserver::run_server (int port, string master_address) {
           // finish write to cache if writing was ongoing
           entrywriter* thewriter = bridges[bridgeindex]->get_entrywriter();
           
-          if (thewriter != NULL) {
+          if (thewriter != NULL)
+          {
             thewriter->complete();
             delete thewriter;
             thewriter = NULL;
           }
           
-          if (dsttype == CLIENT) {
+          if (dsttype == CLIENT)
+          {
 //cout<<"\033[0;32mEread received\033[0m"<<endl;
 
             file_connclient* theclient = bridges[bridgeindex]->get_dstclient();
@@ -1683,13 +1939,18 @@ int fileserver::run_server (int port, string master_address) {
             memset (write_buf, 0, BUF_CUT);
             write_buf[0] = -1;
             
-            if (theclient->msgbuf.size() > 1) {
+            if (theclient->msgbuf.size() > 1)
+            {
 //cout<<"\tgoes to buffer"<<endl;
               theclient->msgbuf.back()->set_buffer (write_buf, theclient->get_fd());
               theclient->msgbuf.push_back (new messagebuffer());
               
-            } else {
-              if (nbwritebuf (theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0) {
+            }
+            
+            else
+            {
+              if (nbwritebuf (theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0)
+              {
 //cout<<"\tgoes to buffer"<<endl;
                 theclient->msgbuf.push_back (new messagebuffer());
               }
@@ -1703,7 +1964,10 @@ int fileserver::run_server (int port, string master_address) {
             delete bridges[bridgeindex];
             bridges.erase (bridges.begin() + bridgeindex);
             
-          } else if (dsttype == PEER) {   // stores the data into cache and send data to target node
+          }
+          
+          else if (dsttype == PEER)       // stores the data into cache and send data to target node
+          {
             string message;
             stringstream ss;
             ss << "Eread ";
@@ -1720,13 +1984,18 @@ int fileserver::run_server (int port, string master_address) {
 
             filepeer* thepeer = bridges[bridgeindex]->get_dstpeer();
             
-            if (thepeer->msgbuf.size() > 1) {
+            if (thepeer->msgbuf.size() > 1)
+            {
               thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
               thepeer->msgbuf.push_back (new messagebuffer());
               
-            } else {
+            }
+            
+            else
+            {
               if (nbwritebuf (thepeer->get_fd(),
-                              write_buf, thepeer->msgbuf.back()) <= 0) {
+                              write_buf, thepeer->msgbuf.back()) <= 0)
+              {
                 thepeer->msgbuf.push_back (new messagebuffer());
               }
             }
@@ -1738,7 +2007,10 @@ int fileserver::run_server (int port, string master_address) {
           
 //cout<<"end of read"<<endl;
 
-        } else if (strncmp (read_buf, "Wack", 4) == 0) {
+        }
+        
+        else if (strncmp (read_buf, "Wack", 4) == 0)
+        {
 //cout<<"Wack"<<endl;
           string message;
           char* token;
@@ -1753,13 +2025,18 @@ int fileserver::run_server (int port, string master_address) {
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, message.c_str());
           
-          if (peers[i]->msgbuf.size() > 1) {
+          if (peers[i]->msgbuf.size() > 1)
+          {
             peers[i]->msgbuf.back()->set_buffer (write_buf, peers[i]->get_fd());
             peers[i]->msgbuf.push_back (new messagebuffer());
             //continue; // escape acceleration loop
             
-          } else {
-            if (nbwritebuf (peers[i]->get_fd(), write_buf, peers[i]->msgbuf.back()) <= 0) {
+          }
+          
+          else
+          {
+            if (nbwritebuf (peers[i]->get_fd(), write_buf, peers[i]->msgbuf.back()) <= 0)
+            {
               peers[i]->msgbuf.push_back (new messagebuffer());
               //continue; // escape acceleration loop
             }
@@ -1797,7 +2074,8 @@ int fileserver::run_server (int port, string master_address) {
           }
         }
         */
-        else if (strncmp (read_buf, "Wre", 3) == 0) {
+        else if (strncmp (read_buf, "Wre", 3) == 0)
+        {
           char* token;
           int writeid;
           int clientidx = -1;
@@ -1808,24 +2086,29 @@ int fileserver::run_server (int port, string master_address) {
           
           writecount* thecount = NULL;
           
-          for (int j = 0; (unsigned) j < clients.size(); j++) {
-            if (clients[j]->get_fd() == writeid) {
+          for (int j = 0; (unsigned) j < clients.size(); j++)
+          {
+            if (clients[j]->get_fd() == writeid)
+            {
               clientidx = j;
               thecount = clients[j]->thecount;
             }
           }
           
-          if (thecount == NULL) {
+          if (thecount == NULL)
+          {
             cout << "[fileserver:" << networkidx << "]Unexpected NULL pointer..." << endl;
           }
           
           thecount->clear_peer (i);
           
-          if (thecount->peerids.size() == 0) {
+          if (thecount->peerids.size() == 0)
+          {
             // send EIcache to the target peer
             filepeer* thepeer = clients[clientidx]->get_Itargetpeer();
             
-            if (thepeer != NULL) {
+            if (thepeer != NULL)
+            {
               // send End of Icache message "EIcache"
               string message = "EIcache ";
               message.append (clients[clientidx]->get_Icachekey());
@@ -1833,13 +2116,18 @@ int fileserver::run_server (int port, string master_address) {
               memset (write_buf, 0, BUF_SIZE);
               strcpy (write_buf, message.c_str());
               
-              if (thepeer->msgbuf.size() > 1) {
+              if (thepeer->msgbuf.size() > 1)
+              {
                 thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
                 thepeer->msgbuf.push_back (new messagebuffer());
                 
-              } else {
+              }
+              
+              else
+              {
                 if (nbwritebuf (thepeer->get_fd(),
-                                write_buf, thepeer->msgbuf.back()) <= 0) {
+                                write_buf, thepeer->msgbuf.back()) <= 0)
+                {
                   thepeer->msgbuf.push_back (new messagebuffer());
                 }
               }
@@ -1954,7 +2242,8 @@ int fileserver::run_server (int port, string master_address) {
                   }
                 }
         */
-        else if (strncmp (read_buf, "Icache", 6) == 0) {
+        else if (strncmp (read_buf, "Icache", 6) == 0)
+        {
 //cout<<"[fileserver:"<<networkidx<<"]Icache message network idx: "<<networkidx<<endl;
           char* token;
           int bridgeindex;
@@ -1972,7 +2261,8 @@ int fileserver::run_server (int port, string master_address) {
           
           thebridge = find_Icachebridge (cachekey, bridgeindex);
           
-          if (thebridge == NULL) {
+          if (thebridge == NULL)
+          {
             // determine the hash value
             uint32_t hashvalue;
             memset (write_buf, 0, HASHLENGTH);
@@ -1998,14 +2288,20 @@ int fileserver::run_server (int port, string master_address) {
             token = strtok (NULL, "");
             thewriter->write_record (token);
             
-          } else {
+          }
+          
+          else
+          {
 //cout<<"[fileserver:"<<networkidx<<"]Cachekey of written data: "<<cachekey<<endl;
             // rest of messages
             token = strtok (NULL, "");
             thebridge->get_entrywriter()->write_record (token);
           }
           
-        } else if (strncmp (read_buf, "Ihit", 4) == 0) {
+        }
+        
+        else if (strncmp (read_buf, "Ihit", 4) == 0)
+        {
           cout << "\033[0;32m[" << networkidx << "]Remote Icache hit\033[0m" << endl;
           
           char* token;
@@ -2022,17 +2318,25 @@ int fileserver::run_server (int port, string master_address) {
           memset (write_buf, 0, BUF_CUT);
           write_buf[0] = 1;
           
-          if (theclient->msgbuf.size() > 1) {
+          if (theclient->msgbuf.size() > 1)
+          {
             theclient->msgbuf.back()->set_buffer (write_buf, theclient->get_fd());
             theclient->msgbuf.push_back (new messagebuffer());
             
-          } else {
-            if (nbwritebuf (theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0) {
+          }
+          
+          else
+          {
+            if (nbwritebuf (theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0)
+            {
               theclient->msgbuf.push_back (new messagebuffer());
             }
           }
           
-        } else if (strncmp (read_buf, "Imiss", 5) == 0) {
+        }
+        
+        else if (strncmp (read_buf, "Imiss", 5) == 0)
+        {
           char* token;
           filebridge* thebridge;
           int dstid;
@@ -2047,17 +2351,25 @@ int fileserver::run_server (int port, string master_address) {
           memset (write_buf, 0, BUF_CUT);
           write_buf[0] = 0;
           
-          if (theclient->msgbuf.size() > 1) {
+          if (theclient->msgbuf.size() > 1)
+          {
             theclient->msgbuf.back()->set_buffer (write_buf, theclient->get_fd());
             theclient->msgbuf.push_back (new messagebuffer());
             
-          } else {
-            if (nbwritebuf (theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0) {
+          }
+          
+          else
+          {
+            if (nbwritebuf (theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0)
+            {
               theclient->msgbuf.push_back (new messagebuffer());
             }
           }
           
-        } else if (strncmp (read_buf, "EIcache", 7) == 0) {
+        }
+        
+        else if (strncmp (read_buf, "EIcache", 7) == 0)
+        {
           char* token;
           filebridge* thebridge;
           int bridgeindex;
@@ -2067,10 +2379,14 @@ int fileserver::run_server (int port, string master_address) {
           
           thebridge = find_Icachebridge (token, bridgeindex);
           
-          if (thebridge == NULL) {
+          if (thebridge == NULL)
+          {
             cout << "[fileserver:" << networkidx << "]Unexpected NULL pointer after receiving \"EIcache\" message" << endl;
             
-          } else {
+          }
+          
+          else
+          {
 //cout<<"[fileserver:"<<networkidx<<"]Completed writing entry with cachekey: "<<token<<endl;
             thebridge->get_entrywriter()->complete();
             delete thebridge->get_entrywriter();
@@ -2080,7 +2396,10 @@ int fileserver::run_server (int port, string master_address) {
             bridges.erase (bridges.begin() + bridgeindex);
           }
           
-        } else if (strncmp (read_buf, "Edist", 5) == 0) {
+        }
+        
+        else if (strncmp (read_buf, "Edist", 5) == 0)
+        {
 //cout<<"[fileserver:"<<networkidx<<"]Edist arrived. notifying client end of distribution..."<<endl;
           char* token;
           int bridgeid;
@@ -2094,14 +2413,17 @@ int fileserver::run_server (int port, string master_address) {
           filebridge* thebridge;
           int bridgeidx;
           
-          for (int j = 0; (unsigned) j < bridges.size(); j++) {
-            if (bridges[j]->get_id() == bridgeid) {
+          for (int j = 0; (unsigned) j < bridges.size(); j++)
+          {
+            if (bridges[j]->get_id() == bridgeid)
+            {
               thebridge = bridges[j];
               bridgeidx = j;
             }
           }
           
-          if (thebridge == NULL) {
+          if (thebridge == NULL)
+          {
             cout << "[fileserver:" << networkidx << "]Unexpected filebridge NULL pointer(2)" << endl;
           }
           
@@ -2110,24 +2432,31 @@ int fileserver::run_server (int port, string master_address) {
           memset (write_buf, 0, BUF_CUT);
           write_buf[0] = 1;
           
-          if (theclient->msgbuf.size() > 1) {
+          if (theclient->msgbuf.size() > 1)
+          {
             theclient->msgbuf.back()->set_buffer (write_buf, theclient->get_fd());
             theclient->msgbuf.push_back (new messagebuffer());
             
-          } else {
-            if (nbwritebuf (theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0) {
+          }
+          
+          else
+          {
+            if (nbwritebuf (theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0)
+            {
               theclient->msgbuf.push_back (new messagebuffer());
             }
           }
           
           // add peers to the write count of the client
-          if (theclient->thecount == NULL) {
+          if (theclient->thecount == NULL)
+          {
             theclient->thecount = new writecount();
           }
           
           token = strtok (NULL, " ");   // <- first peer ids written
           
-          while (token != NULL) {
+          while (token != NULL)
+          {
             theclient->thecount->add_peer (atoi (token));
             token = strtok (NULL, " ");
           }
@@ -2136,7 +2465,10 @@ int fileserver::run_server (int port, string master_address) {
           delete bridges[bridgeidx];
           bridges.erase (bridges.begin() + bridgeidx);
           
-        } else { // a filebridge id is passed. this is the case of data read stream
+        }
+        
+        else     // a filebridge id is passed. this is the case of data read stream
+        {
           filebridge* thebridge;
           string record;
           char* token;
@@ -2152,19 +2484,23 @@ int fileserver::run_server (int port, string master_address) {
           buf += strlen (token) + 1;   // <- record
           record = buf;
           
-          for (int j = 0; (unsigned) j < bridges.size(); j++) {
-            if (bridges[j]->get_id() == id) {
+          for (int j = 0; (unsigned) j < bridges.size(); j++)
+          {
+            if (bridges[j]->get_id() == id)
+            {
               thebridge = bridges[j];
             }
           }
           
           dsttype = thebridge->get_dsttype();
           
-          if (dsttype == CLIENT) {
+          if (dsttype == CLIENT)
+          {
             // write to cache if writing was ongoing
             entrywriter* thewriter = thebridge->get_entrywriter();
             
-            if (thewriter != NULL) {
+            if (thewriter != NULL)
+            {
               thewriter->write_record (record);
             }
             
@@ -2178,17 +2514,22 @@ int fileserver::run_server (int port, string master_address) {
 //cout<<"message: "<<write_buf<<endl;
 //cout<<endl;
 
-            if (theclient->msgbuf.size() > 1) {
+            if (theclient->msgbuf.size() > 1)
+            {
               theclient->msgbuf.back()->set_buffer (write_buf, theclient->get_fd());
               theclient->msgbuf.push_back (new messagebuffer());
               //continue; // escape acceleration loop
               
-            } else {
+            }
+            
+            else
+            {
 //cout<<endl;
 //cout<<"from: "<<localhostname<<endl;
 //cout<<"to: client"<<endl;
               if (nbwritebuf (theclient->get_fd(),
-                              write_buf, theclient->msgbuf.back()) <= 0) {
+                              write_buf, theclient->msgbuf.back()) <= 0)
+              {
                 theclient->msgbuf.push_back (new messagebuffer());
                 //continue; // escape acceleration loop
               }
@@ -2196,11 +2537,15 @@ int fileserver::run_server (int port, string master_address) {
             
             //nbwrite(theclient->get_fd(), write_buf);
             
-          } else if (dsttype == PEER) {   // stores the data into cache and send data to target node
+          }
+          
+          else if (dsttype == PEER)       // stores the data into cache and send data to target node
+          {
             // write to cache if writing was ongoing
             entrywriter* thewriter = thebridge->get_entrywriter();
             
-            if (thewriter != NULL) {
+            if (thewriter != NULL)
+            {
               thewriter->write_record (record);
             }
             
@@ -2221,17 +2566,22 @@ int fileserver::run_server (int port, string master_address) {
 //cout<<endl;
             filepeer* thepeer = thebridge->get_dstpeer();
             
-            if (thepeer->msgbuf.size() > 1) {
+            if (thepeer->msgbuf.size() > 1)
+            {
               thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
               thepeer->msgbuf.push_back (new messagebuffer());
               //continue; // escape acceleration loop
               
-            } else {
+            }
+            
+            else
+            {
 //cout<<endl;
 //cout<<"from: "<<localhostname<<endl;
 //cout<<"to: "<<thepeer->get_address()<<endl;
               if (nbwritebuf (thepeer->get_fd(),
-                              write_buf, thepeer->msgbuf.back()) <= 0) {
+                              write_buf, thepeer->msgbuf.back()) <= 0)
+              {
                 thepeer->msgbuf.push_back (new messagebuffer());
                 //continue; // escape acceleration loop
               }
@@ -2243,7 +2593,10 @@ int fileserver::run_server (int port, string master_address) {
         //i--;
         //continue;
         
-      } else if (readbytes == 0) {
+      }
+      
+      else if (readbytes == 0)
+      {
         cout << "[fileserver:" << networkidx << "]Debugging: Connection from a peer disconnected: " << peers[i]->get_address() << endl;
         
         // clear the peer
@@ -2257,17 +2610,21 @@ int fileserver::run_server (int port, string master_address) {
 //gettimeofday(&time_start2, NULL);
 
     // process reading from the disk or cache and send the data to peer or client
-    for (int i = 0; (unsigned) i < bridges.size(); i++) {
+    for (int i = 0; (unsigned) i < bridges.size(); i++)
+    {
       //for(int accel = 0; accel < 1000; accel++) // accelerate the reading speed by 1000
       //{
-      if (bridges[i]->get_srctype() == CACHE) {
-        if (bridges[i]->get_dsttype() == DISTRIBUTE) {
+      if (bridges[i]->get_srctype() == CACHE)
+      {
+        if (bridges[i]->get_dsttype() == DISTRIBUTE)
+        {
           bool ret;
           string record;
           
           ret = bridges[i]->get_entryreader()->read_record (record);
           
-          if (ret) {   // successfully read
+          if (ret)     // successfully read
+          {
             //string jobdirpath = bridges[i]->get_jobdirpath();
             //string message;
             //string value;
@@ -2277,9 +2634,13 @@ int fileserver::run_server (int port, string master_address) {
             
             bridges[i]->get_distributor()->process_message (write_buf, read_buf);
             
-          } else { // end of the cache contents
+          }
+          
+          else     // end of the cache contents
+          {
             // flush and clear the distributor
-            if (bridges[i]->get_distributor() != NULL) {
+            if (bridges[i]->get_distributor() != NULL)
+            {
               delete bridges[i]->get_distributor();
               bridges[i]->set_distributor (NULL);
             }
@@ -2293,7 +2654,8 @@ int fileserver::run_server (int port, string master_address) {
             // TODO: if dstpeer exists, thecount should be from bridge itself, not from client
             // abc
             
-            if (bridges[i]->get_dstpeer() != NULL) {
+            if (bridges[i]->get_dstpeer() != NULL)
+            {
               filepeer* thepeer = bridges[i]->get_dstpeer();
               
               // send Edist message to the dstpeer
@@ -2303,7 +2665,8 @@ int fileserver::run_server (int port, string master_address) {
               ss << bridges[i]->get_dstid();
               
               // add to the ss the writecount peer information
-              for (set<int>::iterator it = thecount->peerids.begin(); it != thecount->peerids.end(); it++) {
+              for (set<int>::iterator it = thecount->peerids.begin(); it != thecount->peerids.end(); it++)
+              {
                 ss << " ";
                 ss << *it;
               }
@@ -2312,24 +2675,33 @@ int fileserver::run_server (int port, string master_address) {
               memset (write_buf, 0, BUF_SIZE);
               strcpy (write_buf, message.c_str());
               
-              if (thepeer->msgbuf.size() > 1) {
+              if (thepeer->msgbuf.size() > 1)
+              {
                 thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
                 thepeer->msgbuf.push_back (new messagebuffer());
                 
-              } else {
+              }
+              
+              else
+              {
                 if (nbwritebuf (thepeer->get_fd(),
-                                write_buf, thepeer->msgbuf.back()) <= 0) {
+                                write_buf, thepeer->msgbuf.back()) <= 0)
+                {
                   thepeer->msgbuf.push_back (new messagebuffer());
                 }
               }
               
               // clear the entry reader
-              if (bridges[i]->get_entryreader() != NULL) {
+              if (bridges[i]->get_entryreader() != NULL)
+              {
                 delete bridges[i]->get_entryreader();
                 bridges[i]->set_entryreader (NULL);
               }
               
-            } else if (bridges[i]->get_dstclient() != NULL) {
+            }
+            
+            else if (bridges[i]->get_dstclient() != NULL)
+            {
               // notify the end of DISTRIBUTE to the dstclient
               memset (write_buf, 0, BUF_CUT);
               write_buf[0] = 1;
@@ -2337,28 +2709,39 @@ int fileserver::run_server (int port, string master_address) {
               // determine clientidx
               int clientidx = -1;
               
-              for (int j = 0; (unsigned) j < clients.size(); j++) {
-                if (clients[j] == bridges[i]->get_dstclient()) {
+              for (int j = 0; (unsigned) j < clients.size(); j++)
+              {
+                if (clients[j] == bridges[i]->get_dstclient())
+                {
                   clientidx = j;
                   break;
                 }
               }
               
-              if (clientidx == -1) {
+              if (clientidx == -1)
+              {
                 cout << "[fileserver:" << networkidx << "]Cannot find such client" << endl;
               }
               
-              if (clients[clientidx]->msgbuf.size() > 1) {
+              if (clients[clientidx]->msgbuf.size() > 1)
+              {
                 clients[clientidx]->msgbuf.back()->set_buffer (write_buf, clients[clientidx]->get_fd());
                 clients[clientidx]->msgbuf.push_back (new messagebuffer());
                 
-              } else {
-                if (nbwritebuf (clients[clientidx]->get_fd(), write_buf, clients[clientidx]->msgbuf.back()) <= 0) {
+              }
+              
+              else
+              {
+                if (nbwritebuf (clients[clientidx]->get_fd(), write_buf, clients[clientidx]->msgbuf.back()) <= 0)
+                {
                   clients[clientidx]->msgbuf.push_back (new messagebuffer());
                 }
               }
               
-            } else {
+            }
+            
+            else
+            {
               cout << "Neither dstclient nor dstpeer are set" << endl;
             }
             
@@ -2368,17 +2751,24 @@ int fileserver::run_server (int port, string master_address) {
             i--;
           }
           
-        } else {
+        }
+        
+        else
+        {
           bool ret;
           string record;
           memset (write_buf, 0, BUF_SIZE);
           
-          if (bridges[i]->get_dsttype() == CLIENT) {
+          if (bridges[i]->get_dsttype() == CLIENT)
+          {
             ret = bridges[i]->get_entryreader()->read_record (record);
             
             strcpy (write_buf, record.c_str());
             
-          } else if (bridges[i]->get_dsttype() == PEER) {
+          }
+          
+          else if (bridges[i]->get_dsttype() == PEER)
+          {
             stringstream ss;
             string message;
             ss << bridges[i]->get_dstid();
@@ -2392,8 +2782,10 @@ int fileserver::run_server (int port, string master_address) {
             strcpy (write_buf, message.c_str());
           }
           
-          if (ret) {   // successfully read
-            if (bridges[i]->get_dsttype() == CLIENT) {
+          if (ret)     // successfully read
+          {
+            if (bridges[i]->get_dsttype() == CLIENT)
+            {
               //cout<<endl;
               //cout<<"write from: "<<localhostname<<endl;
               //cout<<"write to a client"<<endl;
@@ -2402,21 +2794,29 @@ int fileserver::run_server (int port, string master_address) {
               
               file_connclient* theclient = bridges[i]->get_dstclient();
               
-              if (theclient->msgbuf.size() > 1) {
+              if (theclient->msgbuf.size() > 1)
+              {
                 theclient->msgbuf.back()->set_buffer (write_buf, theclient->get_fd());
                 theclient->msgbuf.push_back (new messagebuffer());
                 
-              } else {
+              }
+              
+              else
+              {
                 //cout<<endl;
                 //cout<<"from: "<<localhostname<<endl;
                 //cout<<"to: client"<<endl;
                 if (nbwritebuf (theclient->get_fd(),
-                                write_buf, theclient->msgbuf.back()) <= 0) {
+                                write_buf, theclient->msgbuf.back()) <= 0)
+                {
                   theclient->msgbuf.push_back (new messagebuffer());
                 }
               }
               
-            } else if (bridges[i]->get_dsttype() == PEER) {
+            }
+            
+            else if (bridges[i]->get_dsttype() == PEER)
+            {
               //cout<<endl;
               //cout<<"write from: "<<localhostname<<endl;
               //cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
@@ -2425,25 +2825,34 @@ int fileserver::run_server (int port, string master_address) {
               
               filepeer* thepeer = bridges[i]->get_dstpeer();
               
-              if (thepeer->msgbuf.size() > 1) {
+              if (thepeer->msgbuf.size() > 1)
+              {
                 thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
                 thepeer->msgbuf.push_back (new messagebuffer());
                 
-              } else {
+              }
+              
+              else
+              {
                 //cout<<endl;
                 //cout<<"from: "<<localhostname<<endl;
                 //cout<<"to: "<<thepeer->get_address()<<endl;
-                if (nbwritebuf (thepeer->get_fd(), write_buf, thepeer->msgbuf.back()) <= 0) {
+                if (nbwritebuf (thepeer->get_fd(), write_buf, thepeer->msgbuf.back()) <= 0)
+                {
                   thepeer->msgbuf.push_back (new messagebuffer());
                 }
               }
             }
             
-          } else { // no more record
+          }
+          
+          else     // no more record
+          {
             //cout<<"\033[0;33mEread sent!\033[0m"<<endl;
             delete bridges[i]->get_entryreader();
             
-            if (bridges[i]->get_dsttype() == CLIENT) {
+            if (bridges[i]->get_dsttype() == CLIENT)
+            {
               //cout<<"\033[0;32mEread received\033[0m"<<endl;
               file_connclient* theclient = bridges[i]->get_dstclient();
               
@@ -2451,13 +2860,18 @@ int fileserver::run_server (int port, string master_address) {
               memset (write_buf, 0, BUF_CUT);
               write_buf[0] = -1;
               
-              if (theclient->msgbuf.size() > 1) {
+              if (theclient->msgbuf.size() > 1)
+              {
                 //cout<<"\tgoes to buffer"<<endl;
                 theclient->msgbuf.back()->set_buffer (write_buf, theclient->get_fd());
                 theclient->msgbuf.push_back (new messagebuffer());
                 
-              } else {
-                if (nbwritebuf (theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0) {
+              }
+              
+              else
+              {
+                if (nbwritebuf (theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0)
+                {
                   //cout<<"\tgoes to buffer"<<endl;
                   theclient->msgbuf.push_back (new messagebuffer());
                 }
@@ -2466,7 +2880,10 @@ int fileserver::run_server (int port, string master_address) {
                 //cout<<"\tsent directly"<<endl;
               }
               
-            } else if (bridges[i]->get_dsttype() == PEER) {
+            }
+            
+            else if (bridges[i]->get_dsttype() == PEER)
+            {
               stringstream ss1;
               string message1;
               ss1 << "Eread ";
@@ -2483,16 +2900,21 @@ int fileserver::run_server (int port, string master_address) {
               
               filepeer* thepeer = bridges[i]->get_dstpeer();
               
-              if (thepeer->msgbuf.size() > 1) {
+              if (thepeer->msgbuf.size() > 1)
+              {
                 thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
                 thepeer->msgbuf.push_back (new messagebuffer());
                 
-              } else {
+              }
+              
+              else
+              {
                 //cout<<endl;
                 //cout<<"from: "<<localhostname<<endl;
                 //cout<<"to: "<<thepeer->get_address()<<endl;
                 if (nbwritebuf (thepeer->get_fd(),
-                                write_buf, thepeer->msgbuf.back()) <= 0) {
+                                write_buf, thepeer->msgbuf.back()) <= 0)
+                {
                   thepeer->msgbuf.push_back (new messagebuffer());
                 }
               }
@@ -2506,20 +2928,26 @@ int fileserver::run_server (int port, string master_address) {
           }
         }
         
-      } else if (bridges[i]->get_srctype() == DISK) {
+      }
+      
+      else if (bridges[i]->get_srctype() == DISK)
+      {
         bool is_success;
         string record;
         is_success = bridges[i]->read_record (record);
         
-        while (is_success) {   // some remaining record
-          if (bridges[i]->writebuffer->add_record (record)) {
+        while (is_success)     // some remaining record
+        {
+          if (bridges[i]->writebuffer->add_record (record))
+          {
             break;
           }
           
           is_success = bridges[i]->read_record (record);
         }
         
-        if (!is_success) {   // no more record to read
+        if (!is_success)     // no more record to read
+        {
 //cout<<"\033[0;33mEread sent!\033[0m"<<endl;
           // flush the write buffer
           bridges[i]->writebuffer->flush();
@@ -2527,12 +2955,14 @@ int fileserver::run_server (int port, string master_address) {
           // complete writing to cache if writing was ongoing
           entrywriter* thewriter = bridges[i]->get_entrywriter();
           
-          if (thewriter != NULL) {
+          if (thewriter != NULL)
+          {
             thewriter->complete();
             delete thewriter;
           }
           
-          if (bridges[i]->get_dsttype() == CLIENT) {
+          if (bridges[i]->get_dsttype() == CLIENT)
+          {
 //cout<<"\033[0;32mEread received\033[0m"<<endl;
             file_connclient* theclient = bridges[i]->get_dstclient();
             
@@ -2540,13 +2970,18 @@ int fileserver::run_server (int port, string master_address) {
             memset (write_buf, 0, BUF_CUT);
             write_buf[0] = -1;
             
-            if (theclient->msgbuf.size() > 1) {
+            if (theclient->msgbuf.size() > 1)
+            {
 //cout<<"\tgoes to buffer"<<endl;
               theclient->msgbuf.back()->set_buffer (write_buf, theclient->get_fd());
               theclient->msgbuf.push_back (new messagebuffer());
               
-            } else {
-              if (nbwritebuf (theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0) {
+            }
+            
+            else
+            {
+              if (nbwritebuf (theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0)
+              {
 //cout<<"\tgoes to buffer"<<endl;
                 theclient->msgbuf.push_back (new messagebuffer());
               }
@@ -2559,7 +2994,10 @@ int fileserver::run_server (int port, string master_address) {
             delete bridges[i];
             bridges.erase (bridges.begin() + i);
             
-          } else if (bridges[i]->get_dsttype() == PEER) {
+          }
+          
+          else if (bridges[i]->get_dsttype() == PEER)
+          {
             stringstream ss;
             string message;
             ss << "Eread ";
@@ -2571,13 +3009,18 @@ int fileserver::run_server (int port, string master_address) {
             
             filepeer* thepeer = bridges[i]->get_dstpeer();
             
-            if (thepeer->msgbuf.size() > 1) {
+            if (thepeer->msgbuf.size() > 1)
+            {
               thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
               thepeer->msgbuf.push_back (new messagebuffer());
               
-            } else {
+            }
+            
+            else
+            {
               if (nbwritebuf (thepeer->get_fd(),
-                              write_buf, thepeer->msgbuf.back()) <= 0) {
+                              write_buf, thepeer->msgbuf.back()) <= 0)
+              {
                 thepeer->msgbuf.push_back (new messagebuffer());
               }
             }
@@ -2740,13 +3183,16 @@ int fileserver::run_server (int port, string master_address) {
 //gettimeofday(&time_start2, NULL);
 
     // process write of iwriters
-    for (int i = 0; (unsigned) i < iwriters.size(); i++) {
-      if (iwriters[i]->is_writing()) {
+    for (int i = 0; (unsigned) i < iwriters.size(); i++)
+    {
+      if (iwriters[i]->is_writing())
+      {
         bool ret;
         
         ret = iwriters[i]->write_to_disk();
         
-        if (ret) {   // writing finished
+        if (ret)     // writing finished
+        {
           // send the numblock information to the cache server
           string message;
           stringstream ss;
@@ -2770,10 +3216,12 @@ int fileserver::run_server (int port, string master_address) {
       }
     }
     
-    for (int i = 0; (unsigned) i < ireaders.size(); i++) {
+    for (int i = 0; (unsigned) i < ireaders.size(); i++)
+    {
       bool end = ireaders[i]->read_idata();
       
-      if (!end) {   // end of reading idata
+      if (!end)     // end of reading idata
+      {
         delete ireaders[i];
         ireaders.erase (ireaders.begin() + i);
         i--;
@@ -2781,33 +3229,43 @@ int fileserver::run_server (int port, string master_address) {
     }
     
     // process buffered stream through peers
-    for (int i = 0; (unsigned) i < peers.size(); i++) {
-      while (peers[i]->msgbuf.size() > 1) {
+    for (int i = 0; (unsigned) i < peers.size(); i++)
+    {
+      while (peers[i]->msgbuf.size() > 1)
+      {
         memset (write_buf, 0, BUF_SIZE);
         strcpy (write_buf, peers[i]->msgbuf.front()->get_message().c_str());
         
         if (nbwritebuf (peers[i]->get_fd(), write_buf,
-                        peers[i]->msgbuf.front()->get_remain(), peers[i]->msgbuf.front()) > 0) {   // successfully transmitted
+                        peers[i]->msgbuf.front()->get_remain(), peers[i]->msgbuf.front()) > 0)     // successfully transmitted
+        {
           delete peers[i]->msgbuf.front();
           peers[i]->msgbuf.erase (peers[i]->msgbuf.begin());
           
-        } else { // not transmitted completely
+        }
+        
+        else     // not transmitted completely
+        {
           break;
         }
       }
     }
     
     // process buffered stream through clients
-    for (int i = 0; (unsigned) i < clients.size(); i++) {
-      while (clients[i]->msgbuf.size() > 1) {
-        if (clients[i]->msgbuf.front()->is_end()) {
+    for (int i = 0; (unsigned) i < clients.size(); i++)
+    {
+      while (clients[i]->msgbuf.size() > 1)
+      {
+        if (clients[i]->msgbuf.front()->is_end())
+        {
           //cout<<"\t\t\t\tdon't come here"<<endl;
           close (clients[i]->get_fd());
           
           // send EIcache to the target peer
           filepeer* thepeer = clients[i]->get_Itargetpeer();
           
-          if (thepeer != NULL) {
+          if (thepeer != NULL)
+          {
             // send End of Icache message "EIcache"
             string message = "EIcache ";
             message.append (clients[i]->get_Icachekey());
@@ -2815,13 +3273,18 @@ int fileserver::run_server (int port, string master_address) {
             memset (write_buf, 0, BUF_SIZE);
             strcpy (write_buf, message.c_str());
             
-            if (thepeer->msgbuf.size() > 1) {
+            if (thepeer->msgbuf.size() > 1)
+            {
               thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
               thepeer->msgbuf.push_back (new messagebuffer());
               
-            } else {
+            }
+            
+            else
+            {
               if (nbwritebuf (thepeer->get_fd(),
-                              write_buf, thepeer->msgbuf.back()) <= 0) {
+                              write_buf, thepeer->msgbuf.back()) <= 0)
+              {
                 thepeer->msgbuf.push_back (new messagebuffer());
               }
             }
@@ -2832,16 +3295,23 @@ int fileserver::run_server (int port, string master_address) {
           i--;
           break;
           
-        } else {
+        }
+        
+        else
+        {
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, clients[i]->msgbuf.front()->get_message().c_str());
           
           if (nbwritebuf (clients[i]->get_fd(), write_buf,
-                          clients[i]->msgbuf.front()->get_remain(), clients[i]->msgbuf.front()) > 0) {   // successfully transmitted
+                          clients[i]->msgbuf.front()->get_remain(), clients[i]->msgbuf.front()) > 0)     // successfully transmitted
+          {
             delete clients[i]->msgbuf.front();
             clients[i]->msgbuf.erase (clients[i]->msgbuf.begin());
             
-          } else {
+          }
+          
+          else
+          {
             break;
           }
         }
@@ -2908,8 +3378,10 @@ int fileserver::run_server (int port, string master_address) {
       int readbytes;
       readbytes = nbread (cacheserverfd, read_buf);
       
-      if (readbytes > 0) {
-        if (strncmp (read_buf, "boundaries", 10) == 0) {
+      if (readbytes > 0)
+      {
+        if (strncmp (read_buf, "boundaries", 10) == 0)
+        {
           string token;
           double doubletoken;
           stringstream ss;
@@ -2919,12 +3391,16 @@ int fileserver::run_server (int port, string master_address) {
           
           ss >> token; // boundaries
           
-          for (int i = 0; (unsigned) i < nodelist.size(); i++) {
+          for (int i = 0; (unsigned) i < nodelist.size(); i++)
+          {
             ss >> doubletoken;
             thehistogram->set_boundary (i, doubletoken);
           }
           
-        } else if (strncmp (read_buf, "iwritefinish", 12) == 0) {
+        }
+        
+        else if (strncmp (read_buf, "iwritefinish", 12) == 0)
+        {
           char* token;
           int jobid;
           
@@ -2933,19 +3409,28 @@ int fileserver::run_server (int port, string master_address) {
           
           jobid =  atoi (token);
           
-          for (int i = 0; (unsigned) i < iwriters.size(); i++) {
-            if (iwriters[i]->get_jobid() == jobid) {
+          for (int i = 0; (unsigned) i < iwriters.size(); i++)
+          {
+            if (iwriters[i]->get_jobid() == jobid)
+            {
               iwriters[i]->flush();
               break;
             }
           }
           
-        } else { // unknown message
+        }
+        
+        else     // unknown message
+        {
           cout << "[cacheserver]Unknown message from master node" << endl;
         }
         
-      } else if (readbytes == 0) {
-        for (int i = 0; (unsigned) i < clients.size(); i++) {
+      }
+      
+      else if (readbytes == 0)
+      {
+        for (int i = 0; (unsigned) i < clients.size(); i++)
+        {
           cout << "[fileserver:" << networkidx << "]Closing connection to a client..." << endl;
           close (clients[i]->get_fd());
         }
@@ -2969,8 +3454,10 @@ int fileserver::run_server (int port, string master_address) {
   return 0;
 }
 
-filepeer* fileserver::find_peer (string& address) {
-  for (int i = 0; (unsigned) i < peers.size(); i++) {
+filepeer* fileserver::find_peer (string& address)
+{
+  for (int i = 0; (unsigned) i < peers.size(); i++)
+  {
     if (peers[i]->get_address() == address)
       return peers[i];
   }
@@ -2979,8 +3466,10 @@ filepeer* fileserver::find_peer (string& address) {
   return NULL;
 }
 
-filebridge* fileserver::find_bridge (int id) {
-  for (int i = 0; (unsigned) i < bridges.size(); i++) {
+filebridge* fileserver::find_bridge (int id)
+{
+  for (int i = 0; (unsigned) i < bridges.size(); i++)
+  {
     if (bridges[i]->get_id() == id)
       return bridges[i];
   }
@@ -2989,9 +3478,12 @@ filebridge* fileserver::find_bridge (int id) {
   return NULL;
 }
 
-filebridge* fileserver::find_Icachebridge (string inputname, int& bridgeindex) {
-  for (int i = 0; (unsigned) i < bridges.size(); i++) {
-    if (bridges[i]->get_Icachekey() == inputname) {
+filebridge* fileserver::find_Icachebridge (string inputname, int& bridgeindex)
+{
+  for (int i = 0; (unsigned) i < bridges.size(); i++)
+  {
+    if (bridges[i]->get_Icachekey() == inputname)
+    {
       bridgeindex = i;
       return bridges[i];
     }
@@ -3001,7 +3493,8 @@ filebridge* fileserver::find_Icachebridge (string inputname, int& bridgeindex) {
   return NULL;
 }
 
-bool fileserver::write_file (string fname, string& record) {
+bool fileserver::write_file (string fname, string& record)
+{
   string fpath = DHT_PATH;
   int writefilefd = -1;
   int ret;
@@ -3018,12 +3511,16 @@ bool fileserver::write_file (string fname, string& record) {
   strcpy (write_buf, record.c_str());
   ret = write (writefilefd, write_buf, record.length());
   
-  if (ret < 0) {
+  if (ret < 0)
+  {
     cout << "[fileserver:" << networkidx << "]Writing to write file failed" << endl;
     close (writefilefd);
     return false;
     
-  } else {
+  }
+  
+  else
+  {
     close (writefilefd);
     return true;
   }

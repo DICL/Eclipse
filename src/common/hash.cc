@@ -2,7 +2,8 @@
 
 // h {{{
 // -----------------------------------------------
-uint32_t h (const char * data, size_t len) {
+uint32_t h (const char * data, size_t len)
+{
   uint32_t hash = len, tmp;
   int rem;
   
@@ -12,7 +13,8 @@ uint32_t h (const char * data, size_t len) {
   len >>= 2;
   
   /* Main loop */
-  for (; len > 0; len--) {
+  for (; len > 0; len--)
+  {
     hash  += get16bits (data);
     tmp    = (get16bits (data + 2) << 11) ^ hash;
     hash   = (hash << 16) ^ tmp;
@@ -21,7 +23,8 @@ uint32_t h (const char * data, size_t len) {
   }
   
   /* Handle end cases */
-  switch (rem) {
+  switch (rem)
+  {
   case 3:
     hash += get16bits (data);
     hash ^= hash << 16;

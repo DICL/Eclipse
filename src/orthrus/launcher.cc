@@ -25,7 +25,8 @@ int dhtport = -1;
 
 fileserver afileserver;
 
-int main (int argc, const char *argv[]) {
+int main (int argc, const char *argv[])
+{
   // initialize data structures from setup.conf
   ifstream conf;
   string token;
@@ -35,25 +36,39 @@ int main (int argc, const char *argv[]) {
   
   conf >> token;
   
-  while (!conf.eof()) {
-    if (token == "dhtport") {
+  while (!conf.eof())
+  {
+    if (token == "dhtport")
+    {
       conf >> token;
       dhtport = atoi (token.c_str());
       
-    } else if (token == "port") {
+    }
+    
+    else if (token == "port")
+    {
       conf >> token;
       port = atoi (token.c_str());
       
-    } else if (token == "max_job") {
+    }
+    
+    else if (token == "max_job")
+    {
       // ignore and just pass through this case
       conf >> token;
       
-    } else if (token == "master_address") {
+    }
+    
+    else if (token == "master_address")
+    {
       conf >> token;
       strcpy (master_address, token.c_str());
       master_is_set = true;
       
-    } else {
+    }
+    
+    else
+    {
       cout << "[slave]Unknown configure record: " << token << endl;
     }
     
@@ -63,17 +78,20 @@ int main (int argc, const char *argv[]) {
   conf.close();
   
   // verify initialization
-  if (port == -1) {
+  if (port == -1)
+  {
     cout << "[slave]port should be specified in the setup.conf" << endl;
     return 1;
   }
   
-  if (master_is_set == false) {
+  if (master_is_set == false)
+  {
     cout << "[slave]master_address should be specified in the setup.conf" << endl;
     return 1;
   }
   
-  if (dhtport == -1) {
+  if (dhtport == -1)
+  {
     cout << "[slave]dht port should be specified in the setup.conf" << endl;
     return 1;
   }

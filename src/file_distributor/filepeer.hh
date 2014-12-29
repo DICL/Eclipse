@@ -8,7 +8,8 @@
 
 using namespace std;
 
-class filepeer {
+class filepeer
+{
   private:
     int fd;
     string address;
@@ -25,7 +26,8 @@ class filepeer {
     void set_address (string astring);
 };
 
-filepeer::filepeer (int afd, string anaddress) {
+filepeer::filepeer (int afd, string anaddress)
+{
   this->fd = afd;
   this->address = anaddress;
   
@@ -37,26 +39,32 @@ filepeer::filepeer (int afd, string anaddress) {
 }
 
 
-filepeer::~filepeer() {
-  for (int i = 0; (unsigned) i < msgbuf.size(); i++) {
+filepeer::~filepeer()
+{
+  for (int i = 0; (unsigned) i < msgbuf.size(); i++)
+  {
     if (msgbuf[i] != NULL)
       delete msgbuf[i];
   }
 }
 
-int filepeer::get_fd() {
+int filepeer::get_fd()
+{
   return this->fd;
 }
 
-string filepeer::get_address() {
+string filepeer::get_address()
+{
   return this->address;
 }
 
-void filepeer::set_fd (int num) {
+void filepeer::set_fd (int num)
+{
   this->fd = num;
 }
 
-void filepeer::set_address (string astring) {
+void filepeer::set_address (string astring)
+{
   this->address = astring;
 }
 

@@ -44,32 +44,37 @@ using namespace std;
 
 #define BACKLOG 16384
 
-enum mr_role {
+enum mr_role
+{
   JOB,
   MAP,
   REDUCE
 };
 
-enum datatype {
+enum datatype
+{
   RAW,
   INTERMEDIATE,
   OUTPUT
 };
 
-enum task_status {
+enum task_status
+{
   WAITING,
   RUNNING,
   COMPLETED
 };
 
-enum job_stage {
+enum job_stage
+{
   INITIAL_STAGE,
   MAP_STAGE,
   REDUCE_STAGE,
   COMPLETED_STAGE // not used but reserved for future use
 };
 
-enum bridgetype { // bridge source and destination type
+enum bridgetype   // bridge source and destination type
+{
   PEER,
   DISK,
   CACHE,
@@ -77,51 +82,82 @@ enum bridgetype { // bridge source and destination type
   DISTRIBUTE // distribute the intermediate result of specific app + input pair
 };
 
-enum transfertype { // data transfer type. packet or stream
+enum transfertype   // data transfer type. packet or stream
+{
   PACKET,
   STERAM
 };
 
-enum file_role {
+enum file_role
+{
   READ,
   WRITE,
   UNDEFINED
 };
 
 // non-blocking write
-int nbwrite (int fd, char* buf, char* contents) {   // when the content should be specified
+int nbwrite (int fd, char* buf, char* contents)     // when the content should be specified
+{
   int written_bytes;
   memset (buf, 0, BUF_SIZE);
   strcpy (buf, contents);
   
-  while ( (written_bytes = write (fd, buf, BUF_CUT * (strlen (buf) / BUF_CUT + 1))) < 0) {
-    if (errno == EAGAIN) {
+  while ( (written_bytes = write (fd, buf, BUF_CUT * (strlen (buf) / BUF_CUT + 1))) < 0)
+  {
+    if (errno == EAGAIN)
+    {
       // do nothing as default
-    } else if (errno == EBADF) {
+    }
+    else if (errno == EBADF)
+    {
       cout << "\twrite function failed due to EBADF, retrying..." << endl;
       
-    } else if (errno == EFAULT) {
+    }
+    
+    else if (errno == EFAULT)
+    {
       cout << "\twrite function failed due to EFAULT, retrying..." << endl;
       
-    } else if (errno == EFBIG) {
+    }
+    
+    else if (errno == EFBIG)
+    {
       cout << "\twrite function failed due to EFBIG, retrying..." << endl;
       
-    } else if (errno == EINTR) {
+    }
+    
+    else if (errno == EINTR)
+    {
       cout << "\twrite function failed due to EINTR, retrying..." << endl;
       
-    } else if (errno == EINVAL) {
+    }
+    
+    else if (errno == EINVAL)
+    {
       cout << "\twrite function failed due to EINVAL, retrying..." << endl;
       
-    } else if (errno == EIO) {
+    }
+    
+    else if (errno == EIO)
+    {
       cout << "\twrite function failed due to EIO, retrying..." << endl;
       
-    } else if (errno == ENOSPC) {
+    }
+    
+    else if (errno == ENOSPC)
+    {
       cout << "\twrite function failed due to ENOSPC, retrying..." << endl;
       
-    } else if (errno == EPIPE) {
+    }
+    
+    else if (errno == EPIPE)
+    {
       cout << "\twrite function failed due to EPIPE, retrying..." << endl;
       
-    } else {
+    }
+    
+    else
+    {
       cout << "\twrite function failed due to unknown reason(debug needed)..." << endl;
       return -1;
     }
@@ -130,14 +166,17 @@ int nbwrite (int fd, char* buf, char* contents) {   // when the content should b
     usleep (1000);
   }
   
-  if (written_bytes != BUF_CUT * ( (int) strlen (buf) / BUF_CUT + 1)) {
+  if (written_bytes != BUF_CUT * ( (int) strlen (buf) / BUF_CUT + 1))
+  {
     int progress = written_bytes;
     int remain = BUF_CUT * (strlen (buf) / BUF_CUT + 1) - written_bytes;
     
-    while (remain > 0) {
+    while (remain > 0)
+    {
       written_bytes = write (fd, buf + progress, remain);
       
-      if (written_bytes > 0) {
+      if (written_bytes > 0)
+      {
         progress += written_bytes;
         remain -= written_bytes;
       }
@@ -151,46 +190,75 @@ int nbwrite (int fd, char* buf, char* contents) {   // when the content should b
 }
 
 // non-blocking write
-int nbwrite (int fd, char* buf) {   // when the content is already on the buffer
+int nbwrite (int fd, char* buf)     // when the content is already on the buffer
+{
   int written_bytes;
   
-  while ( (written_bytes = write (fd, buf, BUF_CUT * (strlen (buf) / BUF_CUT + 1))) < 0) {
-    if (errno == EAGAIN) {
+  while ( (written_bytes = write (fd, buf, BUF_CUT * (strlen (buf) / BUF_CUT + 1))) < 0)
+  {
+    if (errno == EAGAIN)
+    {
       // do nothing as default
-    } else if (errno == EBADF) {
+    }
+    else if (errno == EBADF)
+    {
       cout << "\twrite function failed due to EBADF, retrying..." << endl;
       cout << "\tcontents: " << buf << endl;
       sleep (5);
       
-    } else if (errno == EFAULT) {
+    }
+    
+    else if (errno == EFAULT)
+    {
       cout << "\twrite function failed due to EFAULT, retrying..." << endl;
       sleep (5);
       
-    } else if (errno == EFBIG) {
+    }
+    
+    else if (errno == EFBIG)
+    {
       cout << "\twrite function failed due to EFBIG, retrying..." << endl;
       sleep (5);
       
-    } else if (errno == EINTR) {
+    }
+    
+    else if (errno == EINTR)
+    {
       cout << "\twrite function failed due to EINTR, retrying..." << endl;
       sleep (5);
       
-    } else if (errno == EINVAL) {
+    }
+    
+    else if (errno == EINVAL)
+    {
       cout << "\twrite function failed due to EINVAL, retrying..." << endl;
       sleep (5);
       
-    } else if (errno == EIO) {
+    }
+    
+    else if (errno == EIO)
+    {
       cout << "\twrite function failed due to EIO, retrying..." << endl;
       sleep (5);
       
-    } else if (errno == ENOSPC) {
+    }
+    
+    else if (errno == ENOSPC)
+    {
       cout << "\twrite function failed due to ENOSPC, retrying..." << endl;
       sleep (5);
       
-    } else if (errno == EPIPE) {
+    }
+    
+    else if (errno == EPIPE)
+    {
       cout << "\twrite function failed due to EPIPE, retrying..." << endl;
       sleep (5);
       
-    } else {
+    }
+    
+    else
+    {
       cout << "\twrite function failed due to unknown reason(debug needed)..." << endl;
       sleep (5);
       return -1;
@@ -200,14 +268,17 @@ int nbwrite (int fd, char* buf) {   // when the content is already on the buffer
     usleep (1000);
   }
   
-  if (written_bytes != BUF_CUT * ( (int) strlen (buf) / BUF_CUT + 1)) {
+  if (written_bytes != BUF_CUT * ( (int) strlen (buf) / BUF_CUT + 1))
+  {
     int progress = written_bytes;
     int remain = BUF_CUT * (strlen (buf) / BUF_CUT + 1) - written_bytes;
     
-    while (remain > 0) {
+    while (remain > 0)
+    {
       written_bytes = write (fd, buf + progress, remain);
       
-      if (written_bytes > 0) {
+      if (written_bytes > 0)
+      {
         progress += written_bytes;
         remain -= written_bytes;
       }
@@ -221,37 +292,62 @@ int nbwrite (int fd, char* buf) {   // when the content is already on the buffer
 }
 
 // non-blocking read
-int nbread (int fd, char* buf) {
+int nbread (int fd, char* buf)
+{
   int total_readbytes = 0;
   int readbytes = 0;
   memset (buf, 0, BUF_SIZE);
   
   readbytes = read (fd, buf, BUF_CUT);
   
-  if (readbytes == 0) {
+  if (readbytes == 0)
+  {
     return readbytes;
     
-  } else if (readbytes < 0) {
-    if (errno != EAGAIN) {
-      if (errno == EBADF) {
+  }
+  
+  else if (readbytes < 0)
+  {
+    if (errno != EAGAIN)
+    {
+      if (errno == EBADF)
+      {
         cout << "\t\033[0;31mread function failed due to EBADF error, debug needed\033[0m" << endl;
         
-      } else if (errno == EFAULT) {
+      }
+      
+      else if (errno == EFAULT)
+      {
         cout << "\t\033[0;31mread function failed due to EFAULT error, debug needed\033[0m" << endl;
         
-      } else if (errno == EINTR) {
+      }
+      
+      else if (errno == EINTR)
+      {
         cout << "\t\033[0;31mread function failed due to EINTR error, debug needed\033[0m" << endl;
         
-      } else if (errno == EINVAL) {
+      }
+      
+      else if (errno == EINVAL)
+      {
         cout << "\t\033[0;31mread function failed due to EINVAL error, debug needed\033[0m" << endl;
         
-      } else if (errno == EIO) {
+      }
+      
+      else if (errno == EIO)
+      {
         cout << "\t\033[0;31mread function failed due to EIO error, debug needed\033[0m" << endl;
         
-      } else if (errno == EISDIR) {
+      }
+      
+      else if (errno == EISDIR)
+      {
         cout << "\t\033[0;31mread function failed due to EISDIR error, debug needed\033[0m" << endl;
         
-      } else {
+      }
+      
+      else
+      {
         cout << "\t\033[0;31mread function failed due to unspecified error, debug needed\033[0m" << endl;
       }
       
@@ -261,36 +357,55 @@ int nbread (int fd, char* buf) {
     
     return readbytes;
     
-  } else {
+  }
+  
+  else
+  {
     total_readbytes += readbytes;
     
-    if (buf[total_readbytes - 1] == 0 && total_readbytes % BUF_CUT == 0) {
+    if (buf[total_readbytes - 1] == 0 && total_readbytes % BUF_CUT == 0)
+    {
       return total_readbytes;
       
-    } else {
-      while (1) {
+    }
+    
+    else
+    {
+      while (1)
+      {
         readbytes = read (fd, buf + total_readbytes, BUF_CUT - (total_readbytes % BUF_CUT));
         
-        if (readbytes == 0) {
+        if (readbytes == 0)
+        {
           cout << "\t\033[0;32mthe fd was closed during reading the buffer: debug the nbread() function.\033[0m" << endl;
           cout << "\t\033[0;32m" << buf << "\033[0m" << endl;
           cout << "\t\033[0;32m" << "total_readbytes: " << total_readbytes << "\033[0m" << endl;
           cout << "\t\033[0;32m" << "last_character: " << buf[total_readbytes - 1] << "\033[0m" << endl;
           return 0;
           
-        } else if (readbytes < 0) {
+        }
+        
+        else if (readbytes < 0)
+        {
           // sleep 1 milli seconds to prevent busy waiting
           usleep (1000);
           continue;
           
-        } else {
+        }
+        
+        else
+        {
           total_readbytes += readbytes;
           
-          if (buf[total_readbytes - 1] != 0 || total_readbytes % BUF_CUT != 0) {
+          if (buf[total_readbytes - 1] != 0 || total_readbytes % BUF_CUT != 0)
+          {
             //usleep(1000);
             continue;
             
-          } else {
+          }
+          
+          else
+          {
             return total_readbytes;
           }
         }

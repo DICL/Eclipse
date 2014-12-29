@@ -7,10 +7,12 @@
 
 using namespace std;
 
-int main (int argc, char** argv) {
+int main (int argc, char** argv)
+{
   char filename[BUF_SIZE];
   
-  if (argc != 2) {
+  if (argc != 2)
+  {
     cout << "Usage: mrcat [input name]" << endl;
     return 0;
   }
@@ -25,7 +27,8 @@ int main (int argc, char** argv) {
   
   nodelistfile >> token;
   
-  while (!nodelistfile.eof()) {
+  while (!nodelistfile.eof())
+  {
     nodelist.push_back (token);
     nodelistfile >> token;
   }

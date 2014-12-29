@@ -7,7 +7,8 @@
 
 using namespace std;
 
-class datablock {
+class datablock
+{
   private:
     char* data;
     unsigned size; // block size(BLOCKSIZE) is defined in mapreduce/definitions.hh
@@ -24,7 +25,8 @@ class datablock {
     void set_size (unsigned num);
 };
 
-datablock::datablock() {
+datablock::datablock()
+{
   data = new char[BLOCKSIZE];
   memset (data, 0, BLOCKSIZE);
   size = 0;
@@ -33,31 +35,41 @@ datablock::datablock() {
   recordindex.push_back (0);
 }
 
-datablock::~datablock() {
+datablock::~datablock()
+{
   if (data != NULL)
     delete data;
 }
 
-char* datablock::get_data() {
+char* datablock::get_data()
+{
   return data;
 }
 
-unsigned datablock::get_size() {
+unsigned datablock::get_size()
+{
   return size;
 }
 
-void datablock::set_size (unsigned num) {
+void datablock::set_size (unsigned num)
+{
   size = num;
 }
 
-int datablock::write_record (string record) {
-  if (record.length() + 1 > BLOCKSIZE - size) {
+int datablock::write_record (string record)
+{
+  if (record.length() + 1 > BLOCKSIZE - size)
+  {
     return -1;
     
-  } else { // capacity allows the data
+  }
+  
+  else     // capacity allows the data
+  {
     int written_size = record.length();
     
-    if (size > 0) {   // if this is not the start of block
+    if (size > 0)     // if this is not the start of block
+    {
       // append newline character \n
       data[size] = '\n';
       size++;
@@ -75,12 +87,17 @@ int datablock::write_record (string record) {
   }
 }
 
-bool datablock::read_record (unsigned index, string& record) {   // return next index if there is next record, or -1
-  if (index < recordindex.size() - 1) {   // there is another data to read
+bool datablock::read_record (unsigned index, string& record)     // return next index if there is next record, or -1
+{
+  if (index < recordindex.size() - 1)     // there is another data to read
+  {
     record.assign (data + recordindex[index], recordindex[index + 1] - recordindex[index] - 1);
     return true;
     
-  } else {
+  }
+  
+  else
+  {
     return false;
   }
 }
