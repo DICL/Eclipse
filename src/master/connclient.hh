@@ -5,35 +5,35 @@
 
 class connclient   // connection to the client
 {
-  private:
-    int fd;
-    
-  public:
-    connclient (int fd);
-    ~connclient();
-    int getfd();
-    void setfd (int num);
-    
+    private:
+        int fd;
+        
+    public:
+        connclient (int fd);
+        ~connclient();
+        int getfd();
+        void setfd (int num);
+        
 };
 
 connclient::connclient (int fd)
 {
-  this->fd = fd;
+    this->fd = fd;
 }
 
 connclient::~connclient()
 {
-  close (fd);
+    close (fd);
 }
 
 int connclient::getfd()
 {
-  return this->fd;
+    return this->fd;
 }
 
 void connclient::setfd (int num)
 {
-  this->fd = num;
+    this->fd = num;
 }
 
 #endif

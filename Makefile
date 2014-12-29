@@ -9,8 +9,8 @@ INCLUDE   = -I./lib/ -I./src/common/ -I ./lib/unittest-cpp/ -L./lib/
 BINLIB    = -lstdc++ -lsimring
 LIBDIR   := $(realpath ./lib/)
 SRC       = $(shell find src/ -name "*.cc" -o -name "*.hh")
-ARTISTIC_STYLE_OPTIONS = -A1 -s2 -C -E --unpad-paren --pad-paren-out --pad-header \
-												-x --break-blocks  --convert-tabs --pad-oper -n
+ARTISTIC_STYLE_OPTIONS = -A1 -s4 -C -E --unpad-paren --pad-paren-out --pad-header \
+                         -x --break-blocks --add-brackets --convert-tabs --pad-oper -n
 
 export CXX CXXFLAGS MAKE AR OPTIONS INCLUDE BINLIB LIBDIR ARTISTIC_STYLE_OPTIONS
 .PHONY: lib dist node docs src
