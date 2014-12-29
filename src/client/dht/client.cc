@@ -45,7 +45,6 @@ int main (int argc, char** argv)
   string confpath = LIB_PATH;
   confpath.append ("setup.conf");
   conf.open (confpath.c_str());
-  
   conf >> token;
   
   while (!conf.eof())
@@ -54,32 +53,24 @@ int main (int argc, char** argv)
     {
       conf >> token;
       port = atoi (token.c_str());
-      
     }
-    
     else if (token == "dhtport")
     {
       conf >> token;
       dhtport = atoi (token.c_str());
-      
     }
-    
     else if (token == "max_job")
     {
       // ignore and just pass through this case
       conf >> token;
-      
     }
-    
     else if (token == "master_address")
     {
       conf >> token;
       memset (master_address, 0, token.length() + 1);
       strcpy (master_address, token.c_str());
       master_is_set = true;
-      
     }
-    
     else
     {
       cout << "[client]Unknown configure record: " << token << endl;
@@ -103,14 +94,11 @@ int main (int argc, char** argv)
     exit (1);
   }
   
-  
   // read the node list information
   ifstream nodelistfile;
   string filepath = LIB_PATH;
   filepath.append ("nodelist.conf");
-  
   nodelistfile.open (filepath.c_str());
-  
   nodelistfile >> token;
   
   while (!nodelistfile.eof())
@@ -124,38 +112,27 @@ int main (int argc, char** argv)
   {
     memset (write_buf, 0, BUF_SIZE);
     strcpy (write_buf, "stop");
-    
   }
-  
   else if (strncmp (argv[1], "numslave", 8) == 0)
   {
     memset (write_buf, 0, BUF_SIZE);
     strcpy (write_buf, "numslave");
-    
   }
-  
   else if (strncmp (argv[1], "numclient", 9) == 0)
   {
     memset (write_buf, 0, BUF_SIZE);
     strcpy (write_buf, "numclient");
-    
   }
-  
   else if (strncmp (argv[1], "numjob", 6) == 0)
   {
     memset (write_buf, 0, BUF_SIZE);
     strcpy (write_buf, "numjob");
-    
   }
-  
   else if (strncmp (argv[1], "help", 4) == 0)
   {
     // TODO: lists request and their usage
-    
     exit (0);
-    
   }
-  
   else
   {
     memset (write_buf, 0, BUF_SIZE);
@@ -172,11 +149,9 @@ int main (int argc, char** argv)
   
   // set sockets to be non-blocking socket to avoid deadlock
   fcntl (masterfd, F_SETFL, O_NONBLOCK);
-  
   // start listener thread
   pthread_t listener_thread;
   pthread_create (&listener_thread, NULL, signal_listener, (void*) &masterfd);
-  
   
   // sleeping loop which prevents process termination
   while (1)
@@ -190,7 +165,6 @@ int connect_to_server (char *host, unsigned short port)
   int clientfd;
   struct sockaddr_in serveraddr;
   struct hostent *hp;
-  
   // SOCK_STREAM -> tcp
   clientfd = socket (AF_INET, SOCK_STREAM, 0);
   
@@ -212,7 +186,6 @@ int connect_to_server (char *host, unsigned short port)
   serveraddr.sin_family = AF_INET;
   memcpy (&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
   serveraddr.sin_port = htons (port);
-  
   connect (clientfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr));
   return clientfd;
 }
@@ -232,15 +205,11 @@ void* signal_listener (void* args)
       cout << "Connection from master is abnormally closed" << endl;
       close (serverfd);
       exit (0);
-      
     }
-    
     else if (readbytes < 0)       // no signal arrived
     {
       continue;
-      
     }
-    
     else     // a signal arrived from master
     {
       if (strncmp (read_buf, "whoareyou", 9) == 0)
@@ -249,7 +218,6 @@ void* signal_listener (void* args)
         memset (tmp_buf, 0, strlen ("client") + 1);
         strcpy (tmp_buf, "client");
         nbwrite (serverfd, tmp_buf);
-        
         // request to master
         nbwrite (serverfd, write_buf);
         
@@ -257,7 +225,6 @@ void* signal_listener (void* args)
         {
           // send close message to cacheserver
           int fd;
-          
           fd = connect_to_server (master_address, dhtport);
           
           if (fd <= 0)
@@ -267,7 +234,6 @@ void* signal_listener (void* args)
           
           nbwrite (fd, write_buf);
           close (fd);
-          
           /*
           for(int i = 0; (unsigned)i < nodelist.size(); i++)
           {
@@ -279,26 +245,20 @@ void* signal_listener (void* args)
           }
           */
         }
-        
       }
-      
       else if (strncmp (read_buf, "close", 5) == 0)
       {
         cout << "Close request from master" << endl;
         close (serverfd);
         cout << "Exiting client..." << endl;
         exit (0);
-        
       }
-      
       else if (strncmp (read_buf, "result", 6) == 0)
       {
         cout << read_buf << endl;
         close (serverfd);
         exit (0);
-        
       }
-      
       else
       {
         cout << "Signal from master: " << read_buf << endl;
@@ -310,7 +270,6 @@ void* signal_listener (void* args)
   }
   
   close (serverfd);
-  
   cout << "Exiting client..." << endl;
   exit (0);
 }

@@ -80,7 +80,6 @@ int main (int argc, char** argv)
   string confpath = LIB_PATH;
   confpath.append ("setup.conf");
   conf.open (confpath.c_str());
-  
   conf >> token;
   
   while (!conf.eof())
@@ -89,30 +88,22 @@ int main (int argc, char** argv)
     {
       conf >> token;
       port = atoi (token.c_str());
-      
     }
-    
     else if (token == "dhtport")
     {
       conf >> token;
       dhtport = atoi (token.c_str());
-      
     }
-    
     else if (token == "max_job")
     {
       conf >> token;
       max_job = atoi (token.c_str());
-      
     }
-    
     else if (token == "master_address")
     {
       // ignore and just pass through this case
       conf >> token;
-      
     }
-    
     else
     {
       cout << "[master]Unknown configure record: " << token << endl;
@@ -140,7 +131,6 @@ int main (int argc, char** argv)
   ifstream nodelistfile;
   string filepath = LIB_PATH;
   filepath.append ("nodelist.conf");
-  
   nodelistfile.open (filepath.c_str());
   nodelistfile >> token;
   
@@ -157,7 +147,6 @@ int main (int argc, char** argv)
   
   // initialize the EM-KDE histogram
   thehistogram = new histogram (nodelist.size(), NUMBIN);
-  
   open_server (port);
   
   if (serverfd < 0)
@@ -190,20 +179,16 @@ int main (int argc, char** argv)
     if (fd < 0)
     {
       cout << "[master]Accepting failed" << endl;
-      
       // sleep 0.0001 seconds. change this if necessary
       usleep (1000);
       continue;
-      
     }
-    
     else
     {
       // check if the accepted node is slave or client
       memset (write_buf, 0, BUF_SIZE);
       strcpy (write_buf, "whoareyou");
       nbwrite (fd, write_buf);
-      
       // this is a blocking read
       // so don't need to check the transfer completion
       nbread (fd, read_buf);
@@ -221,33 +206,25 @@ int main (int argc, char** argv)
             slaves[i]->setfd (fd);
             slaves[i]->setmaxmaptask (MAP_SLOT);
             slaves[i]->setmaxreducetask (REDUCE_SLOT);
-            
             fcntl (fd, F_SETFL, O_NONBLOCK);
             setsockopt (fd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
             setsockopt (fd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
-            
             connectioncount++;
             break;
           }
         }
         
         printf ("slave node connected from %s \n", haddrp);
-        
       }
-      
       else if (strncmp (read_buf, "client", 6) == 0)         // client connected
       {
         clients.push_back (new connclient (fd));
-        
         // set sockets to be non-blocking socket to avoid deadlock
         fcntl (clients.back()->getfd(), F_SETFL, O_NONBLOCK);
-        
         // get ip address of client
         haddrp = inet_ntoa (connaddr.sin_addr);
         printf ("a client node connected from %s \n", haddrp);
-        
       }
-      
       else if (strncmp (read_buf, "job", 3) == 0)
       {
         // TODO: deal with the case that a job joined the
@@ -263,11 +240,8 @@ int main (int argc, char** argv)
       if ( (unsigned) connectioncount == nodelist.size())
       {
         cout << "[master]\033[0;32mAll slave nodes are connected successfully\033[0m" << endl;
-        
         break;
-        
       }
-      
       else if (slaves.size() > nodelist.size())
       {
         cout << "[master]Number of slave connection exceeded allowed limits" << endl;
@@ -303,9 +277,7 @@ int main (int argc, char** argv)
   fcntl (ipcfd, F_SETFL, O_NONBLOCK);
   setsockopt (ipcfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
   setsockopt (ipcfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
-  
   //dhtclient = new DHTclient(RAVENLEADER, dhtport);
-  
   // set sockets to be non-blocking socket to avoid deadlock
   fcntl (serverfd, F_SETFL, O_NONBLOCK);
   
@@ -322,14 +294,12 @@ int main (int argc, char** argv)
     sleep (1);
     
   //dhtserver->close();
-  
   return 0;
 }
 
 void open_server (int port)
 {
   struct sockaddr_in serveraddr;
-  
   // socket open
   serverfd = socket (AF_INET, SOCK_STREAM, 0);
   
@@ -367,10 +337,8 @@ void* signal_listener (void* args)
   struct sockaddr_in connaddr;
   int addrlen = sizeof (connaddr);
   int elapsed = 0; // time elapsed im msec
-  
   struct timeval time_start;
   struct timeval time_end;
-  
   gettimeofday (&time_start, NULL);
   gettimeofday (&time_end, NULL);
   
@@ -386,16 +354,13 @@ void* signal_listener (void* args)
       memset (write_buf, 0, BUF_SIZE);
       strcpy (write_buf, "whoareyou");
       nbwrite (tmpfd, write_buf);
-      
       memset (read_buf, 0, BUF_SIZE);
-      
       // blocking read to check identification of connected node
       readbytes = nbread (tmpfd, read_buf);
       
       if (readbytes == 0)
       {
         cout << "[master]Connection closed from client before getting request" << endl;
-        
         close (tmpfd);
         tmpfd = -1;
         continue;
@@ -408,24 +373,18 @@ void* signal_listener (void* args)
         // get ip address of client
         haddrp = inet_ntoa (connaddr.sin_addr);
         printf ("[master]Client node connected from %s \n", haddrp);
-        
         clients.push_back (new connclient (tmpfd));
-        
       }
-      
       else if (strncmp (read_buf, "slave", 5) == 0)
       {
         cout << "[master]Unexpected connection from slave: " << endl;
         cout << "[master]Closing connection to the slave..." << endl;
-        
         // check this code
         memset (write_buf, 0, BUF_SIZE);
         strcpy (write_buf, "close");
         nbwrite (tmpfd, write_buf);
         close (tmpfd);
-        
       }
-      
       else if (strncmp (read_buf, "job", 3) == 0)         // if connected node is a job
       {
         // limit the maximum available job connection
@@ -447,13 +406,10 @@ void* signal_listener (void* args)
         memset (write_buf, 0, BUF_SIZE);
         strcpy (write_buf, jobidss.str().c_str());
         nbwrite (tmpfd, write_buf);
-        
         cout << "[master]Job " << jobidclock << " arrived" << endl;
         jobs.push_back (new master_job (jobidclock, tmpfd));
         jobidclock++;
-        
       }
-      
       else
       {
         cout << "[master]Unidentified connected node: " << endl;
@@ -474,15 +430,11 @@ void* signal_listener (void* args)
         slaves.erase (slaves.begin() + i);
         i--;
         continue;
-        
       }
-      
       else if (readbytes < 0)
       {
         continue;
-        
       }
-      
       else     // signal from the slave
       {
         // remove below "key" part
@@ -510,14 +462,10 @@ void* signal_listener (void* args)
         if (strncmp (read_buf, "peerids", 7) == 0)
         {
           char* token;
-          
           master_job* thejob;
-          
           token = strtok (read_buf, " ");   // token <- "peerids"
           token = strtok (NULL, " ");   // token <- jobid
-          
           thejob = find_jobfromid (atoi (token));
-          
           // token first ids
           token = strtok (NULL, " ");
           
@@ -526,34 +474,26 @@ void* signal_listener (void* args)
             thejob->peerids.insert (atoi (token));
             token = strtok (NULL, " ");   // good
           }
-          
         }
-        
         else if (strncmp (read_buf, "taskcomplete", 12) == 0)         // "taskcomplete" signal arrived
         {
           char* token;
           int ajobid, ataskid;
           master_job* thejob;
           master_task* thetask;
-          
           token = strtok (read_buf, " ");   // token <- "taskcomplete"
           token = strtok (NULL, " ");   // token <- "jobid"
           token = strtok (NULL, " ");   // token <- job id
           ajobid = atoi (token);
-          
           token = strtok (NULL, " ");   // token <- "taskid"
           token = strtok (NULL, " ");   // token <- task id
           ataskid = atoi (token);
-          
           thejob = find_jobfromid (ajobid);
           thetask = thejob->find_taskfromid (ataskid);
           thejob->finish_task (thetask, slaves[i]);
-          
           cout << "[master]A task completed(jobid: " << ajobid << ", " << thejob->get_numcompleted_tasks();
           cout << "/" << thejob->get_numtasks() << ")" << endl;
-          
         }
-        
         else
         {
           cout << "[master]Undefined message from slave node: " << read_buf << endl;
@@ -574,15 +514,11 @@ void* signal_listener (void* args)
         clients.erase (clients.begin() + i);
         i--;
         continue;
-        
       }
-      
       else if (readbytes < 0)
       {
         continue;
-        
       }
-      
       else     // signal from the client
       {
         cout << "[master]Message accepted from client: " << read_buf << endl;
@@ -597,7 +533,6 @@ void* signal_listener (void* args)
             memset (write_buf, 0, BUF_SIZE);
             strcpy (write_buf, "close");
             nbwrite (slaves[j]->getfd(), write_buf);
-            
             // blocking read from slave
             fcntl (slaves[j]->getfd(), F_SETFL, fcntl (slaves[j]->getfd(), F_GETFL) & ~O_NONBLOCK);
             readbytes = nbread (slaves[j]->getfd(), read_buf);
@@ -607,9 +542,7 @@ void* signal_listener (void* args)
               delete slaves[j];
               slaves.erase (slaves.begin() + j);
               j--;
-              
             }
-            
             else     // message arrived before closed
             {
               memset (write_buf, 0, BUF_SIZE);
@@ -633,7 +566,6 @@ void* signal_listener (void* args)
             memset (write_buf, 0, BUF_SIZE);
             strcpy (write_buf, "close");
             nbwrite (clients[j]->getfd(), write_buf);
-            
             // blocking read from client
             fcntl (clients[j]->getfd(), F_SETFL, fcntl (clients[j]->getfd(), F_GETFL) & ~O_NONBLOCK);
             readbytes = nbread (clients[j]->getfd(), read_buf);
@@ -643,9 +575,7 @@ void* signal_listener (void* args)
               delete clients[j];
               clients.erase (clients.begin() + j);
               j--;
-              
             }
-            
             else     // message arrived before closed
             {
               memset (write_buf, 0, BUF_SIZE);
@@ -659,13 +589,10 @@ void* signal_listener (void* args)
           }
           
           cout << "[master]All clients closed" << endl;
-          
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, "result: stopping successful");
           nbwrite (clients[i]->getfd(), write_buf);
-          
         }
-        
         else if (strncmp (read_buf, "numslave", 8) == 0)         // "numslave" signal arrived
         {
           string ostring = "result: number of slave nodes = ";
@@ -675,9 +602,7 @@ void* signal_listener (void* args)
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, ostring.c_str());
           nbwrite (clients[i]->getfd(), write_buf);
-          
         }
-        
         else if (strncmp (read_buf, "numclient", 9) == 0)         // "numclient" signal arrived
         {
           string ostring = "result: number of client nodes = ";
@@ -687,9 +612,7 @@ void* signal_listener (void* args)
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, ostring.c_str());
           nbwrite (clients[i]->getfd(), write_buf);
-          
         }
-        
         else if (strncmp (read_buf, "numjob", 6) == 0)         // "numjob" signal arrived
         {
           string ostring = "result: number of running jobs = ";
@@ -699,9 +622,7 @@ void* signal_listener (void* args)
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, ostring.c_str());
           nbwrite (clients[i]->getfd(), write_buf);
-          
         }
-        
         else if (strncmp (read_buf, "numtask", 7) == 0)         // "numtask" signal arrived
         {
           string ostring = "result: number of running tasks = ";
@@ -718,9 +639,7 @@ void* signal_listener (void* args)
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, ostring.c_str());
           nbwrite (clients[i]->getfd(), write_buf);
-          
         }
-        
         else     // undefined signal
         {
           cout << "[master]Undefined signal from client: " << read_buf << endl;
@@ -743,9 +662,7 @@ void* signal_listener (void* args)
         i--;
         cout << "[master]Job terminated abnormally" << endl;
         continue;
-        
       }
-      
       else if (readbytes < 0)
       {
         // do nothing
@@ -755,19 +672,15 @@ void* signal_listener (void* args)
         if (strncmp (read_buf, "complete", 8) == 0)       // "succompletion" signal arrived
         {
           cout << "[master]Job " << jobs[i]->getjobid() << " successfully completed" << endl;
-          
           // clear up the completed job
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, "terminate");
           nbwrite (jobs[i]->getjobfd(), write_buf);
-          
           // delete the job from the vector jobs
           delete jobs[i];
           jobs.erase (jobs.begin() + i);
           i--;
-          
         }
-        
         else if (strncmp (read_buf, "jobconf", 7) == 0)         // "jobconf" message arrived
         {
           char* token;
@@ -782,7 +695,6 @@ void* signal_listener (void* args)
               // NOTE: there should be at least 1 arguments(program path name)
               token = strtok (NULL, " ");   // token <- argument count
               jobs[i]->setargcount (atoi (token));
-              
               // process next configure
               token = strtok (NULL, " ");   // token -> argvalues
               
@@ -801,7 +713,6 @@ void* signal_listener (void* args)
               
               jobs[i]->setargvalues (arguments);
             }
-            
             /*
             else if(strncmp(token, "inputpath", 9) == 0)
             {
@@ -822,24 +733,18 @@ void* signal_listener (void* args)
               int nummap;
               token = strtok (NULL, " ");   // token <- number of maps
               nummap = atoi (token);
-              
               jobs[i]->setnummap (nummap);
-              
             }
-            
             else if (strncmp (token, "numreduce", 9) == 0)
             {
               int numreduce;
               token = strtok (NULL, " ");   // token <- number of reduces
               numreduce = atoi (token);
-              
               jobs[i]->setnumreduce (numreduce);
-              
               // numreduce is the last token of this message
               // read another message, which is inputpath message
               int numpath;
               int iter = 0;
-              
               readbytes = -1;
               
               while (readbytes < 0)
@@ -864,9 +769,7 @@ void* signal_listener (void* args)
                   
                   token = strtok (read_buf, " ");   // must be a valid token(input path)
                   jobs[i]->add_inputpath (token);
-                  
                 }
-                
                 else     // a valid input path
                 {
                   jobs[i]->add_inputpath (token);
@@ -874,9 +777,7 @@ void* signal_listener (void* args)
                 
                 iter++;
               }
-              
             }
-            
             else
             {
               cout << "[master]Unknown job configure message from job: " << token << endl;
@@ -909,9 +810,7 @@ void* signal_listener (void* args)
           
           // set job stage as MAP_STAGE
           jobs[i]->set_stage (MAP_STAGE);
-          
         }
-        
         else     // undefined signal
         {
           cout << "[master]Undefined signal from job: " << read_buf << endl;
@@ -929,11 +828,9 @@ void* signal_listener (void* args)
             memset (write_buf, 0, BUF_SIZE);
             strcpy (write_buf, "mapcomplete");
             nbwrite (jobs[i]->getjobfd(), write_buf);
-            
             // request to the cache the flush of each iwriter and information of numblock from each peer
             stringstream ss;
             string message;
-            
             ss << "iwritefinish ";
             ss << jobs[i]->getjobid();
             
@@ -945,16 +842,12 @@ void* signal_listener (void* args)
             }
             
             message = ss.str();
-            
             // send the message to the cache server
             memset (write_buf, 0, BUF_SIZE);
             strcpy (write_buf, message.c_str());
             nbwrite (ipcfd, write_buf);
-            
             jobs[i]->status = REQUEST_SENT;
-            
           }
-          
           else if (jobs[i]->status == REQUEST_SENT)
           {
             // do nothing(just wait for the respond)
@@ -965,18 +858,14 @@ void* signal_listener (void* args)
             if (jobs[i]->getnumreduce() <= 0)
             {
               jobs[i]->setnumreduce (jobs[i]->peerids.size());
-              
             }
-            
             else if ( (unsigned) jobs[i]->getnumreduce() > jobs[i]->peerids.size())
             {
               // TODO: enable much more number of reducers
               jobs[i]->setnumreduce (jobs[i]->peerids.size());
             }
             
-            
             // generate reduce tasks and feed each reducer dedicated peer with numblock information
-            
             for (int j = 0; j < jobs[i]->getnumreduce(); j++)
             {
               master_task* newtask = new master_task (jobs[i], REDUCE);
@@ -991,7 +880,6 @@ void* signal_listener (void* args)
             {
               jobs[i]->get_waitingtask (iteration)->numiblocks.push_back (jobs[i]->numiblocks[index]);
               jobs[i]->get_waitingtask (iteration)->peerids.push_back (*it);
-              
               index++;
               iteration++;
               
@@ -1001,9 +889,7 @@ void* signal_listener (void* args)
             
             jobs[i]->set_stage (REDUCE_STAGE);
           }
-          
         }
-        
         else if (jobs[i]->get_stage() == REDUCE_STAGE)       // if reduce stage is finished
         {
           // send message to the job to complete the job
@@ -1011,17 +897,13 @@ void* signal_listener (void* args)
           strcpy (write_buf, "complete");
           nbwrite (jobs[i]->getjobfd(), write_buf);
           cout << "[master]Job " << jobs[i]->getjobid() << " completed successfully" << endl;
-          
           jobs[i]->set_stage (COMPLETED_STAGE);
           // clear the job from the vector and finish
           delete jobs[i];
           jobs.erase (jobs.begin() + i);
           i--;
-          
           continue;
-          
         }
-        
         else
         {
           // pass the case for INITIAL_STAGE and COMPLETED_STAGE
@@ -1050,29 +932,22 @@ void* signal_listener (void* args)
             while (token != NULL)
             {
               jobs[i]->numiblocks.push_back (atoi (token));
-              
               token = strtok (NULL, " ");
             }
-            
             
             jobs[i]->status = RESPOND_RECEIVED;
             break;
           }
         }
       }
-      
     }
-    
     else if (readbytes == 0)
     {
       cout << "[master]Connection to cache server abnormally closed" << endl;
       usleep (100000);
     }
     
-    
-    
     // process and schedule jobs and tasks
-    
 #ifdef FCFS
     
     // default scheduler: FCFS-like scheduler
@@ -1084,7 +959,6 @@ void* signal_listener (void* args)
                 && (jobs[i]->get_lastwaitingtask() != NULL))      // schedule all the slot until none of the slot is avilable
         {
           master_task* thetask = jobs[i]->get_lastwaitingtask();
-          
           // write to the slave the task information
           stringstream ss;
           ss << "tasksubmit ";
@@ -1095,17 +969,13 @@ void* signal_listener (void* args)
           
           if (thetask->get_taskrole() == MAP)
             ss << "MAP";
-            
           else if (thetask->get_taskrole() == REDUCE)
             ss << "REDUCE";
-            
           else
             cout << "[master]Debugging: the role of the task not defined in the initialization step";
             
-            
           ss << " ";
           ss << thetask->get_job()->getargcount();
-          
           // NOTE: there should be at leat 1 arguments(program path name)
           ss << " ";
           
@@ -1116,11 +986,9 @@ void* signal_listener (void* args)
           }
           
           string message = ss.str();
-          
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, message.c_str());
           nbwrite (slaves[j]->getfd(), write_buf);
-          
           // prepare inputpath message
           int iter = 0;
           message = "inputpath";
@@ -1131,9 +999,7 @@ void* signal_listener (void* args)
             {
               message.append (" ");
               message.append (thetask->get_inputpath (iter));
-              
             }
-            
             else
             {
               if (thetask->get_inputpath (iter).length() + 10 > BUF_SIZE)
@@ -1143,7 +1009,6 @@ void* signal_listener (void* args)
               memset (write_buf, 0, BUF_SIZE);
               strcpy (write_buf, message.c_str());
               nbwrite (slaves[j]->getfd(), write_buf);
-              
               message = "inputpath ";
               message.append (thetask->get_inputpath (iter));
             }
@@ -1163,7 +1028,6 @@ void* signal_listener (void* args)
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, "Einput");
           nbwrite (slaves[j]->getfd(), write_buf);
-          
           // forward waiting task to slave slot
           jobs[i]->schedule_task (thetask, slaves[j]);
           // sleeps for 0.0001 seconds. change this if necessary
@@ -1173,7 +1037,6 @@ void* signal_listener (void* args)
     }
     
 #endif
-    
 #ifdef EMKDE
     
     // EMKDE scheduler: schedule the task where the input is located
@@ -1193,10 +1056,8 @@ void* signal_listener (void* args)
           string thepath = thetask->get_inputpath (0);   // first input as a representative input
           string address;
           stringstream tmpss;
-          
           memset (write_buf, 0, HASHLENGTH);
           strcpy (write_buf, thepath.c_str());
-          
           // determine the hash value and count the query
           uint32_t hashvalue = h (write_buf, HASHLENGTH);
           nodeindex = thehistogram->get_index (hashvalue);
@@ -1214,9 +1075,7 @@ void* signal_listener (void* args)
               if (slaves[h]->getnumrunningtasks() >= slaves[h]->getmaxmaptask())
               {
                 continue;
-                
               }
-              
               else
               {
                 nodeindex = h;
@@ -1229,7 +1088,6 @@ void* signal_listener (void* args)
           }
           
           thehistogram->count_query (hashvalue);
-          
           // write to the slave the task information
           stringstream ss;
           ss << "tasksubmit ";
@@ -1248,11 +1106,9 @@ void* signal_listener (void* args)
           }
           
           string message = ss.str();
-          
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, message.c_str());
           nbwrite (slaves[nodeindex]->getfd(), write_buf);
-          
           // prepare inputpath message
           int iter = 0;
           message = "inputpath";
@@ -1263,9 +1119,7 @@ void* signal_listener (void* args)
             {
               message.append (" ");
               message.append (thetask->get_inputpath (iter));
-              
             }
-            
             else
             {
               if (thetask->get_inputpath (iter).length() + 10 > BUF_SIZE)
@@ -1275,7 +1129,6 @@ void* signal_listener (void* args)
               memset (write_buf, 0, BUF_SIZE);
               strcpy (write_buf, message.c_str());
               nbwrite (slaves[nodeindex]->getfd(), write_buf);
-              
               message = "inputpath ";
               message.append (thetask->get_inputpath (iter));
             }
@@ -1295,12 +1148,9 @@ void* signal_listener (void* args)
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, "Einput");
           nbwrite (slaves[nodeindex]->getfd(), write_buf);
-          
           // forward waiting task to slave slot
           jobs[i]->schedule_task (thetask, slaves[nodeindex]);
-          
         }
-        
         else     // reduce
         {
           nodeindex = thetask->peerids[0];
@@ -1326,17 +1176,14 @@ void* signal_listener (void* args)
           }
           
           string message = ss.str();
-          
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, message.c_str());
           nbwrite (slaves[nodeindex]->getfd(), write_buf);
-          
           message = "inputpath";
           
           for (int j = 0; (unsigned) j < thetask->peerids.size(); j++)       // don't need to worry about BUF_SIZE overflow in reducer case
           {
             stringstream ss;
-            
             ss << " ";
             ss << thetask->peerids[j];
             ss << " ";
@@ -1363,7 +1210,6 @@ void* signal_listener (void* args)
     {
       // EM-KDE: calculate the new boundary according to the query counts
       thehistogram->updateboundary();
-      
       // EM-KDE: send the boundariees of each histogram to cache server
       string message;
       stringstream ss;
@@ -1376,12 +1222,10 @@ void* signal_listener (void* args)
       }
       
       message = ss.str();
-      
       // send the boundary message to the cache server
       memset (write_buf, 0, BUF_SIZE);
       strcpy (write_buf, message.c_str());
       nbwrite (ipcfd, write_buf);
-      
       gettimeofday (&time_start, NULL);
       elapsed = 0;
     }
@@ -1399,9 +1243,7 @@ void* signal_listener (void* args)
   // close master socket
   close (serverfd);
   cout << "[master]Master server closed" << endl;
-  
   cout << "[master]Exiting master..." << endl;
-  
   thread_continue = false;
   return NULL;
 }

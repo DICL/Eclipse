@@ -98,7 +98,6 @@ filebridge::filebridge (int anid)
   dstentrywriter = NULL;
   writebuffer = NULL;
   theidistributor = NULL;
-  
   //keybuffer.configure_initial("Ikey\n");
 }
 
@@ -200,7 +199,6 @@ void filebridge::open_readfile (string fname)
 {
   string fpath = DHT_PATH;
   fpath.append (fname);
-  
   this->readfilestream.open (fpath.c_str());
   
   if (!this->readfilestream.is_open())
@@ -215,7 +213,6 @@ bool filebridge::read_record (string& record)     // reads next record
   
   if (this->readfilestream.eof())
     return false;
-    
   else
     return true;
 }

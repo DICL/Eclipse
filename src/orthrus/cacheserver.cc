@@ -46,9 +46,7 @@ int main (int argc, char** argv)
   string confpath = LIB_PATH;
   confpath.append ("setup.conf");
   conf.open (confpath.c_str());
-  
   master_connection themaster; // from <orthrus/cacheclient.hh>
-  
   conf >> token;
   
   while (!conf.eof())
@@ -57,30 +55,22 @@ int main (int argc, char** argv)
     {
       // ignore and just pass through this case
       conf >> token;
-      
     }
-    
     else if (token == "dhtport")
     {
       conf >> token;
       dhtport = atoi (token.c_str());
-      
     }
-    
     else if (token == "max_job")
     {
       // ignore and just pass through this case
       conf >> token;
-      
     }
-    
     else if (token == "master_address")
     {
       // ignore and just pass through this case
       conf >> token;
-      
     }
-    
     else
     {
       cout << "[cacheserver]Unknown configure record: " << token << endl;
@@ -90,12 +80,10 @@ int main (int argc, char** argv)
   }
   
   conf.close();
-  
   // read the node list information
   ifstream nodelistfile;
   string filepath = LIB_PATH;
   filepath.append ("nodelist.conf");
-  
   nodelistfile.open (filepath.c_str());
   nodelistfile >> token;
   
@@ -140,20 +128,15 @@ int main (int argc, char** argv)
     if (fd < 0)
     {
       cout << "[cacheserver]Accepting failed" << endl;
-      
       // sleep 1 milli second. change this if necessary
       // usleep(1000);
       continue;
-      
     }
-    
     else if (fd == 0)
     {
       cout << "[cacheserver]Accepting failed" << endl;
       exit (1);
-      
     }
-    
     else
     {
       // get ip address of client
@@ -184,9 +167,7 @@ int main (int argc, char** argv)
     setsockopt (tmpfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
     setsockopt (tmpfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
     setsockopt (tmpfd, SOL_SOCKET, SO_REUSEADDR, &valid, sizeof (valid));
-    
   }
-  
   else
   {
     cout << "[cacheserver]Connection from master is unsuccessful" << endl;
@@ -195,22 +176,16 @@ int main (int argc, char** argv)
   
   // set fd of master
   themaster.set_fd (tmpfd);
-  
   // set the server fd as nonblocking mode
   fcntl (serverfd, F_SETFL, O_NONBLOCK);
   fcntl (tmpfd, F_SETFL, O_NONBLOCK);
-  
   // initialize the EM-KDE histogram
   thehistogram = new histogram (nodelist.size(), NUMBIN);
-  
   // a main iteration loop
   int readbytes = -1;
   int fd;
-  
-  
   struct timeval time_start;
   struct timeval time_end;
-  
   gettimeofday (&time_start, NULL);
   gettimeofday (&time_end, NULL);
   
@@ -226,9 +201,7 @@ int main (int argc, char** argv)
       if (readbytes == 0)
       {
         cout << "[cacheserver]Connection abnormally closed from client" << endl;
-        
       }
-      
       else     // a message
       {
         if (strncmp (read_buf, "stop", 4) == 0)
@@ -240,16 +213,13 @@ int main (int argc, char** argv)
           
           close (serverfd);
           return 0;
-          
         }
-        
         else     // message other than "stop"
         {
           cout << "[cacheserver]Unexpected message from client" << read_buf << endl;
         }
       }
     }
-    
     
     // listen to master
     readbytes = nbread (themaster.get_fd(), read_buf);
@@ -258,9 +228,7 @@ int main (int argc, char** argv)
     {
       cout << "[cacheserver]Connection abnormally closed from master(ipc)" << endl;
       usleep (10000);   // 10 msec
-      
     }
-    
     else if (readbytes > 0)       // a message accepted
     {
       if (strncmp (read_buf, "boundaries", 10) == 0)
@@ -270,34 +238,26 @@ int main (int argc, char** argv)
         {
           nbwrite (clients[i]->get_fd(), read_buf);
         }
-        
       }
-      
       else if (strncmp (read_buf, "iwritefinish", 12) == 0)
       {
         string message;
         stringstream ss;
         char* token;
         int jobid;
-        
         token = strtok (read_buf, " ");   // token <- "iwritefinish"
-        
         token = strtok (NULL, " ");   // jobid
         jobid = atoi (token);
-        
         // add the request to the vector iwfrequests
         iwfrequest* therequest = new iwfrequest (jobid);
         iwfrequests.push_back (therequest);
-        
         // prepare message for each client
         ss << "iwritefinish ";
         ss << jobid;
         message = ss.str();
         memset (write_buf, 0, BUF_SIZE);
         strcpy (write_buf, message.c_str());
-        
         token = strtok (NULL, " ");
-        
         int peerid;
         
         while (token != NULL)
@@ -305,15 +265,12 @@ int main (int argc, char** argv)
           // request to the each peer right after tokenize each peer id
           peerid = atoi (token);
           therequest->add_request (peerid);
-          
           // send message to target client
           nbwrite (clients[peerid]->get_fd(), write_buf);
           // tokenize next peer id
           token = strtok (NULL, " ");
         }
-        
       }
-      
       else     // unknown message
       {
         cout << "[cacheserver]Unknown message from master node";
@@ -324,7 +281,6 @@ int main (int argc, char** argv)
     {
       // do nothing currently
       int readbytes = -1;
-      
       readbytes = nbread (clients[i]->get_fd(), read_buf);
       
       if (readbytes > 0)
@@ -334,12 +290,9 @@ int main (int argc, char** argv)
           char* token;
           int jobid;
           int numblock;
-          
           token = strtok (read_buf, " ");   // token <- "iwritefinish"
           token = strtok (NULL, " ");   // token <- jobid
-          
           jobid = atoi (token);
-          
           token = strtok (NULL, " ");   // token <- numblock
           numblock = atoi (token);
           
@@ -351,16 +304,12 @@ int main (int argc, char** argv)
               break;
             }
           }
-          
         }
-        
         else
         {
           cout << "[cacheserver]Abnormal message from clients" << endl;
         }
-        
       }
-      
       else if (readbytes == 0)
       {
         cout << "[cacheserver]Connection to clients abnormally closed" << endl;
@@ -376,7 +325,6 @@ int main (int argc, char** argv)
         // send numblock information in order to the master
         string message;
         stringstream ss;
-        
         ss << "numblocks ";
         ss << iwfrequests[i]->get_jobid();
         
@@ -389,9 +337,7 @@ int main (int argc, char** argv)
         message = ss.str();
         memset (write_buf, 0, BUF_SIZE);
         strcpy (write_buf, message.c_str());
-        
         nbwrite (themaster.get_fd(), write_buf);
-        
         // clear the iwfrequest
         delete iwfrequests[i];
         iwfrequests.erase (iwfrequests.begin() + i);
@@ -409,7 +355,6 @@ int main (int argc, char** argv)
 void open_server (int port)
 {
   struct sockaddr_in serveraddr;
-  
   // socket open
   serverfd = socket (AF_INET, SOCK_STREAM, 0);
   
@@ -418,7 +363,6 @@ void open_server (int port)
     
   int valid = 1;
   setsockopt (serverfd, SOL_SOCKET, SO_REUSEADDR, &valid, sizeof (valid));
-  
   // bind
   memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
   serveraddr.sin_family = AF_INET;

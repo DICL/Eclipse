@@ -42,7 +42,6 @@ idistributor::idistributor (vector<filepeer*>* apeers, vector<iwriter*>* aniwrit
   for (int i = 0; (unsigned) i < peers->size(); i++)
   {
     stringstream ss;
-    
     ss << "Iwrite ";
     ss << jobid;
     ss << "\n";
@@ -50,9 +49,7 @@ idistributor::idistributor (vector<filepeer*>* apeers, vector<iwriter*>* aniwrit
     if (i == networkidx)
     {
       msgbuffers.push_back (NULL);
-      
     }
-    
     else
     {
       msgbuffers.push_back (new msgaggregator ( (*peers) [i]->get_fd()));
@@ -78,14 +75,12 @@ idistributor::~idistributor()
 void idistributor::process_message (char* token, char* buf)
 {
   string key;
-  
   token = strtok (token,  " ");   // tokenize first key
   
   while (token != NULL)
   {
     key = token;
     token = strtok (NULL, "\n");   // tokenize value
-    
     memset (buf, 0, HASHLENGTH);
     strcpy (buf, key.c_str());
     uint32_t hashvalue = h (buf, HASHLENGTH);
@@ -115,11 +110,8 @@ void idistributor::process_message (char* token, char* buf)
       
       // add key value pair to the iwriter
       thewriter->add_keyvalue (key, token);
-      
       thecount->add_peer (hashvalue);
-      
     }
-    
     else
     {
       key.append (" ");
@@ -128,7 +120,6 @@ void idistributor::process_message (char* token, char* buf)
     }
     
     thecount->add_peer (hashvalue);
-    
     token = strtok (NULL, " ");   // next key
   }
 }

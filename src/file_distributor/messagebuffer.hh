@@ -105,7 +105,6 @@ bool messagebuffer::is_end()   // true if close(fd) is needed
 {
   if (fd > 0 && remain == 0)
     return true;
-    
   else
     return false;
 }
@@ -129,33 +128,24 @@ int nbwritebuf (int fd, char* buf, messagebuffer* buffer)
   
 //cout<<"writing bytes: "<<writing_bytes<<endl;
 //cout<<"written bytes: "<<written_bytes<<endl<<endl;
-
   if (written_bytes == writing_bytes)
   {
     return written_bytes;
-    
   }
-  
   else if (written_bytes > 0)
   {
     string message = buf + written_bytes;
-    
     buffer->set_fd (fd);
     buffer->set_message (message);
     buffer->set_remain (writing_bytes - written_bytes);
-    
     return 0;
-    
   }
-  
   else     // -1 returned, totally failed
   {
     string message = buf;
-    
     buffer->set_fd (fd);
     buffer->set_message (message);
     buffer->set_remain (writing_bytes);
-    
     return -1;
   }
 }
@@ -169,34 +159,24 @@ int nbwritebuf (int fd, char* buf, int writing_bytes, messagebuffer* buffer)
   
 //cout<<"writing bytes: "<<writing_bytes<<endl;
 //cout<<"written bytes: "<<written_bytes<<endl<<endl;
-
-
   if (written_bytes == writing_bytes)
   {
     return 1;
-    
   }
-  
   else if (written_bytes > 0)
   {
     string message = buf + written_bytes;
-    
     buffer->set_fd (fd);
     buffer->set_message (message);
     buffer->set_remain (writing_bytes - written_bytes);
-    
     return 0;
-    
   }
-  
   else     // -1 returned, totally failed
   {
     string message = buf;
-    
     buffer->set_fd (fd);
     buffer->set_message (message);
     buffer->set_remain (writing_bytes);
-    
     return -1;
   }
 }

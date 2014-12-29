@@ -51,7 +51,6 @@ dataentry* cache::lookup (string filename)
     if (filename == entries[i]->get_filename())
     {
       ret = entries[i];
-      
       // make the entry the most recent
       entries.erase (entries.begin() + i);
       entries.insert (entries.begin(), ret);
@@ -71,7 +70,6 @@ dataentry* cache::lookup (unsigned index)
     if (index == entries[i]->get_index())
     {
       ret = entries[i];
-      
       // make the entry the most recent
       entries.erase (entries.begin() + i);
       entries.insert (entries.begin(), ret);
@@ -108,16 +106,13 @@ bool cache::try_fit_size()
     {
       entries.erase ( (entries.end() - i));
       i--;
-      
       size -= theentry->get_size();
       delete theentry;
       
       if (size > capacity)
       {
         continue;
-        
       }
-      
       else
       {
         return true;

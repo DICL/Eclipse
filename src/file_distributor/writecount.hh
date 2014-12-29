@@ -32,7 +32,6 @@ bool writecount::add_peer (int peerid)
   }
   
   return false;
-  
 }
 
 bool writecount::clear_peer (int peerid)
@@ -42,9 +41,7 @@ bool writecount::clear_peer (int peerid)
   if (ret == 1)
   {
     return true;
-    
   }
-  
   else
   {
     return false;

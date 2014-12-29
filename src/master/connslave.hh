@@ -109,9 +109,7 @@ master_task* connslave::getrunningtask (int index)
   {
     cout << "Index out of bound in the connslave::getrunningtask() function." << endl;
     return NULL;
-    
   }
-  
   else
     return this->running_tasks[index];
 }
@@ -120,7 +118,6 @@ void connslave::add_runningtask (master_task* atask)
 {
   if (atask != NULL)
     running_tasks.push_back (atask);
-    
   else
     cout << "A NULL task is assigned to the running task vector in the connslave::add_runningtask() function." << endl;
 }

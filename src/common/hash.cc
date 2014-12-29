@@ -49,7 +49,6 @@ uint32_t h (const char * data, size_t len)
   hash += hash >> 17;
   hash ^= hash << 25;
   hash += hash >> 6;
-  
   return hash;
 }
 // }}}

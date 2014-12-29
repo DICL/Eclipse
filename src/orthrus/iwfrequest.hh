@@ -51,14 +51,12 @@ void iwfrequest::add_receive (int index, int numblock)
   }
   
   cout << "check add_receive()" << endl;
-  
 }
 
 bool iwfrequest::is_finished()
 {
   if (received == requested)
     return true;
-    
   else
     return false;
 }

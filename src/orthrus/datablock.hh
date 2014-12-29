@@ -30,7 +30,6 @@ datablock::datablock()
   data = new char[BLOCKSIZE];
   memset (data, 0, BLOCKSIZE);
   size = 0;
-  
   // add 0 index for the start of first record
   recordindex.push_back (0);
 }
@@ -61,9 +60,7 @@ int datablock::write_record (string record)
   if (record.length() + 1 > BLOCKSIZE - size)
   {
     return -1;
-    
   }
-  
   else     // capacity allows the data
   {
     int written_size = record.length();
@@ -79,10 +76,8 @@ int datablock::write_record (string record)
     // append the contents of the record
     strcpy (data + size, record.c_str());
     size += record.length();
-    
     // add start index of next record(end index of current record)
     recordindex.push_back (size + 1);
-    
     return written_size;
   }
 }
@@ -93,9 +88,7 @@ bool datablock::read_record (unsigned index, string& record)     // return next 
   {
     record.assign (data + recordindex[index], recordindex[index + 1] - recordindex[index] - 1);
     return true;
-    
   }
-  
   else
   {
     return false;

@@ -95,7 +95,6 @@ bool dataentry::is_locked()
 {
   if (lockcount > 0)
     return true;
-    
   else
     return false;
 }
@@ -133,7 +132,6 @@ entryreader::entryreader (dataentry* entry)
   targetentry = entry;
   blockindex = 0;
   index = 0;
-  
   entry->lock_entry();
 }
 
@@ -142,7 +140,6 @@ void entryreader::set_targetentry (dataentry* entry)
   targetentry = entry;
   blockindex = 0;
   index = 0;
-  
   entry->lock_entry();
 }
 
@@ -152,9 +149,7 @@ bool entryreader::read_record (string& record)
   {
     index++;
     return true;
-    
   }
-  
   else     // no more data in current block
   {
     blockindex++;
@@ -170,9 +165,7 @@ bool entryreader::read_record (string& record)
       
       index++;
       return true;
-      
     }
-    
     else     // no more next block
     {
       targetentry->unlock_entry();
@@ -204,7 +197,6 @@ entrywriter::entrywriter()
 entrywriter::entrywriter (dataentry* entry)
 {
   targetentry = entry;
-  
   entry->lock_entry();
   entry->mark_being_written();
 }
@@ -212,7 +204,6 @@ entrywriter::entrywriter (dataentry* entry)
 void entrywriter::set_targetentry (dataentry* entry)
 {
   targetentry = entry;
-  
   entry->lock_entry();
   entry->mark_being_written();
 }
@@ -227,7 +218,6 @@ bool entrywriter::write_record (string record)
   if (ret < 0)     // record doesn't fit into the current block
   {
     targetentry->datablocks.push_back (new datablock());
-    
     ret = targetentry->datablocks.back()->write_record (record);
     
     if (ret < 0)     // first write must succeed from new block
@@ -237,9 +227,7 @@ bool entrywriter::write_record (string record)
     }
     
     targetentry->set_size (targetentry->get_size() + ret);
-    
   }
-  
   else     // the record successfully written
   {
     targetentry->set_size (targetentry->get_size() + ret);

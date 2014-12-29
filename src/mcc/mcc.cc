@@ -12,9 +12,7 @@ int main (int argc, char** argv)
     cout << "usage: mcc [source code] (options)" << endl;
     cout << "Exiting..." << endl;
     return 1;
-    
   }
-  
   else
   {
     cout << "Compiling the code..." << endl;
@@ -33,8 +31,6 @@ int main (int argc, char** argv)
   
   argvalue[argc] = "-I";
   argvalue[argc + 1] = LIB_PATH;
-  
-  
   execv ("/usr/bin/g++", argvalue);
   return 0;
 }

@@ -111,51 +111,35 @@ int nbwrite (int fd, char* buf, char* contents)     // when the content should b
     else if (errno == EBADF)
     {
       cout << "\twrite function failed due to EBADF, retrying..." << endl;
-      
     }
-    
     else if (errno == EFAULT)
     {
       cout << "\twrite function failed due to EFAULT, retrying..." << endl;
-      
     }
-    
     else if (errno == EFBIG)
     {
       cout << "\twrite function failed due to EFBIG, retrying..." << endl;
-      
     }
-    
     else if (errno == EINTR)
     {
       cout << "\twrite function failed due to EINTR, retrying..." << endl;
-      
     }
-    
     else if (errno == EINVAL)
     {
       cout << "\twrite function failed due to EINVAL, retrying..." << endl;
-      
     }
-    
     else if (errno == EIO)
     {
       cout << "\twrite function failed due to EIO, retrying..." << endl;
-      
     }
-    
     else if (errno == ENOSPC)
     {
       cout << "\twrite function failed due to ENOSPC, retrying..." << endl;
-      
     }
-    
     else if (errno == EPIPE)
     {
       cout << "\twrite function failed due to EPIPE, retrying..." << endl;
-      
     }
-    
     else
     {
       cout << "\twrite function failed due to unknown reason(debug needed)..." << endl;
@@ -205,58 +189,42 @@ int nbwrite (int fd, char* buf)     // when the content is already on the buffer
       cout << "\twrite function failed due to EBADF, retrying..." << endl;
       cout << "\tcontents: " << buf << endl;
       sleep (5);
-      
     }
-    
     else if (errno == EFAULT)
     {
       cout << "\twrite function failed due to EFAULT, retrying..." << endl;
       sleep (5);
-      
     }
-    
     else if (errno == EFBIG)
     {
       cout << "\twrite function failed due to EFBIG, retrying..." << endl;
       sleep (5);
-      
     }
-    
     else if (errno == EINTR)
     {
       cout << "\twrite function failed due to EINTR, retrying..." << endl;
       sleep (5);
-      
     }
-    
     else if (errno == EINVAL)
     {
       cout << "\twrite function failed due to EINVAL, retrying..." << endl;
       sleep (5);
-      
     }
-    
     else if (errno == EIO)
     {
       cout << "\twrite function failed due to EIO, retrying..." << endl;
       sleep (5);
-      
     }
-    
     else if (errno == ENOSPC)
     {
       cout << "\twrite function failed due to ENOSPC, retrying..." << endl;
       sleep (5);
-      
     }
-    
     else if (errno == EPIPE)
     {
       cout << "\twrite function failed due to EPIPE, retrying..." << endl;
       sleep (5);
-      
     }
-    
     else
     {
       cout << "\twrite function failed due to unknown reason(debug needed)..." << endl;
@@ -297,15 +265,12 @@ int nbread (int fd, char* buf)
   int total_readbytes = 0;
   int readbytes = 0;
   memset (buf, 0, BUF_SIZE);
-  
   readbytes = read (fd, buf, BUF_CUT);
   
   if (readbytes == 0)
   {
     return readbytes;
-    
   }
-  
   else if (readbytes < 0)
   {
     if (errno != EAGAIN)
@@ -313,39 +278,27 @@ int nbread (int fd, char* buf)
       if (errno == EBADF)
       {
         cout << "\t\033[0;31mread function failed due to EBADF error, debug needed\033[0m" << endl;
-        
       }
-      
       else if (errno == EFAULT)
       {
         cout << "\t\033[0;31mread function failed due to EFAULT error, debug needed\033[0m" << endl;
-        
       }
-      
       else if (errno == EINTR)
       {
         cout << "\t\033[0;31mread function failed due to EINTR error, debug needed\033[0m" << endl;
-        
       }
-      
       else if (errno == EINVAL)
       {
         cout << "\t\033[0;31mread function failed due to EINVAL error, debug needed\033[0m" << endl;
-        
       }
-      
       else if (errno == EIO)
       {
         cout << "\t\033[0;31mread function failed due to EIO error, debug needed\033[0m" << endl;
-        
       }
-      
       else if (errno == EISDIR)
       {
         cout << "\t\033[0;31mread function failed due to EISDIR error, debug needed\033[0m" << endl;
-        
       }
-      
       else
       {
         cout << "\t\033[0;31mread function failed due to unspecified error, debug needed\033[0m" << endl;
@@ -356,9 +309,7 @@ int nbread (int fd, char* buf)
     }
     
     return readbytes;
-    
   }
-  
   else
   {
     total_readbytes += readbytes;
@@ -366,9 +317,7 @@ int nbread (int fd, char* buf)
     if (buf[total_readbytes - 1] == 0 && total_readbytes % BUF_CUT == 0)
     {
       return total_readbytes;
-      
     }
-    
     else
     {
       while (1)
@@ -382,17 +331,13 @@ int nbread (int fd, char* buf)
           cout << "\t\033[0;32m" << "total_readbytes: " << total_readbytes << "\033[0m" << endl;
           cout << "\t\033[0;32m" << "last_character: " << buf[total_readbytes - 1] << "\033[0m" << endl;
           return 0;
-          
         }
-        
         else if (readbytes < 0)
         {
           // sleep 1 milli seconds to prevent busy waiting
           usleep (1000);
           continue;
-          
         }
-        
         else
         {
           total_readbytes += readbytes;
@@ -401,9 +346,7 @@ int nbread (int fd, char* buf)
           {
             //usleep(1000);
             continue;
-            
           }
-          
           else
           {
             return total_readbytes;

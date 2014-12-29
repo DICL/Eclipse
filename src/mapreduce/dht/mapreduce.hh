@@ -116,15 +116,11 @@ void init_mapreduce (int argc, char** argv)
   {
     if (strncmp (argv[argc - 1], "MAP", 3) == 0)
       role = MAP;
-      
     else if (strncmp (argv[argc - 1], "REDUCE", 6) == 0)
       role = REDUCE;
-      
     else
       role = JOB;
-      
   }
-  
   else
   {
     role = JOB;
@@ -135,7 +131,6 @@ void init_mapreduce (int argc, char** argv)
   string confpath = LIB_PATH;
   confpath.append ("setup.conf");
   conf.open (confpath.c_str());
-  
   conf >> token;
   
   while (!conf.eof())
@@ -144,31 +139,23 @@ void init_mapreduce (int argc, char** argv)
     {
       conf >> token;
       port = atoi (token.c_str());
-      
     }
-    
     else if (token == "dhtport")
     {
       conf >> token;
       dhtport = atoi (token.c_str());
-      
     }
-    
     else if (token == "max_job")
     {
       // ignore and just pass through this case
       conf >> token;
-      
     }
-    
     else if (token == "master_address")
     {
       conf >> token;
       strcpy (master_address, token.c_str());
       master_is_set = true;
-      
     }
-    
     else
     {
       cout << "Unknown configure record: " << token << endl;
@@ -192,21 +179,17 @@ void init_mapreduce (int argc, char** argv)
     exit (1);
   }
   
-  
   if (role == JOB)     // when the role is job
   {
     // determine the argcount
     argcount = argc;
-    
     masterfd = connect_to_server (master_address, port);
     
     if (masterfd <= 0)
     {
       cout << "Connecting to master failed" << endl;
       exit (1);
-      
     }
-    
     else
     {
       cout << "Connection to the master node successfully established" << endl;
@@ -220,9 +203,7 @@ void init_mapreduce (int argc, char** argv)
       cout << "Connection to master is abnormally closed" << endl;
       cout << "Exiting..." << endl;
       exit (1);
-      
     }
-    
     else
     {
       if (strncmp (read_buf, "whoareyou", 9) == 0)
@@ -241,15 +222,11 @@ void init_mapreduce (int argc, char** argv)
           {
             cout << "[mapreduce]Connection from master abnormally close" << endl;
             break;
-            
           }
-          
           else if (readbytes < 0)
           {
             continue;
-            
           }
-          
           else     // reply arrived
           {
             break;
@@ -262,21 +239,16 @@ void init_mapreduce (int argc, char** argv)
           char* token;
           token = strtok (read_buf, " ");   // token -> jobid
           token = strtok (NULL, " ");   // token -> job id(a number)
-          
           // register the job id
           jobid = atoi (token);
-          
         }
-        
         else     // if the message is not the 'jobid'
         {
           cout << "[mapreduce]Debugging: protocol error in mapreduce" << endl;
         }
         
         cout << "[mapreduce]Job submitted(jobid: " << jobid << ")" << endl;
-        
       }
-      
       else
       {
         cout << "Undefined message from master node: " << read_buf << endl;
@@ -286,21 +258,17 @@ void init_mapreduce (int argc, char** argv)
     
     // set master fd to be nonblocking to avoid deadlock
     fcntl (masterfd, F_SETFL, O_NONBLOCK);
-    
   }
-  
   else if (role == MAP)       // when the role is map task
   {
     // process pipe arguments and write id
     pipefd[0] = atoi (argv[argc - 3]); // read fd
     pipefd[1] = atoi (argv[argc - 2]); // write fd
     argcount = argc - 3;
-    
     // request the task configuration
     memset (write_buf, 0, BUF_SIZE);
     strcpy (write_buf, "requestconf");
     nbwrite (pipefd[1], write_buf);
-    
     // blocking read until the arrival of 'taskconf' message from master
     fcntl (pipefd[0], F_SETFL, fcntl (pipefd[0], F_GETFL) & ~O_NONBLOCK);
     readbytes = nbread (pipefd[0], read_buf);
@@ -313,20 +281,14 @@ void init_mapreduce (int argc, char** argv)
     
     char* token;
     token = strtok (read_buf, " ");   // token <- "taskconf"
-    
     token = strtok (NULL, " ");   // token <- jobid
-    
     jobid = atoi (token);
-    
     stringstream jobidss;
-    
     jobidss << ".job_";
     jobidss << jobid;
     jobidss << "_";
     jobdirpath = jobidss.str();
-    
     token = strtok (NULL, " ");   // token <- taskid
-    
     taskid = atoi (token);
     
     // read messages from slave until getting Einput
@@ -337,41 +299,31 @@ void init_mapreduce (int argc, char** argv)
       if (readbytes == 0)
       {
         cout << "[mapreduce]Connection from slave is abnormally closed" << endl;
-        
       }
-      
       else if (readbytes < 0)
       {
         cout << "[mapreduce]A negative return from nbread with blocking read" << endl;
         continue;
-        
       }
-      
       else     // a message
       {
         if (strncmp (read_buf, "inputpath", 9) == 0)
         {
           token = strtok (read_buf, " ");   // token <- "inputpath"
-          
           token = strtok (NULL, " ");   // first path
           
           while (token != NULL)
           {
             // add the input path to the task
             inputpaths.push_back (token);
-            
             token = strtok (NULL, " ");
           }
-          
         }
-        
         else if (strncmp (read_buf, "Einput", 6) == 0)
         {
           // break the while loop
           break;
-          
         }
-        
         else
         {
           cout << "[mapreduce]Unexpected message order from slave" << endl;
@@ -380,21 +332,17 @@ void init_mapreduce (int argc, char** argv)
     }
     
     fcntl (pipefd[0], F_SETFL, O_NONBLOCK);
-    
   }
-  
   else     // when the role is reduce
   {
     // process pipe arguments and write id
     pipefd[0] = atoi (argv[argc - 3]); // read fd
     pipefd[1] = atoi (argv[argc - 2]); // write fd
     argcount = argc - 3;
-    
     // request the task configuration
     memset (write_buf, 0, BUF_SIZE);
     strcpy (write_buf, "requestconf");
     nbwrite (pipefd[1], write_buf);
-    
     // blocking read until the arrival of 'taskconf' message from master
     fcntl (pipefd[0], F_SETFL, fcntl (pipefd[0], F_GETFL) & ~O_NONBLOCK);
     readbytes = nbread (pipefd[0], read_buf);
@@ -407,20 +355,14 @@ void init_mapreduce (int argc, char** argv)
     
     char* token;
     token = strtok (read_buf, " ");   // token <- "taskconf"
-    
     token = strtok (NULL, " ");   // token <- jobid
-    
     jobid = atoi (token);
-    
     stringstream jobidss;
-    
     jobidss << ".job_";
     jobidss << jobid;
     jobidss << "_";
     jobdirpath = jobidss.str();
-    
     token = strtok (NULL, " ");   // token <- taskid
-    
     taskid = atoi (token);
     
     // read messages from slave until getting Einput
@@ -431,39 +373,30 @@ void init_mapreduce (int argc, char** argv)
       if (readbytes == 0)
       {
         cout << "[mapreduce]Connection from slave is abnormally closed" << endl;
-        
       }
-      
       else if (readbytes < 0)
       {
         cout << "[mapreduce]A negative return from nbread with blocking read" << endl;
         continue;
-        
       }
-      
       else     // a message
       {
         if (strncmp (read_buf, "inputpath", 9) == 0)
         {
           token = strtok (read_buf, " ");   // token <- "inputpath"
-          
           token = strtok (NULL, " ");   // first peer id
           
           while (token != NULL)
           {
             // add the input path to the task
             peerids.push_back (atoi (token));
-            
             token = strtok (NULL, " ");   // number of iblock
             numiblocks.push_back (atoi (token));
-            
             token = strtok (NULL, " ");   // next peer id
           }
           
           break;
-          
         }
-        
         else
         {
           cout << "[mapreduce]Unexpected message order from slave" << endl;
@@ -487,8 +420,8 @@ void init_mapreduce (int argc, char** argv)
 void summ_mapreduce()
 {
   int readbytes;
-  // TODO: make sure that all configuration are done
   
+  // TODO: make sure that all configuration are done
   if (argcount == -1)     // mapreduce has not been initialized with init_mapreduce() func
   {
     cout << "Mapreduce has not been initialized" << endl;
@@ -502,19 +435,15 @@ void summ_mapreduce()
       // send all necessary information to the master node
       string write_string = "jobconf ";
       stringstream ss;
-      
       ss << "argcount ";
       ss << argcount;
-      
       // parse the arguments
       ss << " argvalues";
-      
       // find the program name and pass as 0th argument
       char* tmp = new char[strlen (argvalues[0]) + 1];
       string apath = MR_PATH;
       char* token;
       char* next_token;
-      
       strcpy (tmp, argvalues[0]);
       next_token = strtok (tmp, "/");
       
@@ -528,7 +457,6 @@ void summ_mapreduce()
       apath.append ("app/");
       apath.append (token);   // token <- the program name
       ss << apath;
-      
       delete[] tmp;
       
       for (int i = 1; i < argcount; i++)
@@ -541,17 +469,14 @@ void summ_mapreduce()
       ss << nummap;
       ss << " numreduce ";
       ss << numreduce;
-      
       write_string.append (ss.str());
       memset (write_buf, 0, BUF_SIZE);
       strcpy (write_buf, write_string.c_str());
       nbwrite (masterfd, write_buf);
-      
       // prepare inputpath message
       stringstream ss2;
       string message;
       int iter = 0;
-      
       ss2 << "inputpath ";
       ss2 << inputpaths.size();
       message = ss2.str();
@@ -562,15 +487,12 @@ void summ_mapreduce()
         {
           message.append (" ");
           message.append (inputpaths[iter]);
-          
         }
-        
         else
         {
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, message.c_str());
           nbwrite (masterfd, write_buf);
-          
           message = inputpaths[iter];
         }
         
@@ -596,7 +518,6 @@ void summ_mapreduce()
         while (close (pipefd[0]) < 0)
         {
           cout << "close failed" << endl;
-          
           // sleeps for 1 milli seconds
           usleep (100000);
         }
@@ -604,25 +525,20 @@ void summ_mapreduce()
         while (close (pipefd[1]) < 0)
         {
           cout << "close failed" << endl;
-          
           // sleeps for 1 milli seconds
           usleep (100000);
         }
         
         cout << "[mapreduce]Connection to master abnormally closed" << endl;
         exit (0);
-        
       }
-      
       else
       {
         if (strncmp (read_buf, "complete", 8) == 0)       // "complete" message received
         {
           cout << "[mapreduce]Job " << jobid << " is successfully completed" << endl;
           break;
-          
         }
-        
         else if (strncmp (read_buf, "mapcomplete", 11) == 0)
         {
           cout << "[mapreduce]Map tasks are completed" << endl;
@@ -631,9 +547,7 @@ void summ_mapreduce()
     }
     
     exit (0);
-    
   }
-  
   else if (role == MAP)       // map task
   {
     // check whether no map or reduce function is running
@@ -654,7 +568,6 @@ void summ_mapreduce()
         inside_map = true;
         (*mapfunction) (inputpath);
         inside_map = false;
-        
         // report generated keys to slave node
         /*
         while(!unreported_keys.empty())
@@ -675,10 +588,8 @@ void summ_mapreduce()
     
     set<int> peerids;
     thefileclient.wait_write (&peerids);
-    
     string message;
     stringstream ss;
-    
     ss << "complete";
     
     for (set<int>::iterator it = peerids.begin(); it != peerids.end(); it++)
@@ -688,14 +599,11 @@ void summ_mapreduce()
     }
     
     message = ss.str();
-    
     // send complete message with peerds
     memset (write_buf, 0, BUF_SIZE);
     strcpy (write_buf, message.c_str());
     nbwrite (pipefd[1], write_buf);
-    
 //cout<<"[mapreduce]Complete message sent..."<<endl;
-
     // blocking read until the 'terminate' message
     fcntl (pipefd[0], F_SETFL, fcntl (pipefd[0], F_GETFL) & ~O_NONBLOCK);
     
@@ -708,15 +616,12 @@ void summ_mapreduce()
         // TODO: Terminate the task properly
         cout << "[mapreduce]Connection from master abnormally closed" << endl;
         exit (0);
-        
       }
-      
       else if (readbytes > 0)
       {
         if (strncmp (read_buf, "terminate", 9) == 0)
         {
 // cout<<"[mapreduce]Map task is successfully completed"<<endl;
-
           // terminate successfully
           while (close (pipefd[0]) < 0)
           {
@@ -733,14 +638,10 @@ void summ_mapreduce()
           }
           
           exit (0);
-          
         }
-        
         else   // all other messages are ignored
           continue;
-          
       }
-      
       else
       {
         usleep (1000);
@@ -751,9 +652,7 @@ void summ_mapreduce()
     }
     
     fcntl (pipefd[0], F_SETFL, O_NONBLOCK);
-    
   }
-  
   else     // reduce task
   {
     // check whether no map or reduce function is running
@@ -771,19 +670,14 @@ void summ_mapreduce()
       currentpeer = 0;
       string ipath;
       stringstream ss;
-      
       ss << jobid;
       ss << " ";
       ss << peerids[currentpeer];
       ss << " ";
       ss << numiblocks[currentpeer];
-      
       ipath = ss.str();
-      
       thefileclient.read_request (ipath, INTERMEDIATE);
-      
       currentpeer++;
-      
       // run reducers
       string key;
       
@@ -796,12 +690,10 @@ void summ_mapreduce()
     }
     
     thefileclient.wait_write (NULL);
-    
     // send complete message
     memset (write_buf, 0, BUF_SIZE);
     strcpy (write_buf, "complete");
     nbwrite (pipefd[1], write_buf);
-    
     // blocking read until 'terminate' message arrive
     fcntl (pipefd[0], F_SETFL, fcntl (pipefd[0], F_GETFL) & ~O_NONBLOCK);
     
@@ -813,20 +705,15 @@ void summ_mapreduce()
       {
         cout << "the reduce task is gone" << endl;
         exit (0);
-        
       }
-      
       else if (readbytes > 0)
       {
         if (strncmp (read_buf, "terminate", 9) == 0)
         {
           // cout<<"[mapreduce]Reduce task is successfully completed"<<endl; // <- this message will be printed in the slave process side
-          
           // terminate successfully
           exit (0);
-          
         }
-        
         else   // all other messages are ignored
           continue;
       }
@@ -865,9 +752,7 @@ void add_inputpath (string path)     // the path is relative path to DHT_PATH
   if (role == JOB)
   {
     inputpaths.push_back (path);
-    
   }
-  
   else if (role == MAP)
   {
     // do nothing
@@ -889,7 +774,6 @@ int connect_to_server (char *host, unsigned short port)
   int clientfd;
   struct sockaddr_in serveraddr;
   struct hostent *hp;
-  
   // SOCK_STREAM -> tcp
   clientfd = socket (AF_INET, SOCK_STREAM, 0);
   
@@ -911,7 +795,6 @@ int connect_to_server (char *host, unsigned short port)
   serveraddr.sin_family = AF_INET;
   memcpy (&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
   serveraddr.sin_port = htons (port);
-  
   connect (clientfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr));
   return clientfd;
 }
@@ -922,9 +805,7 @@ void write_keyvalue (string key, string value)
   if (inside_map)
   {
     thefileclient.write_record (key, value, INTERMEDIATE);
-    
   }
-  
   else
   {
     cout << "[mapreduce]Warning: the write_keyvalue() function is being used outside the map function" << endl;
@@ -936,9 +817,7 @@ bool get_nextinput (string& inputpath)     // internal function to process next 
   if (inputpaths.size() == 0)     // no more input
   {
     return false;
-    
   }
-  
   else
   {
     // request the location of the input to the dht server
@@ -957,21 +836,17 @@ bool get_nextinput (string& inputpath)     // internal function to process next 
     
     address = nodelist[hashvalue];
     */
-    
     bool readsuccess = false;
     bool cachehit = false;
     string request;
     stringstream ss;
-    
     // configure request message of write buffer
     ss << argvalues[0]; // app/[app name]  <- for Icache
     ss << " ";
     ss << jobid;
     ss << " ";
     ss << inputpaths.back();
-    
     request = ss.str();
-    
     // request <- app/[app name] [job directory path] [input path]
     cachehit = thefileclient.read_request (request, RAW);
     
@@ -991,9 +866,7 @@ bool get_nextinput (string& inputpath)     // internal function to process next 
       ss1 << jobid;
       ss1 << " ";
       ss1 << inputpaths.back();
-      
       request = ss1.str();
-      
       // request <- app/[app name] [input path]
       cachehit = thefileclient.read_request (request, RAW);
     }
@@ -1001,13 +874,11 @@ bool get_nextinput (string& inputpath)     // internal function to process next 
     thefileclient.configure_buffer_initial (jobdirpath, argvalues[0], inputpaths.back(), isIcache);
     inputpath = inputpaths.back();
     inputpaths.pop_back();
-    
     // pre-process first record
     readsuccess = thefileclient.read_record (nextrecord);
     
     if (readsuccess)
       is_nextrec = true;
-      
     else
       is_nextrec = false;
       
@@ -1025,14 +896,11 @@ string get_nextrecord()   // a user function for the map
     
     if (readsuccess)
       is_nextrec = true;
-      
     else
       is_nextrec = false;
       
     return ret;
-    
   }
-  
   else
   {
     cout << "[mapreduce]Warning: the get_nextrecord() function is being used outside the map function" << endl;
@@ -1045,9 +913,7 @@ bool is_nextrecord()
   if (inside_map)
   {
     return is_nextrec;
-    
   }
-  
   else
   {
     cout << "[mapreduce]Warning: the is_nextrecord() function is being used outside the map function" << endl;
@@ -1078,9 +944,7 @@ bool get_nextkey (string* key)     // internal function for the reduce
     if (readsuccess)
     {
       is_nextval = true;
-      
     }
-    
     else
     {
       is_nextval = false;
@@ -1090,9 +954,7 @@ bool get_nextkey (string* key)     // internal function for the reduce
     }
     
     return true;
-    
   }
-  
   else     // no next key in this node
   {
     if ( (unsigned) currentpeer < peerids.size())      // another peer to go
@@ -1100,19 +962,14 @@ bool get_nextkey (string* key)     // internal function for the reduce
       // request to next peer
       string ipath;
       stringstream ss;
-      
       ss << jobid;
       ss << " ";
       ss << peerids[currentpeer];
       ss << " ";
       ss << numiblocks[currentpeer];
-      
       ipath = ss.str();
-      
       thefileclient.read_request (ipath, INTERMEDIATE);
-      
       currentpeer++;
-      
       // receive first key
       readsuccess = thefileclient.read_record (*key);
       
@@ -1123,25 +980,19 @@ bool get_nextkey (string* key)     // internal function for the reduce
         if (readsuccess)
         {
           is_nextval = true;
-          
         }
-        
         else
         {
           cout << "[mapreduce]Unexpected respond after read_request(2)" << endl;
         }
-        
       }
-      
       else     // no first key
       {
         cout << "[mapreduce]Unexpected respond after read_request(3)" << endl;
       }
       
       return true;
-      
     }
-    
     else
     {
       return false;
@@ -1155,9 +1006,7 @@ bool is_nextvalue()   // returns true if there is next value
   if (inside_reduce)
   {
     return is_nextval;
-    
   }
-  
   else
   {
     cout << "[mapreduce]Warning: the is_nextvalue() function is being used outside the reduce function" << endl;
@@ -1176,9 +1025,7 @@ string get_nextvalue()   // returns values in reduce function
     if (!is_nextval)     // no next value
     {
       return "";
-      
     }
-    
     else
     {
       readsuccess = thefileclient.read_record (nextvalue);   // key value record
@@ -1186,15 +1033,12 @@ string get_nextvalue()   // returns values in reduce function
       // pre-process first record
       if (readsuccess)
         is_nextval = true;
-        
       else
         is_nextval = false;
         
       return ret;
     }
-    
   }
-  
   else
   {
     cout << "[mapreduce]Warning: the get_nextvalue() function is being used outside the reduce function" << endl;

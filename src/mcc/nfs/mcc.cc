@@ -12,9 +12,7 @@ int main (int argc, char** argv)
     cout << "usage: mcc [source code] (options)" << endl;
     cout << "Exiting..." << endl;
     return 1;
-    
   }
-  
   else
   {
     cout << "Compiling the code..." << endl;
@@ -26,7 +24,6 @@ int main (int argc, char** argv)
   //argvalue[0] = "/usr/bin/g++";
   argvalue[0] = new char[strlen ("/opt/centos/devtoolset-1.1/root/usr/bin/g++") + 1];
   strcpy (argvalue[0], "/opt/centos/devtoolset-1.1/root/usr/bin/g++");
-  
   string libpath = LIB_PATH;
   libpath.append ("mapreduce/nfs/");
   
@@ -38,12 +35,9 @@ int main (int argc, char** argv)
   
   argvalue[argc] = new char[3];
   strcpy (argvalue[argc], "-I");
-  
   argvalue[argc + 1] = new char[strlen (libpath.c_str()) + 1];
   strcpy (argvalue[argc + 1], libpath.c_str());
-  
   argvalue[argc + 2] = NULL;
-  
   execv (argvalue[0], argvalue);
   return 0;
 }

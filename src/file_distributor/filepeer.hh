@@ -30,10 +30,8 @@ filepeer::filepeer (int afd, string anaddress)
 {
   this->fd = afd;
   this->address = anaddress;
-  
   //writebuffer.configure_initial("write\n");
   //writebuffer.set_msgbuf(&msgbuf);
-  
   // add a null message buffer
   msgbuf.push_back (new messagebuffer());
 }

@@ -82,7 +82,6 @@ void file_connclient::open_readfile (string fname)
 {
   string fpath = DHT_PATH;
   fpath.append (fname);
-  
   this->readfilestream.open (fpath.c_str());
   
   if (!this->readfilestream.is_open())
@@ -107,7 +106,6 @@ bool file_connclient::read_record (string* record)
   
   if (this->readfilestream.eof())
     return false;
-    
   else
     return true;
 }
@@ -116,22 +114,18 @@ void file_connclient::write_record (string record, char* write_buf)
 {
   struct flock alock;
   struct flock ulock;
-  
   // set lock
   alock.l_type = F_WRLCK;
   alock.l_start = 0;
   alock.l_whence = SEEK_SET;
   alock.l_len = 0;
-  
   // set unlock
   ulock.l_type = F_UNLCK;
   ulock.l_start = 0;
   ulock.l_whence = SEEK_SET;
   ulock.l_len = 0;
-  
   // acquire file lock
   fcntl (this->writefilefd, F_SETLKW, &alock);
-  
   // critical section
   {
     record.append ("\n");
@@ -139,10 +133,8 @@ void file_connclient::write_record (string record, char* write_buf)
     strcpy (write_buf, record.c_str());
     write (this->writefilefd, write_buf, record.length());
   }
-  
   // release file lock
   fcntl (this->writefilefd, F_SETLK, &ulock);
-  
   return;
 }
 

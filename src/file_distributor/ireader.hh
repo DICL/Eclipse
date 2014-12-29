@@ -77,10 +77,8 @@ ireader::ireader (int ajobid, int anumiblock, int anetworkidx, int abridgeid, br
     ss << "_";
     ss << i;
     filename = ss.str();
-    
     files.push_back (new ifstream (filename.c_str()));
     filepaths.push_back (filename);
-    
     // read first key and remaining record of the file
     string key;
     string remainstr;
@@ -90,7 +88,6 @@ ireader::ireader (int ajobid, int anumiblock, int anetworkidx, int abridgeid, br
     remain = atoi (remainstr.c_str());
     currentkeys.push_back (key);
     remaining_record.push_back (remain);
-    
     // insert into the keyorder map
     pair<map<string, vector<int>*>::iterator, bool> ret;
     ret = keyorder.insert (pair<string, vector<int>*> (key, NULL));
@@ -99,9 +96,7 @@ ireader::ireader (int ajobid, int anumiblock, int anetworkidx, int abridgeid, br
     {
       ret.first->second = new vector<int>;
       ret.first->second->push_back (i);
-      
     }
-    
     else     // key already exist
     {
       // add file index to the vector
@@ -128,18 +123,14 @@ ireader::ireader (int ajobid, int anumiblock, int anetworkidx, int abridgeid, br
     pos += currentkey.length();
     write_buf[pos] = '\n';
     pos++;
-    
   }
-  
   else
   {
     string bidstring;
     stringstream ss;
     ss << bridgeid;
     bidstring = ss.str();
-    
     memset (write_buf, 0, BUF_SIZE);
-    
     strcpy (write_buf + pos, bidstring.c_str());
     pos += bidstring.length();
     write_buf[pos] = '\n';
@@ -157,7 +148,6 @@ bool ireader::read_idata()
   {
     // read one record
     string record;
-    
     getline (*files[readingfile], record);
     remaining_record[readingfile]--;
     
@@ -170,9 +160,7 @@ bool ireader::read_idata()
         {
           dstclient->msgbuf.back()->set_buffer (write_buf, dstclient->get_fd());
           dstclient->msgbuf.push_back (new messagebuffer());
-          
         }
-        
         else
         {
           if (nbwritebuf (dstclient->get_fd(),
@@ -185,9 +173,7 @@ bool ireader::read_idata()
         // prepare another write_buf
         pos = 0;
         memset (write_buf, 0, BUF_SIZE);
-        
       }
-      
       else     // PEER
       {
         // flush
@@ -195,9 +181,7 @@ bool ireader::read_idata()
         {
           dstpeer->msgbuf.back()->set_buffer (write_buf, dstpeer->get_fd());
           dstpeer->msgbuf.push_back (new messagebuffer());
-          
         }
-        
         else
         {
           if (nbwritebuf (dstpeer->get_fd(),
@@ -213,7 +197,6 @@ bool ireader::read_idata()
         stringstream ss;
         ss << bridgeid;
         bidstring = ss.str();
-        
         memset (write_buf, 0, BUF_SIZE);
         strcpy (write_buf + pos, bidstring.c_str());
         pos += bidstring.length();
@@ -225,7 +208,6 @@ bool ireader::read_idata()
       pos += record.length();
       write_buf[pos] = '\n';
       pos++;
-      
       return true;
     }
     
@@ -257,9 +239,7 @@ bool ireader::read_idata()
             {
               dstclient->msgbuf.back()->set_buffer (write_buf, dstclient->get_fd());
               dstclient->msgbuf.push_back (new messagebuffer());
-              
             }
-            
             else
             {
               if (nbwritebuf (dstclient->get_fd(),
@@ -277,9 +257,7 @@ bool ireader::read_idata()
             {
               dstclient->msgbuf.back()->set_buffer (write_buf, dstclient->get_fd());
               dstclient->msgbuf.push_back (new messagebuffer());
-              
             }
-            
             else
             {
               if (nbwritebuf (dstclient->get_fd(),
@@ -293,9 +271,7 @@ bool ireader::read_idata()
             {
               dstclient->msgbuf.back()->set_buffer (write_buf, dstclient->get_fd());
               dstclient->msgbuf.push_back (new messagebuffer());
-              
             }
-            
             else
             {
               if (nbwritebuf (dstclient->get_fd(),
@@ -304,9 +280,7 @@ bool ireader::read_idata()
                 dstclient->msgbuf.push_back (new messagebuffer());
               }
             }
-            
           }
-          
           else     // PEER
           {
             // flush current record
@@ -314,9 +288,7 @@ bool ireader::read_idata()
             {
               dstpeer->msgbuf.back()->set_buffer (write_buf, dstpeer->get_fd());
               dstpeer->msgbuf.push_back (new messagebuffer());
-              
             }
-            
             else
             {
               if (nbwritebuf (dstpeer->get_fd(),
@@ -332,7 +304,6 @@ bool ireader::read_idata()
             stringstream ss;
             ss << bridgeid;
             bidstring = ss.str();
-            
             memset (write_buf, 0, BUF_SIZE);
             strcpy (write_buf + pos, bidstring.c_str());
             pos += bidstring.length();
@@ -342,9 +313,7 @@ bool ireader::read_idata()
             {
               dstpeer->msgbuf.back()->set_buffer (write_buf, dstpeer->get_fd());
               dstpeer->msgbuf.push_back (new messagebuffer());
-              
             }
-            
             else
             {
               if (nbwritebuf (dstpeer->get_fd(),
@@ -358,9 +327,7 @@ bool ireader::read_idata()
             {
               dstpeer->msgbuf.back()->set_buffer (write_buf, dstpeer->get_fd());
               dstpeer->msgbuf.push_back (new messagebuffer());
-              
             }
-            
             else
             {
               if (nbwritebuf (dstpeer->get_fd(),
@@ -374,12 +341,9 @@ bool ireader::read_idata()
           // return false to notify the end of idata to fileserver
           return false;
         }
-        
       }
-      
       else     // another key in this file
       {
-      
         // register another key of this file to the map
         string remainstr;
         pair<map<string, vector<int>*>::iterator, bool> ret;
@@ -389,9 +353,7 @@ bool ireader::read_idata()
         {
           ret.first->second = new vector<int>;
           ret.first->second->push_back (readingfile);
-          
         }
-        
         else     // key already exist
         {
           // add file index to the vector
@@ -400,7 +362,6 @@ bool ireader::read_idata()
         
         getline (*files[readingfile], remainstr);
         remain = atoi (remainstr.c_str());
-        
         remaining_record[readingfile] = remain;
       }
       
@@ -415,9 +376,7 @@ bool ireader::read_idata()
           delete keyorder.begin()->second;
           keyorder.erase (keyorder.begin());
         }
-        
       }
-      
       else     // different key
       {
         currentkey = keyorder.begin()->first;
@@ -437,9 +396,7 @@ bool ireader::read_idata()
           {
             dstclient->msgbuf.back()->set_buffer (write_buf, dstclient->get_fd());
             dstclient->msgbuf.push_back (new messagebuffer());
-            
           }
-          
           else
           {
             if (nbwritebuf (dstclient->get_fd(),
@@ -458,9 +415,7 @@ bool ireader::read_idata()
           {
             dstclient->msgbuf.back()->set_buffer (write_buf, dstclient->get_fd());
             dstclient->msgbuf.push_back (new messagebuffer());
-            
           }
-          
           else
           {
             if (nbwritebuf (dstclient->get_fd(),
@@ -469,9 +424,7 @@ bool ireader::read_idata()
               dstclient->msgbuf.push_back (new messagebuffer());
             }
           }
-          
         }
-        
         else     // PEER
         {
           // flush
@@ -479,9 +432,7 @@ bool ireader::read_idata()
           {
             dstpeer->msgbuf.back()->set_buffer (write_buf, dstpeer->get_fd());
             dstpeer->msgbuf.push_back (new messagebuffer());
-            
           }
-          
           else
           {
             if (nbwritebuf (dstpeer->get_fd(),
@@ -497,7 +448,6 @@ bool ireader::read_idata()
           stringstream ss;
           ss << bridgeid;
           bidstring = ss.str();
-          
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf + pos, bidstring.c_str());
           pos += bidstring.length();
@@ -509,9 +459,7 @@ bool ireader::read_idata()
           {
             dstpeer->msgbuf.back()->set_buffer (write_buf, dstpeer->get_fd());
             dstpeer->msgbuf.push_back (new messagebuffer());
-            
           }
-          
           else
           {
             if (nbwritebuf (dstpeer->get_fd(),
@@ -527,7 +475,6 @@ bool ireader::read_idata()
         pos += currentkey.length();
         write_buf[pos] = '\n';
         pos++;
-        
         return true;
       }
     }
@@ -541,9 +488,7 @@ bool ireader::read_idata()
     {
       dstclient->msgbuf.back()->set_buffer (write_buf, dstclient->get_fd());
       dstclient->msgbuf.push_back (new messagebuffer());
-      
     }
-    
     else
     {
       if (nbwritebuf (dstclient->get_fd(),
@@ -556,9 +501,7 @@ bool ireader::read_idata()
     // prepare another write_buf
     pos = 0;
     memset (write_buf, 0, BUF_SIZE);
-    
   }
-  
   else     // PEER
   {
     // flush
@@ -566,9 +509,7 @@ bool ireader::read_idata()
     {
       dstpeer->msgbuf.back()->set_buffer (write_buf, dstpeer->get_fd());
       dstpeer->msgbuf.push_back (new messagebuffer());
-      
     }
-    
     else
     {
       if (nbwritebuf (dstpeer->get_fd(),
@@ -584,7 +525,6 @@ bool ireader::read_idata()
     stringstream ss;
     ss << bridgeid;
     bidstring = ss.str();
-    
     memset (write_buf, 0, BUF_SIZE);
     strcpy (write_buf + pos, bidstring.c_str());
     pos += bidstring.length();

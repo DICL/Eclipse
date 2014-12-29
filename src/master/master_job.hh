@@ -99,30 +99,7 @@ master_job::master_job()
 
 master_job::master_job (int id, int fd)
 {
-
-
-
-
-
-
-
-
-
-
-
-
-
   scheduled = 0;
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   this->jobid = id;
   this->jobfd = fd;
   this->nummap = 0;
@@ -202,9 +179,7 @@ string master_job::get_inputpath (int index)
   if ( (unsigned) index < inputpaths.size())
   {
     return this->inputpaths[index];
-    
   }
-  
   else
   {
     cout << "index out of bound in master_job::get_inputpath()" << endl;
@@ -232,9 +207,7 @@ master_task* master_job::get_task (int index)
   {
     cout << "Debugging: index out of bound in the matser_job::get_task() function" << endl;
     return NULL;
-    
   }
-  
   else
   {
     return this->tasks[index];
@@ -248,9 +221,7 @@ master_task* master_job::get_waitingtask (int index)
     cout << "Debugging: index out of bound in the matser_job::get_waitingtask() function" << endl;
     cout << "index: " << index << ", waiting_tasks.size(): " << waiting_tasks.size() << endl;
     return NULL;
-    
   }
-  
   else
   {
     return waiting_tasks[index];
@@ -266,7 +237,6 @@ master_task* master_job::get_lastwaitingtask()
 {
   if (waiting_tasks.size() == 0)
     return NULL;
-    
   else
     return waiting_tasks.back();
 }
@@ -354,9 +324,7 @@ string master_job::getargvalue (int index)
   {
     cout << "Debugging: index out of bound in the master_job::getargvalue() function.";
     return "";
-    
   }
-  
   else
   {
     return this->argvalues[index];
@@ -438,14 +406,11 @@ string master_task::get_inputpath (int index)
 {
   if ( (unsigned) index < this->inputpaths.size())
     return this->inputpaths[index];
-    
   else if (index < 0)
   {
     cout << "Negative index in the master_task::get_inputpath() function." << endl;
     return "";
-    
   }
-  
   else
   {
     cout << "Index out of bound in the master_task::get_inputpath() function." << endl;

@@ -24,7 +24,6 @@ int main (int argc, char** argv)
   string filepath = LIB_PATH;
   filepath.append ("nodelist.conf");
   nodelistfile.open (filepath.c_str());
-  
   nodelistfile >> token;
   
   while (!nodelistfile.eof())
@@ -35,13 +34,10 @@ int main (int argc, char** argv)
   
   memset (filename, 0, BUF_SIZE);
   strcpy (filename, argv[1]);
-  
   string outputfilename = MR_PATH;
   outputfilename.append ("mrrm.sh");
-  
   ofstream output;
   output.open (outputfilename.c_str());
-  
   uint32_t hashvalue = h (filename, HASHLENGTH);
   hashvalue = hashvalue % nodelist.size();
   output << "ssh " << nodelist[hashvalue] << " rm -f " << DHT_PATH << filename << endl;

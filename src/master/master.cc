@@ -53,7 +53,6 @@ int main (int argc, char** argv)
   string confpath = LIB_PATH;
   confpath.append ("setup.conf");
   conf.open (confpath.c_str());
-  
   conf >> token;
   
   while (!conf.eof())
@@ -62,30 +61,22 @@ int main (int argc, char** argv)
     {
       conf >> token;
       port = atoi (token.c_str());
-      
     }
-    
     else if (token == "dhtport")
     {
       conf >> token;
       dhtport = atoi (token.c_str());
-      
     }
-    
     else if (token == "max_job")
     {
       conf >> token;
       max_job = atoi (token.c_str());
-      
     }
-    
     else if (token == "master_address")
     {
       // ignore and just pass through this case
       conf >> token;
-      
     }
-    
     else
     {
       cout << "[master]Unknown configure record: " << token << endl;
@@ -113,7 +104,6 @@ int main (int argc, char** argv)
   ifstream nodelistfile;
   string filepath = LIB_PATH;
   filepath.append ("nodelist.conf");
-  
   nodelistfile.open (filepath.c_str());
   nodelistfile >> token;
   
@@ -122,7 +112,6 @@ int main (int argc, char** argv)
     nodelist.push_back (token);
     nodelistfile >> token;
   }
-  
   
   int serverfd = open_server (port);
   
@@ -146,20 +135,16 @@ int main (int argc, char** argv)
     if (fd < 0)
     {
       cout << "[master]Accepting failed" << endl;
-      
       // sleep 0.0001 seconds. change this if necessary
       // usleep(100);
       continue;
-      
     }
-    
     else
     {
       // check if the accepted node is slave or client
       memset (write_buf, 0, BUF_SIZE);
       strcpy (write_buf, "whoareyou");
       nbwrite (fd, write_buf);
-      
       // this is a blocking read
       // so don't need to check the transfer completion: nono
       nbread (fd, read_buf);
@@ -168,26 +153,19 @@ int main (int argc, char** argv)
       {
         // add connected slave to the slaves
         slaves.push_back (new connslave (fd));
-        
         // get ip address of slave
         haddrp = inet_ntoa (connaddr.sin_addr);
         printf ("slave node connected from %s \n", haddrp);
-        
       }
-      
       else if (strncmp (read_buf, "client", 6) == 0)         // client connected
       {
         clients.push_back (new connclient (fd));
-        
         // set sockets to be non-blocking socket to avoid deadlock
         fcntl (clients.back()->getfd(), F_SETFL, O_NONBLOCK);
-        
         // get ip address of client
         haddrp = inet_ntoa (connaddr.sin_addr);
         printf ("a client node connected from %s \n", haddrp);
-        
       }
-      
       else if (strncmp (read_buf, "job", 3) == 0)
       {
         // TODO: deal with the case that a job joined the
@@ -209,9 +187,7 @@ int main (int argc, char** argv)
           slaves[i]->setmaxtask (4);
           
         break;
-        
       }
-      
       else if (slaves.size() > nodelist.size())
       {
         cout << "[master]Number of slave connection exceeded allowed limits" << endl;
@@ -222,7 +198,6 @@ int main (int argc, char** argv)
       // usleep(100);
     }
   }
-  
   
   // set sockets to be non-blocking socket to avoid deadlock
   fcntl (serverfd, F_SETFL, O_NONBLOCK);
@@ -246,7 +221,6 @@ int open_server (int port)
 {
   int serverfd;
   struct sockaddr_in serveraddr;
-  
   // socket open
   serverfd = socket (AF_INET, SOCK_STREAM, 0);
   
@@ -296,14 +270,12 @@ void* signal_listener (void* args)
       memset (write_buf, 0, BUF_SIZE);
       strcpy (write_buf, "whoareyou");
       nbwrite (tmpfd, write_buf);
-      
       // blocking read to check identification of connected node
       readbytes = nbread (tmpfd, read_buf);
       
       if (readbytes == 0)
       {
         cout << "[master]Connection closed from client before getting request" << endl;
-        
         close (tmpfd);
         tmpfd = -1;
         continue;
@@ -316,24 +288,18 @@ void* signal_listener (void* args)
         // get ip address of client
         haddrp = inet_ntoa (connaddr.sin_addr);
         printf ("[master]Client node connected from %s \n", haddrp);
-        
         clients.push_back (new connclient (tmpfd));
-        
       }
-      
       else if (strncmp (read_buf, "slave", 5) == 0)
       {
         cout << "[master]Unexpected connection from slave: " << endl;
         cout << "[master]Closing connection to the slave..." << endl;
-        
         // check this code
         memset (write_buf, 0, BUF_SIZE);
         strcpy (write_buf, "close");
         nbwrite (tmpfd, write_buf);
         close (tmpfd);
-        
       }
-      
       else if (strncmp (read_buf, "job", 3) == 0)         // if connected node is a job
       {
         // limit the maximum available job connection
@@ -355,13 +321,10 @@ void* signal_listener (void* args)
         memset (write_buf, 0, BUF_SIZE);
         strcpy (write_buf, jobidss.str().c_str());
         nbwrite (tmpfd, write_buf);
-        
         cout << "[master]Job " << jobidclock << " arrived" << endl;
         jobs.push_back (new master_job (jobidclock, tmpfd));
         jobidclock++;
-        
       }
-      
       else
       {
         cout << "[master]Unidentified connected node: " << endl;
@@ -382,15 +345,11 @@ void* signal_listener (void* args)
         slaves.erase (slaves.begin() + i);
         i--;
         continue;
-        
       }
-      
       else if (readbytes < 0)
       {
         continue;
-        
       }
-      
       else     // signal from the slave
       {
         if (strncmp (read_buf, "key", 3) == 0)       // key signal arrived
@@ -400,36 +359,27 @@ void* signal_listener (void* args)
           token = strtok (read_buf, " ");   // token <- "key"
           token = strtok (NULL, " ");   // token <- "jobid"
           token = strtok (NULL, " ");   // token <- job id
-          
           thejob = find_jobfromid (atoi (token));
-          
           token = strtok (NULL, " ");   // token <- key value
           thejob->add_key (token);   // token
-          
         }
-        
         else if (strncmp (read_buf, "taskcomplete", 12) == 0)         // "taskcomplete" signal arrived
         {
           char* token;
           int ajobid, ataskid;
           master_job* thejob;
           master_task* thetask;
-          
           token = strtok (read_buf, " ");   // token <- "taskcomplete"
           token = strtok (NULL, " ");   // token <- "jobid"
           token = strtok (NULL, " ");   // token <- job id
           ajobid = atoi (token);
-          
           token = strtok (NULL, " ");   // token <- "taskid"
           token = strtok (NULL, " ");   // token <- task id
           ataskid = atoi (token);
-          
           thejob = find_jobfromid (ajobid);
           thetask = thejob->find_taskfromid (ataskid);
           thejob->finish_task (thetask, slaves[i]);
-          
         }
-        
         else
         {
           cout << "[master]Undefined message from slave node: " << read_buf << endl;
@@ -450,15 +400,11 @@ void* signal_listener (void* args)
         clients.erase (clients.begin() + i);
         i--;
         continue;
-        
       }
-      
       else if (readbytes < 0)
       {
         continue;
-        
       }
-      
       else     // signal from the client
       {
         cout << "[master]Message accepted from client: " << read_buf << endl;
@@ -473,7 +419,6 @@ void* signal_listener (void* args)
             memset (write_buf, 0, BUF_SIZE);
             strcpy (write_buf, "close");
             nbwrite (slaves[j]->getfd(), write_buf);
-            
             // blocking read from slave
             fcntl (slaves[j]->getfd(), F_SETFL, fcntl (slaves[j]->getfd(), F_GETFL) & ~O_NONBLOCK);
             readbytes = nbread (slaves[j]->getfd(), read_buf);
@@ -483,9 +428,7 @@ void* signal_listener (void* args)
               delete slaves[j];
               slaves.erase (slaves.begin() + j);
               j--;
-              
             }
-            
             else     // message arrived before closed
             {
               memset (write_buf, 0, BUF_SIZE);
@@ -509,7 +452,6 @@ void* signal_listener (void* args)
             memset (write_buf, 0, BUF_SIZE);
             strcpy (write_buf, "close");
             nbwrite (clients[j]->getfd(), write_buf);
-            
             // blocking read from client
             fcntl (clients[j]->getfd(), F_SETFL, fcntl (clients[j]->getfd(), F_GETFL) & ~O_NONBLOCK);
             readbytes = nbread (clients[j]->getfd(), read_buf);
@@ -519,9 +461,7 @@ void* signal_listener (void* args)
               delete clients[j];
               clients.erase (clients.begin() + j);
               j--;
-              
             }
-            
             else     // message arrived before closed
             {
               memset (write_buf, 0, BUF_SIZE);
@@ -535,13 +475,10 @@ void* signal_listener (void* args)
           }
           
           cout << "[master]All clients closed" << endl;
-          
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, "result: stopping successful");
           nbwrite (clients[i]->getfd(), write_buf);
-          
         }
-        
         else if (strncmp (read_buf, "numslave", 8) == 0)         // "numslave" signal arrived
         {
           string ostring = "result: number of slave nodes = ";
@@ -551,9 +488,7 @@ void* signal_listener (void* args)
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, ostring.c_str());
           nbwrite (clients[i]->getfd(), write_buf);
-          
         }
-        
         else if (strncmp (read_buf, "numclient", 9) == 0)         // "numclient" signal arrived
         {
           string ostring = "result: number of client nodes = ";
@@ -563,9 +498,7 @@ void* signal_listener (void* args)
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, ostring.c_str());
           nbwrite (clients[i]->getfd(), write_buf);
-          
         }
-        
         else if (strncmp (read_buf, "numjob", 6) == 0)         // "numjob" signal arrived
         {
           string ostring = "result: number of running jobs = ";
@@ -575,9 +508,7 @@ void* signal_listener (void* args)
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, ostring.c_str());
           nbwrite (clients[i]->getfd(), write_buf);
-          
         }
-        
         else if (strncmp (read_buf, "numtask", 7) == 0)         // "numtask" signal arrived
         {
           string ostring = "result: number of running tasks = ";
@@ -594,9 +525,7 @@ void* signal_listener (void* args)
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, ostring.c_str());
           nbwrite (clients[i]->getfd(), write_buf);
-          
         }
-        
         else     // undefined signal
         {
           cout << "[master]Undefined signal from client: " << read_buf << endl;
@@ -619,9 +548,7 @@ void* signal_listener (void* args)
         i--;
         cout << "[master]Job terminated abnormally" << endl;
         continue;
-        
       }
-      
       else if (readbytes < 0)
       {
         // do nothing
@@ -631,19 +558,15 @@ void* signal_listener (void* args)
         if (strncmp (read_buf, "complete", 8) == 0)       // "succompletion" signal arrived
         {
           cout << "[master]Job " << jobs[i]->getjobid() << " successfully completed" << endl;
-          
           // clear up the completed job
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, "terminate");
           nbwrite (jobs[i]->getjobfd(), write_buf);
-          
           // delete the job from the vector jobs
           delete jobs[i];
           jobs.erase (jobs.begin() + i);
           i--;
-          
         }
-        
         else if (strncmp (read_buf, "jobconf", 7) == 0)         // "jobconf" message arrived
         {
           char* token;
@@ -658,7 +581,6 @@ void* signal_listener (void* args)
               // NOTE: there should be at leat 1 arguments(program path name)
               token = strtok (NULL, " ");   // token <- argument count
               jobs[i]->setargcount (atoi (token));
-              
               // process next configure
               token = strtok (NULL, " ");   // token -> argvalues
               
@@ -676,15 +598,12 @@ void* signal_listener (void* args)
               }
               
               jobs[i]->setargvalues (arguments);
-              
             }
-            
             else if (strncmp (token, "inputpath", 9) == 0)
             {
               int numpath;
               string tmp;
               token = strtok (NULL, " ");   // token -> number of input paths
-              
               numpath = atoi (token);
               
               for (int j = 0; j < numpath; j++)
@@ -692,9 +611,7 @@ void* signal_listener (void* args)
                 tmp = strtok (NULL, " ");
                 jobs[i]->add_inputpath (tmp);
               }
-              
             }
-            
             else
             {
               cout << token << ": unknown job configure in the master side" << endl;
@@ -727,9 +644,7 @@ void* signal_listener (void* args)
           
           // set job status as MAP_STAGE
           jobs[i]->set_stage (MAP_STAGE);
-          
         }
-        
         else     // undefined signal
         {
           cout << "[master]Undefined signal from job: " << read_buf << endl;
@@ -745,7 +660,6 @@ void* signal_listener (void* args)
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, "mapcomplete");
           nbwrite (jobs[i]->getjobfd(), write_buf);
-          
           cout << "[master]Number of keys generated from map phase: " << jobs[i]->get_numkey() << endl;
           
           // fork reduce tasks
@@ -757,9 +671,7 @@ void* signal_listener (void* args)
           }
           
           jobs[i]->set_stage (REDUCE_STAGE);
-          
         }
-        
         else if (jobs[i]->get_stage() == REDUCE_STAGE)       // if reduce stage is finished
         {
           // send message to the job to complete the job
@@ -767,17 +679,13 @@ void* signal_listener (void* args)
           strcpy (write_buf, "complete");
           nbwrite (jobs[i]->getjobfd(), write_buf);
           cout << "[master]Job " << jobs[i]->getjobid() << " completed successfully" << endl;
-          
           jobs[i]->set_stage (COMPLETED_STAGE);
           // clear the job from the vector and finish
           delete jobs[i];
           jobs.erase (jobs.begin() + i);
           i--;
-          
           continue;
-          
         }
-        
         else
         {
           // pass the case for INITIAL_STAGE and COMPLETED_STAGE
@@ -806,10 +714,8 @@ void* signal_listener (void* args)
           
           if (thetask->get_taskrole() == MAP)
             ss << "MAP";
-            
           else if (thetask->get_taskrole() == REDUCE)
             ss << "REDUCE";
-            
           else
             cout << "[master]Debugging: the role of the task not defined in the initialization step:756";
             
@@ -825,7 +731,6 @@ void* signal_listener (void* args)
           
           ss << " argcount ";
           ss << thetask->get_job()->getargcount();
-          
           // NOTE: there should be at leat 1 arguments(program path name)
           ss << " argvalues";
           
@@ -842,7 +747,6 @@ void* signal_listener (void* args)
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, tmp.c_str());
           nbwrite (slaves[j]->getfd(), write_buf);
-          
           // forward waiting task to slave slot
           jobs[i]->schedule_task (thetask, slaves[j]);
           // sleeps for 0.0001 seconds. change this if necessary
@@ -862,9 +766,7 @@ void* signal_listener (void* args)
   // close master socket
   close (serverfd);
   cout << "[master]Master server closed" << endl;
-  
   cout << "[master]Exiting master..." << endl;
-  
   thread_continue = false;
   return NULL;
 }

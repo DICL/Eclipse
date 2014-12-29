@@ -33,7 +33,6 @@ int fileserver::run_server (int port, bool* server_continue)
 {
   int fd;
   struct sockaddr_in serveraddr;
-  
   // socket open
   fd = socket (AF_INET, SOCK_STREAM, 0);
   
@@ -41,9 +40,7 @@ int fileserver::run_server (int port, bool* server_continue)
   {
     cout << "[fileserver]Socket opening failed" << endl;
     return -1;
-    
   }
-  
   else
   {
     this->serverfd = fd;
@@ -70,7 +67,6 @@ int fileserver::run_server (int port, bool* server_continue)
   
   // set the server fd as nonblocking mode
   fcntl (fd, F_SETFL, O_NONBLOCK);
-  
   int tmpfd = -1;
   struct sockaddr_in connaddr;
   int addrlen = sizeof (connaddr);
@@ -85,17 +81,13 @@ int fileserver::run_server (int port, bool* server_continue)
       char* token;
       file_client_role inputrole = UNDEFINED;
       string filename;
-      
       nbread (tmpfd, read_buf);
-      
       token = strtok (read_buf, " ");   // <- read or write
       
       if (strncmp (token, "read", 4) == 0)
       {
         inputrole = READ;
-        
       }
-      
       else if (strncmp (token, "write", 5) == 0)
       {
         inputrole = WRITE;
@@ -103,16 +95,13 @@ int fileserver::run_server (int port, bool* server_continue)
       
       token = strtok (NULL, " ");   // <- file name
       filename = token;
-      
       // create new clients
       this->clients.push_back (new file_connclient (tmpfd, inputrole, filename));
       
       if (clients.back()->get_role() == READ)
         clients.back()->open_readfile (filename);
-        
       else if (clients.back()->get_role() == WRITE)
         clients.back()->open_writefile (filename);
-        
       else
         cout << "[fileserver]The role is not defined" << endl;
         
@@ -125,9 +114,7 @@ int fileserver::run_server (int port, bool* server_continue)
       if (clients[i]->get_role() == UNDEFINED)
       {
         cout << "[fileserver]The role is not defined for a clients" << endl;
-        
       }
-      
       else if (clients[i]->get_role() == READ)
       {
         // read file and transfer it to client.
@@ -138,46 +125,35 @@ int fileserver::run_server (int port, bool* server_continue)
         {
           memset (write_buf, 0, BUF_SIZE);
           strcpy (write_buf, record.c_str());
-          
           // TODO: consider if we need to change nbwrite to write
           nbwrite (clients[i]->get_fd(), write_buf);
-          
         }
-        
         else     // if all record is transferred
         {
           // close the fd to notify that all file is transferred.
           close (clients[i]->get_fd());
-          
           // delete the client from the vector
           delete clients[i];
           clients.erase (clients.begin() + i);
           i--;
         }
-        
       }
-      
       else     // WRITE role
       {
         // read the contents of the file from client until the pipe is closed
         string record;
         int readbytes;
-        
         readbytes = nbread (clients[i]->get_fd(), read_buf);
         
         if (readbytes == 0)
         {
           close (clients[i]->get_fd());
-          
         }
-        
         else if (readbytes > 0)
         {
           record = read_buf;
           clients[i]->write_record (record, write_buf);
-          
         }
-        
         else     // if there is no message from the client
         {
           // do nothing as dafault

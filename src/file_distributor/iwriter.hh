@@ -54,13 +54,10 @@ iwriter::iwriter (int ajobid, int anetworkidx)
   filefd = -1;
   vectorindex = -1;
   pos = -1;
-  
   // generate first map
   themaps.push_back (new map<string, vector<string>*>);
-  
   // we can increase the numblock because first write is guaranteed after the iwriter is initialized
   numblock++;
-  
 }
 
 iwriter::~iwriter()
@@ -79,22 +76,17 @@ int iwriter::get_numblock()
 void iwriter::add_keyvalue (string key, string value)
 {
   pair<map<string, vector<string>*>::iterator, bool> ret;
-  
   ret = themaps.back()->insert (pair<string, vector<string>*> (key, NULL));
   
   if (ret.second)     // first key element
   {
     ret.first->second = new vector<string>;
     ret.first->second->push_back (value);
-    
     currentsize += key.length() + value.length() + 2; // +2 for two '\n' character
-    
   }
-  
   else     // key already exist
   {
     ret.first->second->push_back (value);
-    
     currentsize += value.length() + 1; // +1 for '\n' character
   }
   
@@ -103,19 +95,16 @@ void iwriter::add_keyvalue (string key, string value)
   {
     // new map generated
     themaps.push_back (new map<string, vector<string>*>);
-    
     // trigger writing
     availableblock++;
     
     if (!iswriting)     // if file is not open for written when it is avilable
     {
       writingblock++;
-      
       // prepare iterator and indices
       writing_it = themaps[writingblock]->begin();
       vectorindex = 0;
       pos = 0;
-      
       // determine the path of file
       filepath = DHT_PATH;
       stringstream ss;
@@ -126,7 +115,6 @@ void iwriter::add_keyvalue (string key, string value)
       ss << "_";
       ss << writingblock;
       filepath.append (ss.str());
-      
       // open write file
       filefd = open (filepath.c_str(), O_APPEND | O_WRONLY | O_CREAT, 0644);
       
@@ -157,24 +145,20 @@ bool iwriter::write_to_disk()   // return true if write_to_disk should be stoppe
       pos += writing_it->first.length();
       write_buf[pos] = '\n';
       pos++;
-      
       stringstream ss;
       string message;
       ss << writing_it->second->size();
       message = ss.str();
       strcpy (write_buf + pos, message.c_str());
       pos += message.length();
-      
       write_buf[pos] = '\n';
       pos++;
     }
     
     strcpy (write_buf + pos, (*writing_it->second) [vectorindex].c_str());
     pos += (*writing_it->second) [vectorindex].length();
-    
     write_buf[pos] = '\n';
     pos++;
-    
     vectorindex++;
     
     if ( (unsigned) vectorindex == writing_it->second->size())
@@ -227,12 +211,10 @@ bool iwriter::write_to_disk()   // return true if write_to_disk should be stoppe
     {
       iswriting = true;
       writingblock++;
-      
       // prepare iterator and indices
       writing_it = themaps[writingblock]->begin();
       vectorindex = 0;
       pos = 0;
-      
       // determine the path of file
       filepath = DHT_PATH;
       stringstream ss;
@@ -243,7 +225,6 @@ bool iwriter::write_to_disk()   // return true if write_to_disk should be stoppe
       ss << "_";
       ss << writingblock;
       filepath.append (ss.str());
-      
       // open write file
       filefd = open (filepath.c_str(), O_APPEND | O_WRONLY | O_CREAT, 0644);
       
@@ -264,12 +245,10 @@ void iwriter::flush()   // last call before iwriter is deleted. this is not an i
   {
     iswriting = true;
     writingblock++;
-    
     // prepare iterator and indices
     writing_it = themaps[writingblock]->begin();
     vectorindex = 0;
     pos = 0;
-    
     // determine the path of file
     filepath = DHT_PATH;
     stringstream ss;
@@ -280,7 +259,6 @@ void iwriter::flush()   // last call before iwriter is deleted. this is not an i
     ss << "_";
     ss << writingblock;
     filepath.append (ss.str());
-    
     // open write file
     filefd = open (filepath.c_str(), O_APPEND | O_WRONLY | O_CREAT, 0644);
     

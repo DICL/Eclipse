@@ -17,7 +17,6 @@ int main (int argc, char** argv)
   char buf[BUF_SIZE];
   filepath.append ("nodelist.conf");
   nodelistfile.open (filepath.c_str());
-  
   nodelistfile >> token;
   
   while (!nodelistfile.eof())
@@ -28,7 +27,6 @@ int main (int argc, char** argv)
   
   // argv[1] name of input file which includes list of input files
   // argv[2] name of output file which will match the input files and target address
-  
   string filename;
   ifstream input;
   ofstream output;
@@ -42,21 +40,16 @@ int main (int argc, char** argv)
     if (input.eof())
     {
       break;
-      
     }
-    
     else
     {
       string address;
       stringstream ss;
-      
       memset (buf, 0, BUF_SIZE);
       strcpy (buf, filename.c_str());
       uint32_t hashvalue = h (buf, HASHLENGTH);
       hashvalue = hashvalue % nodelist.size();
-      
       getline (input, filename);   // get full path of the file
-      
       output << "scp " << filename << " " << nodelist[hashvalue] << ":" << DHT_PATH << endl;
     }
   }

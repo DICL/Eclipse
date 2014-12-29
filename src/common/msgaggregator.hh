@@ -88,20 +88,15 @@ bool msgaggregator::add_record (string& record)     // return true when flushed
     {
       flush();
       return true;
-      
     }
-    
     else
       return false;
-      
   }
-  
   else     // new record should be added to next buffer and current buffer should be flushed
   {
     flush();
     //message[pos] = '\n';
     //pos++;
-    
     // append the content(record)
     strcpy (message + pos, record.c_str());
     pos += record.length();
@@ -157,14 +152,10 @@ void msgaggregator::flush()   // return false when new messagebuffer is needed t
   {
 //cout<<"flushed message: "<<message<<endl<<endl;
     nbwrite (fd, message);
-    
-    
     // set initial contents
     set_initial();
     return;
-    
   }
-  
   else     // write to target messagebuf(fileserver side)
   {
     if (msgbuf->size() > 1)
@@ -172,13 +163,10 @@ void msgaggregator::flush()   // return false when new messagebuffer is needed t
       //cout<<"flushed message: "<<message<<endl<<endl;
       msgbuf->back()->set_buffer (message, fd);
       msgbuf->push_back (new messagebuffer());
-      
       // set initial contents
       set_initial();
       return;
-      
     }
-    
     else
     {
 //cout<<"flushed message: "<<message<<endl<<endl;
@@ -186,13 +174,10 @@ void msgaggregator::flush()   // return false when new messagebuffer is needed t
       {
         // append new message buffer
         msgbuf->push_back (new messagebuffer());
-        
         // set initial contents
         set_initial();
         return;
-        
       }
-      
       else
       {
         // set initial contents

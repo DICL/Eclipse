@@ -128,9 +128,7 @@ slave_task* slave_job::get_task (int index)
   {
     cout << "Debugging: index of bound in the slave_job::get_task() function." << endl;
     return NULL;
-    
   }
-  
   else
     return this->tasks[index];
 }
@@ -140,15 +138,12 @@ slave_task* slave_job::get_completedtask (int index)
   if ( (unsigned) index < completed_tasks.size())
   {
     return completed_tasks[index];
-    
   }
-  
   else
   {
     cout << "Debugging: Index out of range in the slave_job::get_completedtask() function" << endl;
     return NULL;
   }
-  
 }
 
 
@@ -300,9 +295,7 @@ string slave_task::get_inputpath (int index)
   {
     cout << "Index out of bound in the slave_task::get_inputpath() function." << endl;
     return "";
-    
   }
-  
   else
     return inputpaths[index];
 }
@@ -440,9 +433,7 @@ slave_task* slave_job::get_task (int index)
   {
     cout << "Debugging: index of bound in the slave_job::get_task() function." << endl;
     return NULL;
-
   }
-
   else
     return this->tasks[index];
 }
@@ -452,15 +443,12 @@ slave_task* slave_job::get_completedtask (int index)
   if ( (unsigned) index < completed_tasks.size())
   {
     return completed_tasks[index];
-
   }
-
   else
   {
     cout << "Debugging: Index out of range in the slave_job::get_completedtask() function" << endl;
     return NULL;
   }
-
 }
 
 
@@ -612,9 +600,7 @@ string slave_task::get_inputpath (int index)
   {
     cout << "Index out of bound in the slave_task::get_inputpath() function." << endl;
     return "";
-
   }
-
   else
     return inputpaths[index];
 }

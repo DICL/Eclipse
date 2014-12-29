@@ -58,7 +58,6 @@ file_connclient::file_connclient (int number)
   dstid = -1;
   //this->writeid = -1;
   //this->role = UNDEFINED;
-  
   // add a null buffer
   msgbuf.push_back (new messagebuffer());
 }

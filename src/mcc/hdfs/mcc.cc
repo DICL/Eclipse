@@ -12,9 +12,7 @@ int main (int argc, char** argv)
     cout << "usage: mcc [source code] (options)" << endl;
     cout << "Exiting..." << endl;
     return 1;
-    
   }
-  
   else
   {
     cout << "Compiling the code..." << endl;
@@ -26,7 +24,6 @@ int main (int argc, char** argv)
   //argvalue[0] = "/usr/bin/g++";
   argvalue[0] = new char[strlen ("/opt/centos/devtoolset-1.1/root/usr/bin/g++") + 1];
   strcpy (argvalue[0], "/opt/centos/devtoolset-1.1/root/usr/bin/g++");
-  
   string libpath = LIB_PATH;
   libpath.append ("mapreduce/hdfs/");
   
@@ -38,36 +35,25 @@ int main (int argc, char** argv)
   
   argvalue[argc] = new char[3];
   strcpy (argvalue[argc], "-I");
-  
   argvalue[argc + 1] = new char[strlen (libpath.c_str()) + 1];
   strcpy (argvalue[argc + 1], libpath.c_str());
-  
   argvalue[argc + 2] = new char[3];
   strcpy (argvalue[argc + 2], "-I");
-  
   argvalue[argc + 3] = new char[strlen (HDFS_PATH) + 1];
   strcpy (argvalue[argc + 3], HDFS_PATH);
-  
   argvalue[argc + 4] = new char[3];
   strcpy (argvalue[argc + 4], "-L");
-  
   argvalue[argc + 5] = new char[strlen (HDFS_LIB) + 1];
   strcpy (argvalue[argc + 5], HDFS_LIB);
-  
   argvalue[argc + 6] = new char[3];
   strcpy (argvalue[argc + 6], "-L");
-  
   argvalue[argc + 7] = new char[strlen (JAVA_LIB) + 1];
   strcpy (argvalue[argc + 7], JAVA_LIB);
-  
   argvalue[argc + 8] = new char[strlen (HADOOP_FLAG) + 1];
   strcpy (argvalue[argc + 8], HADOOP_FLAG);
-  
   argvalue[argc + 9] = new char[strlen (JAVA_FLAG) + 1];
   strcpy (argvalue[argc + 9], JAVA_FLAG);
-  
   argvalue[argc + 10] = NULL;
-  
   execv (argvalue[0], argvalue);
   return 0;
 }

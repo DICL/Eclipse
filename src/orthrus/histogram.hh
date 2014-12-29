@@ -51,12 +51,10 @@ histogram::histogram (int numserver, int numbin)
 {
   boundaries = NULL;
   querycount = NULL;
-  
   this->numserver = numserver;
   this->numbin = numbin;
   boundaries = new unsigned[numserver];
   querycount = new double[numbin];
-  
   // initialize
   this->initialize();
 }
@@ -132,9 +130,7 @@ unsigned histogram::get_boundary (int index)     // the index starts from 0
   {
     cout << "[histogram]Index requested is out of range" << endl;
     return -1;
-    
   }
-  
   else
   {
     return boundaries[index];
@@ -152,9 +148,7 @@ double histogram::get_count (int index)
   {
     cout << "[histogram]Index requested is out of range" << endl;
     return -1.0;
-    
   }
-  
   else
   {
     return querycount[index];
@@ -202,12 +196,10 @@ void histogram::updateboundary()   // update the boundary according to the query
     
     if (stmeter == 0.0)
       stmeter = (qps - temp) / querycount[j];
-      
     else
       stmeter += (qps - temp) / querycount[j];
       
     boundaries[i] = ( (double) MAX_UINT) * ( ( (double) j + stmeter) / ( (double) numbin));
-    
     temp = 0.0;
   }
   
@@ -222,7 +214,6 @@ int histogram::count_query (unsigned query)
   
   if (index == numbin)
     index--;
-    
   else if (index > numbin)
     cout << "[histogram]Debugging: Cannot find index of requested query." << endl;
     
@@ -239,13 +230,11 @@ int histogram::count_query (unsigned query)
   
   if (index - KERNELWIDTH < 0)
     indexstart = 0;
-    
   else
     indexstart = index - KERNELWIDTH;
     
   if (index + KERNELWIDTH > numbin - 1)
     indexend = numbin - 1;
-    
   else
     indexend = index + KERNELWIDTH;
     
