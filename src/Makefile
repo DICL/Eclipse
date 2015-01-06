@@ -1,3 +1,4 @@
+MR_HOME = /home/vicente/Eclipse/src
 MR_DEF = $(MR_HOME)/mapreduce/definitions.hh 
 MASTER_DEP = $(MR_HOME)/master/master_job.hh 
 MASTER_DEP += $(MR_HOME)/master/master_task.hh 
@@ -134,13 +135,15 @@ $(MR_HOME)/common/hash.o: $(MR_HOME)/common/hash.cc $(MR_HOME)/common/hash.hh
 	g++ $(CCFLAGS) -c $(MR_HOME)/common/hash.cc -o $(MR_HOME)/common/hash.o -I $(MR_HOME)/common
 
 clean:
-	rm -f $(MR_HOME)/bin/master
-	rm -f $(MR_HOME)/bin/slave
-	rm -f $(MR_HOME)/bin/client
-	rm -f $(MR_HOME)/bin/mcc
-	rm -f $(MR_HOME)/bin/eclipse
-	rm -f $(MR_HOME)/DHT/DHTserver.o
-	rm -f $(MR_HOME)/DHT/DHTclient.o
-	rm -f $(MR_HOME)/make_version/*
-	rm -f $(MR_HOME)/bin/fd_core
-	rm -f $(MR_HOME)/bin/cacheserver
+	-rm -f $(MR_HOME)/bin/master
+	-rm -f $(MR_HOME)/bin/slave
+	-rm -f $(MR_HOME)/bin/client
+	-rm -f $(MR_HOME)/bin/mcc
+	-rm -f $(MR_HOME)/bin/eclipse
+	-rm -f $(MR_HOME)/bin/mrcat_core
+	-rm -f $(MR_HOME)/bin/mrrm_core
+	-rm -f $(MR_HOME)/DHT/DHTserver.o
+	-rm -f $(MR_HOME)/DHT/DHTclient.o
+	-rm -f $(MR_HOME)/make_version/*
+	-rm -f $(MR_HOME)/bin/fd_core
+	-rm -f $(MR_HOME)/bin/cacheserver
