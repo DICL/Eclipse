@@ -6,13 +6,14 @@ AR = ar
 
 CXXFLAGS  = -Wall -g -std=gnu++98 -rdynamic
 INCLUDE   = -I./lib/ -I./src/common/ -I ./lib/unittest-cpp/ -L./lib/ 
+BINDIR    := $(realpath ./build/bin/)
 BINLIB    = -lstdc++ -lsimring
 LIBDIR   := $(realpath ./lib/)
 SRC       = $(shell find src/ -name "*.cc" -o -name "*.hh")
 ARTISTIC_STYLE_OPTIONS = -A1 -s4 -C -E --unpad-paren --pad-paren-out --pad-header \
                          -x --break-blocks --add-brackets --convert-tabs --pad-oper -n
 
-export CXX CXXFLAGS MAKE AR OPTIONS INCLUDE BINLIB LIBDIR ARTISTIC_STYLE_OPTIONS
+export CXX CXXFLAGS MAKE AR OPTIONS INCLUDE BINLIB LIBDIR ARTISTIC_STYLE_OPTIONS BINDIR
 .PHONY: lib dist node docs src
 
 all: lib src
@@ -24,6 +25,7 @@ lib:
 
 src:
 	-$(MAKE) -C src/
+	-rsync -a src/bin/ build/bin
 
 clean:
 	-$(MAKE) -C lib/ clean
@@ -36,7 +38,7 @@ tags:
 	-ctags -R --c++-kinds=+p --fields=+iaS --extra=+q -o .tags .
 
 dist: clean
-	tar -cvzf MRR_`date +"%d-%m-%y"`.tar.gz ./*
+	tar -cvzf ECLIPSE_`date +"%d-%m-%y"`.tar.gz ./*
 
 docs:
 	cd docs; doxygen

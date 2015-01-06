@@ -12,7 +12,7 @@
 #include <sys/wait.h>
 #include <arpa/inet.h>
 #include <pthread.h>
-#include <mapreduce/definitions.hh>
+#include <definitions.hh>
 #include "master_job.hh"
 #include "master_task.hh"
 #include "connslave.hh"
