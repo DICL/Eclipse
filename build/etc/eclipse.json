@@ -1,8 +1,9 @@
 {
- "port"    : 7000,
- "dhtport" : 7001,
+ "port"    : 8000,
+ "dhtport" : 8001,
  "max_job" : 1024,
- "master"  : "192.168.1.201",
+ "config_relative_path" : "/etc/eclipse.json",
+ "master_address"  : "192.168.1.201",
  "nodes"   : [
    "192.168.1.1",
    "192.168.1.2",

@@ -16,6 +16,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <mapreduce/definitions.hh>
+#include <common/settings.hh>
 #include <orthrus/histogram.hh>
 #include "../master_job.hh"
 #include "../master_task.hh"
@@ -77,42 +78,12 @@ int main (int argc, char** argv)
     // initialize data structures from setup.conf
     ifstream conf;
     string token;
-    string confpath = LIB_PATH;
-    confpath.append ("setup.conf");
-    conf.open (confpath.c_str());
-    conf >> token;
-    
-    while (!conf.eof())
-    {
-        if (token == "port")
-        {
-            conf >> token;
-            port = atoi (token.c_str());
-        }
-        else if (token == "dhtport")
-        {
-            conf >> token;
-            dhtport = atoi (token.c_str());
-        }
-        else if (token == "max_job")
-        {
-            conf >> token;
-            max_job = atoi (token.c_str());
-        }
-        else if (token == "master_address")
-        {
-            // ignore and just pass through this case
-            conf >> token;
-        }
-        else
-        {
-            cout << "[master]Unknown configure record: " << token << endl;
-        }
-        
-        conf >> token;
-    }
-    
-    conf.close();
+    Settings setted;
+    setted.load_settings();
+
+    port = setted.port();
+    dhtport = setted.dhtport();
+    max_job = setted.max_job();
     
     // verify initialization
     if (port == -1)
@@ -129,7 +100,7 @@ int main (int argc, char** argv)
     
     // read the node list information
     ifstream nodelistfile;
-    string filepath = LIB_PATH;
+    string filepath = setted.lib_path();
     filepath.append ("nodelist.conf");
     nodelistfile.open (filepath.c_str());
     nodelistfile >> token;

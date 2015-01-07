@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+#include <config.h>
+
 using namespace std;
 
 // HDFS
@@ -21,7 +23,7 @@ using namespace std;
 #define DHT_PATH "/scratch/youngmoon01/mr_storage/"
 #define MR_PATH "/home/vicente/mr_storage/"
 #define IPC_PATH "/scratch/youngmoon01/socketfile2"
-#define LIB_PATH "/home/vicente/Eclipse/build/"
+//#define LIB_PATH "/home/vicente/Eclipse/build/"
 //#define LIB_PATH (getenv("ECLIPSE_PATH"))
 #define BUF_SIZE (8*1024) // determines maximum size of a record
 #define BUF_THRESHOLD (7*1024) // the buffer flush threshold

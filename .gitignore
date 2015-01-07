@@ -23,11 +23,18 @@
 
 #autotools files
 config.h
+config.h.in
+config.h.in~
 config.log
 config.status
 configure
-Makefile
+./Makefile
 autom4te.cache/*
+configure.scan
+autoscan.log
+src/common/settings.hh.gch
+
+#Build
 build/bin/cacheserver
 build/bin/clear_mr.sh
 build/bin/client
@@ -58,5 +65,3 @@ build/bin/runslave.sh
 build/bin/screensaver.sh
 build/bin/slave
 build/bin/test.sh
-src/orthrus/cacheserver
-src/orthrus/eclipse

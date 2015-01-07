@@ -11,7 +11,8 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <netdb.h>
-#include <mapreduce/definitions.hh>
+#include "../mapreduce/definitions.hh"
+#include "../common/settings.hh"
 
 using namespace std;
 
@@ -35,45 +36,11 @@ int main (int argc, char** argv)
     }
     
     // initialize data structures from setup.conf
-    ifstream conf;
-    string token;
-    string confpath = LIB_PATH;
-    confpath.append ("setup.conf");
-    conf.open (confpath.c_str());
-    conf >> token;
-    
-    while (!conf.eof())
-    {
-        if (token == "port")
-        {
-            conf >> token;
-            port = atoi (token.c_str());
-        }
-        else if (token == "dhtport")
-        {
-            conf >> token;
-            dhtport = atoi (token.c_str());
-        }
-        else if (token == "max_job")
-        {
-            // ignore and just pass through this case
-            conf >> token;
-        }
-        else if (token == "master_address")
-        {
-            conf >> token;
-            strcpy (master_address, token.c_str());
-            master_is_set = true;
-        }
-        else
-        {
-            cout << "[client]Unknown configure record: " << token << endl;
-        }
-        
-        conf >> token;
-    }
-    
-    conf.close();
+    Settings setted;
+    port = setted.port();
+    dhtport = setted.dhtport();
+    strcpy (master_address, setted.master_addr());
+    master_is_set = true;
     
     // verify initialization
     if (port == -1)

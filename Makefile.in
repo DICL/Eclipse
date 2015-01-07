@@ -1,55 +1,58 @@
-CXXFLAGS      ?= -Wall -g -std=gnu++98 -rdynamic
-INCLUDE        = -I src/ -I src/common/ 
-LDFLAGS        = -lpthread 
-
-package        = @PACKAGE_NAME@
-version        = @PACKAGE_VERSION@
-tarname        = @PACKAGE_TARNAME@
-distdir        = $(tarname)-$(version)
-prefix         = @prefix@
-exec_prefix    = @exec_prefix@
-builddir      ?= build/bin/
-LIBDIR        := $(realpath ./lib/)
-
-SRC       = $(shell find src/ -name "*.cc" -o -name "*.hh")
-ARTISTIC_STYLE_OPTIONS = -A1 -s4 -C -E --unpad-paren --pad-paren-out --pad-header \
-                         -x --break-blocks --add-brackets --convert-tabs --pad-oper -n
-
-DHTTARGETS    := master slave client mcc eclipse cacheserver mrcat_core mrrm_core fd_core
-
+vpath %.cc src/file_distributor:src/orthrus:src/common
 .PHONY: lib dist node docs src
 
-dht: $(DHTTARGETS) binaries
+CXX                    = g++44
+CXXFLAGS              ?= -Wall -g -std=gnu++98
+INCLUDE                = -I src/ -I src/common/ -I ./ -I /usr/include/boost141/
+LDFLAGS                = -lpthread 
 
+package                = Eclipse
+version                = 00.12.23
+tarname                = eclipse
+LIBDIR                := $(realpath ./lib/)
+SRC                    = $(shell find src/ -name "*.cc" -o -name "*.hh")
+ARTISTIC_STYLE_OPTIONS = -A1 -s4 -C -E --unpad-paren --pad-paren-out --pad-header \
+                         -x --break-blocks --add-brackets --convert-tabs --pad-oper -n
+prefix                 = /usr/local
+builddir              := build/bin
+objsdir               := build/objs
 
-master: INCLUDE += -I src/mapreduce/  -I src/master/dht/ 
-master: src/master/dht/master.cc src/common/hash.cc
-	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+SRCTARGETS            := cacheserver.cc mrcat_core.cc mrrm_core.cc fd_core.cc hash.cc
 
-slave: INCLUDE += -I src/mapreduce/  -I src/slave/dht/ 
-slave: src/slave/dht/slave.cc
-	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+# DHT mode -------------------------------------------------------------
+ifeq ($(FS), dht)
+ vpath %.cc src/master/dht:src/slave/dht:src/client/dht:src/mcc/dht
+ SRCTARGETS += slave.cc master.cc client.cc mcc.cc eclipse.cc 
+endif 
 
-client: src/client/dht/client.cc
-	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+OBJSTARGETS           := $(addprefix $(objsdir)/,$(addsuffix .o, $(basename $(SRCTARGETS))))
+TARGETS               := $(addprefix $(builddir)/,$(basename $(filter-out hash.cc,$(SRCTARGETS))))
 
-mcc: src/mcc/dht/mcc.cc
-	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+$(builddir)/% : $(objsdir)/%.o
+	$(CXX) $(CXXFLAGS)  $(INCLUDE) $^ -o $@ $(LDFLAGS)
 
-eclipse: src/orthrus/launcher.cc src/common/hash.cc
-	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+$(objsdir)/%.o : %.cc 
+	$(CXX) $(CXXFLAGS)  $(INCLUDE) -c $^ -o $@
 
-cacheserver: src/orthrus/cacheserver.cc
-	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+#Setup recipes ---------------------------------------------------------
+all: $(TARGETS) binaries  src/common/settings.h.gch
 
-mrcat_core: src/file_distributor/mrcat_core.cc src/common/hash.cc
-	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+$(objsdir)/master.o     : INCLUDE := -include src/common/settings.hh $(INCLUDE)
+$(objsdir)/client.o     : INCLUDE := -include src/common/settings.hh $(INCLUDE)
+$(objsdir)/launcher.o     : INCLUDE := -include src/common/settings.hh $(INCLUDE)
 
-mrrm_core: src/file_distributor/mrrm_core.cc src/common/hash.cc
-	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+$(builddir)/master      : $(objsdir)/master.o $(objsdir)/hash.o
+$(builddir)/client      : $(objsdir)/client.o
+$(builddir)/slave       : $(objsdir)/slave.o
+$(builddir)/mcc         : $(objsdir)/mcc.o
+$(builddir)/eclipse     : $(objsdir)/launcher.o $(objsdir)/hash.o
+$(builddir)/cacheserver : $(objsdir)/cacheserver.o
+$(builddir)/mrcat_core  : $(objsdir)/mrcat_core.o $(objsdir)/hash.o
+$(builddir)/mrrm_core   : $(objsdir)/mrrm_core.o $(objsdir)/hash.o
+$(builddir)/fd_core     : $(objsdir)/fd_core.o $(objsdir)/hash.o
 
-fd_core: src/file_distributor/fd_core.cc src/common/hash.cc
-	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+src/common/settings.h.gch : src/common/settings.h
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $^
 
 binaries:
 	-rsync -a src/bin/ $(builddir)
@@ -58,10 +61,11 @@ lib:
 	-$(MAKE) -C lib/ -j16
 
 clean:
-	-rm $(addprefix $(builddir),$(DHTTARGETS))
+	-rm $(TARGETS)
+	-rm $(OBJSTARGETS) $(objsdir)/launcher.o
 
 distclean: clean
-	-rm config.h config.log config.status configure Makefile autom4te.cache/ -rf
+	-rm config.h config.h.in config.h.in~ autoscan.log config.log config.status configure Makefile autom4te.cache/ tags -rf
 
 style:
 	astyle $(ARTISTIC_STYLE_OPTIONS) $(SRC)
@@ -70,4 +74,4 @@ tags:
 	-ctags -R --c++-kinds=+p --fields=+iaS --extra=+q -o .tags .
 
 dist: distclean
-	tar -cvzf ECLIPSE_`date +"%d-%m-%y"`.tar.gz ./*
+	tar -cvzf ECLIPSE_$(version)`date +"%d-%m-%y"`.tar.gz ./*
