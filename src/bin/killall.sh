@@ -1,5 +1,5 @@
 i=0
-for line in `cat nodelist.conf`
+for line in `cat $MR_HOME/nodelist.conf`
 do
 	echo "Shutting down slave in node $i"
 	ssh $line killall slave &
@@ -11,7 +11,7 @@ wait
 echo -e "\033[0;32mDone\033[0m"
 
 i=0
-for line in `cat nodelist.conf`
+for line in `cat $MR_HOME/nodelist.conf`
 do
 	echo "Shutting down eclipse in node $i"
 	ssh $line killall eclipse &
@@ -25,7 +25,7 @@ echo -e "\033[0;32mDone\033[0m"
 for program in $*
 do
 	i=0
-	for line in `cat nodelist.conf`
+	for line in `cat $MR_HOME/nodelist.conf`
 	do
 		echo "Shutting down $program in node $i"
 		ssh $line killall $program &

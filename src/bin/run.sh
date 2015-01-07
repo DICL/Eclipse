@@ -9,25 +9,25 @@ sleep 1
 #numslave=$(awk '$1=="num_slave"{print $2}' setup.conf)
 
 i=0
-for line in `cat nodelist.conf`
+for line in `cat $MR_HOME/nodelist.conf`
 do
 	echo "Launching slave $i"
 	ssh $line $MR_HOME/bin/slave &
 	(( i++ ))
 done
 
-if [ -e $MR_HOME/make_version/dht_mode ]
-then
+#if [ -e $MR_HOME/make_version/dht_mode ]
+#then
 	echo "Launching cache server"
 	$MR_HOME/bin/cacheserver &
 
 	i=0
-	for line in `cat nodelist.conf`
+	for line in `cat $MR_HOME/nodelist.conf`
 	do
 		echo "Launching eclipse $i"
 		ssh $line $MR_HOME/bin/eclipse &
 		(( i++ ))
 	done
-fi
+#fi
 
 wait
