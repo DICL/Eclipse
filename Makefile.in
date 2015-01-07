@@ -1,0 +1,72 @@
+CXXFLAGS      ?= -Wall -g -std=gnu++98 -rdynamic
+INCLUDE        = -I src/ -I src/common/ 
+LDFLAGS        = -lpthread 
+
+package        = @PACKAGE_NAME@
+version        = @PACKAGE_VERSION@
+tarname        = @PACKAGE_TARNAME@
+distdir        = $(tarname)-$(version)
+prefix         = @prefix@
+exec_prefix    = @exec_prefix@
+builddir      ?= build/bin/
+LIBDIR        := $(realpath ./lib/)
+
+SRC       = $(shell find src/ -name "*.cc" -o -name "*.hh")
+ARTISTIC_STYLE_OPTIONS = -A1 -s4 -C -E --unpad-paren --pad-paren-out --pad-header \
+                         -x --break-blocks --add-brackets --convert-tabs --pad-oper -n
+
+DHTTARGETS     = master slave client mcc eclipse cacheserver mrcat_core mrrm_core fd_core
+
+.PHONY: lib dist node docs src
+
+dht: $(DHTTARGETS) binaries
+
+master: INCLUDE += -I src/mapreduce/  -I src/master/dht/ 
+master: src/master/dht/master.cc src/common/hash.cc
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+
+slave: INCLUDE += -I src/mapreduce/  -I src/master/dht/ 
+slave: src/slave/dht/slave.cc
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+
+client: src/client/dht/client.cc
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+
+mcc: src/mcc/dht/mcc.cc
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+
+eclipse: src/orthrus/launcher.cc src/common/hash.cc
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+
+cacheserver: src/orthrus/cacheserver.cc
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+
+mrcat_core: src/file_distributor/mrcat_core.cc src/common/hash.cc
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+
+mrrm_core: src/file_distributor/mrrm_core.cc src/common/hash.cc
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+
+fd_core: src/file_distributor/fd_core.cc src/common/hash.cc
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(builddir)$@ $(LDFLAGS)
+
+binaries:
+	-rsync -a src/bin/ $(builddir)
+
+lib:
+	-$(MAKE) -C lib/ -j16
+
+clean:
+	-rm $(addprefix $(builddir),$(DHTTARGETS))
+
+veryclean:
+	-rm config.h config.log configure Makefile
+
+style:
+	astyle $(ARTISTIC_STYLE_OPTIONS) $(SRC)
+
+tags:
+	-ctags -R --c++-kinds=+p --fields=+iaS --extra=+q -o .tags .
+
+dist: clean
+	tar -cvzf ECLIPSE_`date +"%d-%m-%y"`.tar.gz ./*
