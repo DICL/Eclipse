@@ -1,7 +1,7 @@
 all:
-	make -C unittest++/
-	cp unittest++/libUnitTest++.a .
+	make -C unittest-cpp/
+	cp unittest-cpp/libUnitTest++.a .
 
 clean:
-	make -C unittest++/ clean
+	make -C unittest-cpp/ clean
 	-rm libUnitTest++.a
