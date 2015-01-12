@@ -42,6 +42,7 @@ int main (int argc, char** argv)
     
     string token;
     Settings setted;
+    setted.load_settings();
     port = setted.port();
     dhtport = setted.dhtport();
     strcpy (master_address, setted.master_addr().c_str());
@@ -60,18 +61,7 @@ int main (int argc, char** argv)
         exit (1);
     }
     
-    // read the node list information
-    ifstream nodelistfile;
-    string filepath = LIB_PATH;
-    filepath.append ("nodelist.conf");
-    nodelistfile.open (filepath.c_str());
-    nodelistfile >> token;
-    
-    while (!nodelistfile.eof())
-    {
-        nodelist.push_back (token);
-        nodelistfile >> token;
-    }
+    nodelist = setted.nodelist();
     
     // copy request command to write buffer
     if (strncmp (argv[1], "stop", 4) == 0)

@@ -14,6 +14,7 @@
 #include "cacheclient.hh"
 #include "iwfrequest.hh"
 #include "histogram.hh"
+#include <common/settings.hh>
 
 using namespace std;
 
@@ -40,58 +41,11 @@ void open_server (int port);
 
 int main (int argc, char** argv)
 {
-    // initialize data structures from setup.conf
-    ifstream conf;
-    string token;
-    string confpath = LIB_PATH;
-    confpath.append ("setup.conf");
-    conf.open (confpath.c_str());
     master_connection themaster; // from <orthrus/cacheclient.hh>
-    conf >> token;
-    
-    while (!conf.eof())
-    {
-        if (token == "port")
-        {
-            // ignore and just pass through this case
-            conf >> token;
-        }
-        else if (token == "dhtport")
-        {
-            conf >> token;
-            dhtport = atoi (token.c_str());
-        }
-        else if (token == "max_job")
-        {
-            // ignore and just pass through this case
-            conf >> token;
-        }
-        else if (token == "master_address")
-        {
-            // ignore and just pass through this case
-            conf >> token;
-        }
-        else
-        {
-            cout << "[cacheserver]Unknown configure record: " << token << endl;
-        }
-        
-        conf >> token;
-    }
-    
-    conf.close();
-    // read the node list information
-    ifstream nodelistfile;
-    string filepath = LIB_PATH;
-    filepath.append ("nodelist.conf");
-    nodelistfile.open (filepath.c_str());
-    nodelistfile >> token;
-    
-    while (!nodelistfile.eof())
-    {
-        nodelist.push_back (token);
-        nodelistfile >> token;
-    }
+    Settings setted;
+    setted.load_settings();
+    dhtport = setted.dhtport();
+    nodelist = setted.nodelist();
     
     if (access (IPC_PATH, F_OK) == 0)
     {

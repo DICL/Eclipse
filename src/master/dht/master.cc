@@ -45,18 +45,6 @@ int max_job = -1;
 int jobidclock = 0; // job id starts 0
 bool thread_continue;
 
-
-
-
-
-
-
-
-
-
-
-
-
 vector<string> nodelist;
 
 char read_buf[BUF_SIZE]; // read buffer for signal_listener thread
@@ -98,18 +86,7 @@ int main (int argc, char** argv)
         exit (1);
     }
     
-    // read the node list information
-    ifstream nodelistfile;
-    string filepath = setted.lib_path();
-    filepath.append ("nodelist.conf");
-    nodelistfile.open (filepath.c_str());
-    nodelistfile >> token;
-    
-    while (!nodelistfile.eof())
-    {
-        nodelist.push_back (token);
-        nodelistfile >> token;
-    }
+    nodelist = setted.nodelist();
     
     for (int i = 0; (unsigned) i < nodelist.size(); i++)
     {

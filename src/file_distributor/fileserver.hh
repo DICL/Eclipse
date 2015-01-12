@@ -26,6 +26,7 @@
 #include "iwriter.hh"
 #include "writecount.hh"
 #include <sys/fcntl.h>
+#include <common/settings.hh>
 
 using namespace std;
 
@@ -80,19 +81,10 @@ int fileserver::run_server (int port, string master_address)
     hostfile.open (hostpath.c_str());
     hostfile >> localhostname;
     hostfile.close();
-    ifstream nodelistfile;
-    string filepath = LIB_PATH;
-    filepath.append ("nodelist.conf");
-    nodelistfile.open (filepath.c_str());
-    nodelistfile >> word;
-    
-    while (!nodelistfile.eof())
-    {
-        nodelist.push_back (word);
-        nodelistfile >> word;
-    }
-    
-    nodelistfile.close();
+
+    Settings setted;
+    setted.load_settings();
+    nodelist = setted.nodelist();
     
     if (access (IPC_PATH, F_OK) == 0)
     {

@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <mapreduce/definitions.hh>
+#include <common/settings.hh>
 
 using namespace std;
 
@@ -13,17 +14,11 @@ int main (int argc, char** argv)
     ifstream nodelistfile;
     vector<string> nodelist;
     string token;
-    string filepath = LIB_PATH;
     char buf[BUF_SIZE];
-    filepath.append ("nodelist.conf");
-    nodelistfile.open (filepath.c_str());
-    nodelistfile >> token;
-    
-    while (!nodelistfile.eof())
-    {
-        nodelist.push_back (token);
-        nodelistfile >> token;
-    }
+
+    Settings setted;
+    setted.load_settings();
+    nodelist = setted.nodelist();
     
     // argv[1] name of input file which includes list of input files
     // argv[2] name of output file which will match the input files and target address

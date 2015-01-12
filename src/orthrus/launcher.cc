@@ -13,6 +13,8 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <mapreduce/definitions.hh>
+#include <common/settings.hh>
+#include <exception>
 
 using namespace std;
 
@@ -30,30 +32,20 @@ int main (int argc, const char *argv[])
     // initialize data structures from setup.conf
     string token;
     Settings setted;
-    port = setted.port();
-    dhtport = setted.dhtport();
-    strcpy (master_address, setted.master_addr().c_str());
-    master_is_set = true;
+    setted.load_settings();
 
-    // verify initialization
-    if (port == -1)
+    try
     {
-        cout << "[slave]port should be specified in the setup.conf" << endl;
-        return 1;
+      port = setted.port();
+      dhtport = setted.dhtport();
+      strcpy (master_address, setted.master_addr().c_str());
+      master_is_set = true;
     }
-    
-    if (master_is_set == false)
+    catch (exception& e) 
     {
-        cout << "[slave]master_address should be specified in the setup.conf" << endl;
-        return 1;
+      cout << e.what() << endl;
     }
-    
-    if (dhtport == -1)
-    {
-        cout << "[slave]dht port should be specified in the setup.conf" << endl;
-        return 1;
-    }
-    
+
     // run the file server
     afileserver.run_server (dhtport, master_address);
     return 0;

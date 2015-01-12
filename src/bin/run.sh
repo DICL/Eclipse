@@ -12,7 +12,7 @@ i=0
 for line in `cat $MR_HOME/nodelist.conf`
 do
 	echo "Launching slave $i"
-	ssh $line $MR_HOME/bin/slave &
+	ssh $line 'export ECLIPSE_PATH="'"$ECLIPSE_PATH"'"; '$MR_HOME'/bin/slave' &
 	(( i++ ))
 done
 
@@ -25,7 +25,7 @@ done
 	for line in `cat $MR_HOME/nodelist.conf`
 	do
 		echo "Launching eclipse $i"
-		ssh $line $MR_HOME/bin/eclipse &
+		ssh $line 'export ECLIPSE_PATH="'"$ECLIPSE_PATH"'"; '$MR_HOME'/bin/eclipse' &
 		(( i++ ))
 	done
 #fi
