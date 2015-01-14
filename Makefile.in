@@ -1,6 +1,7 @@
 vpath %.cc src/file_distributor:src/orthrus:src/common
 .PHONY: lib docs src
 
+FS                     = dht
 CXX                    = @CXX@
 CXXFLAGS              ?= -Wall -std=gnu++98 @CXXFLAGS@
 INCLUDE                = -I ./ -I src/ -I src/common/ -I /usr/include/boost141/
