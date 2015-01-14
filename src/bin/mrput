@@ -16,7 +16,8 @@ echo "Generating file list..."
 
 CURPATH=$(readlink -f .)
 
-for (( i=1; i<$#; i++ ))
+numarg=$#
+for (( i=0; i<numarg; i++ ))
 do
 	if [ -d $1 ]
 	then

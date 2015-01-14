@@ -21,10 +21,9 @@ using namespace std;
 
 
 #define DHT_PATH "/scratch/youngmoon01/mr_storage/"
-#define MR_PATH "/home/vicente/mr_storage/"
-#define IPC_PATH "/scratch/youngmoon01/socketfile2"
-//#define LIB_PATH "/home/vicente/Eclipse/build/"
-//#define LIB_PATH (getenv("ECLIPSE_PATH"))
+#define MR_PATH "/home/youngmoon01/mr_storage/"
+#define IPC_PATH "/scratch/youngmoon01/socketfile"
+#define LIB_PATH "/home/youngmoon01/MRR/src/"
 #define BUF_SIZE (8*1024) // determines maximum size of a record
 #define BUF_THRESHOLD (7*1024) // the buffer flush threshold
 #define BUF_CUT 512
