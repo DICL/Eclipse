@@ -18,12 +18,9 @@ AC_CHECK_HEADERS([boost/foreach.hpp \
                   boost/property_tree/exceptions.hpp], [], [have_boost=no]) 
 
 if test "x${have_boost}" = xno; then
-  echo "Is it Centos? lets find it with other path..."
+  AC_MSG_NOTICE([Is it Centos? assuming path /usr/include/boost141/])
   AC_SUBST(include, ["-I /usr/include/boost141/"])
-  AC_CHECK_HEADERS([boost141/boost/foreach.hpp \
-                    boost141/boost/property_tree/json_parser.hpp \
-                    boost141/boost/property_tree/exceptions.hpp], [], [])
-#                   [AC_MSG_ERROR([Impossible to find boost library])])
+  AC_MSG_WARN([If it doesnt compile, set CPLUS_INCLUDE_PATH env to boost include path])
 fi 
 AC_LANG_POP([C++])
 # }}} 

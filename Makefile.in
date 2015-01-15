@@ -24,7 +24,8 @@ ifeq ($(FS), dht)
  SRCTARGETS           += slave master client mcc 
 endif 
 
-OBJECTS                = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(filter-out eclipse,$(SRCTARGETS) launcher))) 
+OBJECTS                = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(filter-out eclipse,$(SRCTARGETS) \
+												 launcher settings))) 
 TARGETS               := $(addprefix $(BLDDIR)/, $(filter-out hash, $(SRCTARGETS)))
 
 $(BLDDIR)/% : $(OBJDIR)/%.o
