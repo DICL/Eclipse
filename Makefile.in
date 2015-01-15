@@ -4,7 +4,7 @@ vpath %.cc src/file_distributor:src/orthrus:src/common
 FS                     = dht
 CXX                    = @CXX@
 CXXFLAGS              ?= -Wall -std=gnu++98 @CXXFLAGS@
-INCLUDE                = -I ./ -I src/ -I src/common/ -I /usr/include/boost141/
+INCLUDE                = -I ./ -I src/ -I src/common/ @include@
 LDFLAGS                = -lpthread 
 package                = @PACKAGE_NAME@
 version                = @PACKAGE_VERSION@
