@@ -15,6 +15,7 @@
 #include <pthread.h>
 #include <netdb.h>
 #include <mapreduce/definitions.hh>
+#include "../common/settings.hh"
 
 using namespace std;
 
@@ -39,48 +40,14 @@ int main (int argc, char** argv)
         return 1;
     }
     
-    // initialize data structures from setup.conf
-    ifstream conf;
     string token;
-    string confpath = LIB_PATH;
-    confpath.append ("setup.conf");
-    conf.open (confpath.c_str());
-    conf >> token;
-    
-    while (!conf.eof())
-    {
-        if (token == "port")
-        {
-            conf >> token;
-            port = atoi (token.c_str());
-        }
-        else if (token == "dhtport")
-        {
-            conf >> token;
-            dhtport = atoi (token.c_str());
-        }
-        else if (token == "max_job")
-        {
-            // ignore and just pass through this case
-            conf >> token;
-        }
-        else if (token == "master_address")
-        {
-            conf >> token;
-            memset (master_address, 0, token.length() + 1);
-            strcpy (master_address, token.c_str());
-            master_is_set = true;
-        }
-        else
-        {
-            cout << "[client]Unknown configure record: " << token << endl;
-        }
-        
-        conf >> token;
-    }
-    
-    conf.close();
-    
+    Settings setted;
+    setted.load_settings();
+    port = setted.port();
+    dhtport = setted.dhtport();
+    strcpy (master_address, setted.master_addr().c_str());
+    master_is_set = true;
+
     // verify initialization
     if (port == -1)
     {
@@ -94,18 +61,7 @@ int main (int argc, char** argv)
         exit (1);
     }
     
-    // read the node list information
-    ifstream nodelistfile;
-    string filepath = LIB_PATH;
-    filepath.append ("nodelist.conf");
-    nodelistfile.open (filepath.c_str());
-    nodelistfile >> token;
-    
-    while (!nodelistfile.eof())
-    {
-        nodelist.push_back (token);
-        nodelistfile >> token;
-    }
+    nodelist = setted.nodelist();
     
     // copy request command to write buffer
     if (strncmp (argv[1], "stop", 4) == 0)

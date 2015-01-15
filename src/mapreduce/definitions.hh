@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+#include <config.h>
+
 using namespace std;
 
 // HDFS
