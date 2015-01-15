@@ -34,7 +34,7 @@ $(OBJDIR)/%.o : %.cc
 	$(CXX) $(CXXFLAGS)  $(INCLUDE) -c $^ -o $@
 
 #Setup recipes ---------------------------------------------------------
-all: src/common/settings.hh.gch $(OBJECTS) $(TARGETS) binaries 
+all: mkdir src/common/settings.hh.gch $(OBJECTS) $(TARGETS) binaries 
 
 $(OBJDIR)/master.o    : INCLUDE := -include src/common/settings.hh $(INCLUDE) -I /usr/include/boost141/
 $(OBJDIR)/client.o    : INCLUDE := -include src/common/settings.hh $(INCLUDE) -I /usr/include/boost141/
@@ -53,6 +53,9 @@ $(BLDDIR)/eclipse     : $(OBJDIR)/launcher.o $(OBJDIR)/hash.o $(OBJDIR)/settings
 
 src/common/settings.hh.gch : src/common/settings.hh
 	$(CXX) $(CXXFLAGS) $(INCLUDE) $^
+
+mkdir: 
+	-mkdir $(OBJDIR)
 
 binaries : ; -rsync -a src/bin/ $(BLDDIR)
 lib      : ; -$(MAKE) -C lib/ -j16

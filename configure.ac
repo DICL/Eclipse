@@ -20,10 +20,10 @@ AC_CHECK_HEADERS([boost/foreach.hpp \
 if test "x${have_boost}" = xno; then
   echo "Is it Centos? lets find it with other path..."
   AC_SUBST(include, ["-I /usr/include/boost141/"])
-  AC_CHECK_HEADERS([boost/foreach.hpp \
-                    boost/property_tree/json_parser.hpp \
-                    boost/property_tree/exceptions.hpp], [],
-                   [AC_MSG_ERROR([Impossible to find boost library])])
+  AC_CHECK_HEADERS([boost141/boost/foreach.hpp \
+                    boost141/boost/property_tree/json_parser.hpp \
+                    boost141/boost/property_tree/exceptions.hpp], [], [])
+#                   [AC_MSG_ERROR([Impossible to find boost library])])
 fi 
 AC_LANG_POP([C++])
 # }}} 
