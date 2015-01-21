@@ -16,6 +16,7 @@
 #include <common/fileclient.hh>
 #include <common/msgaggregator.hh>
 #include <common/hash.hh>
+#include <common/settings.hh>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/unistd.h>
@@ -132,6 +133,26 @@ void init_mapreduce (int argc, char** argv)
         role = JOB;
     }
     
+	Settings setted;
+	setted.load_settings();
+
+	try
+	{
+		port = setted.port();
+		dhtport = setted.dhtport();
+		strcpy (master_address, setted.master_addr().c_str());
+	}
+	catch (exception& e)
+	{
+		cout << e.what() << endl;
+	}
+
+
+
+
+
+
+	/*
     ifstream conf;
     string token;
     string confpath = LIB_PATH;
@@ -171,19 +192,8 @@ void init_mapreduce (int argc, char** argv)
     }
     
     conf.close();
-    
-    // verify initialization
-    if (port == -1)
-    {
-        cout << "Port should be specified in the setup.conf" << endl;
-        exit (1);
-    }
-    
-    if (master_is_set == false)
-    {
-        cout << "Master_address should be specified in the setup.conf" << endl;
-        exit (1);
-    }
+	*/
+
     
     if (role == JOB)     // when the role is job
     {

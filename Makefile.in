@@ -56,7 +56,7 @@ src/common/settings.hh.gch : src/common/settings.hh
 	$(CXX) $(CXXFLAGS) $(INCLUDE) $^
 
 mkdir: 
-	-mkdir $(OBJDIR)
+	-mkdir -p $(OBJDIR)
 
 binaries : ; -rsync -a src/bin/ $(BLDDIR)
 lib      : ; -$(MAKE) -C lib/ -j16

@@ -22,20 +22,27 @@ int main (int argc, char** argv)
         cout << "\t (If using those words as arguments is inevitable, please avoid them to be the last argument.)" << endl;
     }
     
-    char** argvalue = new char*[argc + 6];
+    char** argvalue = new char*[argc + 11];
     //argvalue[0] = "/usr/bin/g++";
-    argvalue[0] = new char[strlen ("/usr/bin/g++") + 1];
-    memset (argvalue[0], 0, strlen ("/usr/bin/g++") + 1);
-    strcpy (argvalue[0], "/usr/bin/g++");
+    argvalue[0] = new char[strlen ("/opt/centos/devtoolset-1.1/root/usr/bin/c++") + 1];
+    memset (argvalue[0], 0, strlen ("/opt/centos/devtoolset-1.1/root/usr/bin/c++") + 1);
+    strcpy (argvalue[0], "/opt/centos/devtoolset-1.1/root/usr/bin/c++");
      
     Settings setted;
-    setted.load_settings();
+    setted.load_settings ();
 
-    string strPATH = setted.lib_path();
-    string libpath = strPATH;
-    libpath.append ("mapreduce/dht/");
-    string hashpath = setted.lib_path();
-    hashpath.append ("common/hash.o");
+    string strPATH = setted.lib_path ();
+    string libpath = setted.lib_path ();
+	string configpath = setted.lib_path ();
+    string hashpath = setted.lib_path ();
+	string settingpath = setted.lib_path ();
+	string boostpath = "/usr/include/boost141/";
+
+    libpath.append ("../src/mapreduce/dht/");
+	strPATH.append ("../src/");
+    hashpath.append ("objs/hash.o");
+	settingpath.append ("objs/settings.o");
+	configpath.append ("../");
     
     for (int i = 1; i < argc; i++)
     {
@@ -47,19 +54,46 @@ int main (int argc, char** argv)
     argvalue[argc] = new char[3];
     memset (argvalue[argc], 0, strlen ("-I") + 1);
     strcpy (argvalue[argc], "-I");
+
     argvalue[argc + 1] = new char[libpath.length() + 1];
-    memset (argvalue[argc + 1], 0, strlen (libpath.c_str()) + 1);
+    memset (argvalue[argc + 1], 0, libpath.length() + 1);
     strcpy (argvalue[argc + 1], libpath.c_str());
+
     argvalue[argc + 2] = new char[3];
     memset (argvalue[argc + 2], 0, strlen ("-I") + 1);
     strcpy (argvalue[argc + 2], "-I");
+
     argvalue[argc + 3] = new char[strlen (strPATH.c_str()) + 1];
     memset (argvalue[argc + 3], 0, strlen (strPATH.c_str()) + 1);
     strcpy (argvalue[argc + 3], strPATH.c_str());
+
     argvalue[argc + 4] = new char[hashpath.length() + 1];
-    memset (argvalue[argc + 4], 0, strlen (hashpath.c_str()) + 1);
+    memset (argvalue[argc + 4], 0, hashpath.length() + 1);
     strcpy (argvalue[argc + 4], hashpath.c_str());
-    argvalue[argc + 5] = NULL;
+
+	argvalue[argc + 5] = new char[3];
+	memset (argvalue[argc + 5], 0, strlen ("-I") + 1);
+	strcpy (argvalue[argc + 5], "-I");
+
+	argvalue[argc + 6] = new char[configpath.length() + 1];
+	memset (argvalue[argc + 6], 0, configpath.length() + 1);
+	strcpy (argvalue[argc + 6], configpath.c_str());
+
+	argvalue[argc + 7] = new char[3];
+	memset (argvalue[argc + 7], 0, strlen ("-I") + 1);
+	strcpy (argvalue[argc + 7], "-I");
+
+	argvalue[argc + 8] = new char[boostpath.length() + 1];
+	memset (argvalue[argc + 8], 0, boostpath.length() + 1);
+	strcpy (argvalue[argc + 8], boostpath.c_str());
+
+    argvalue[argc + 9] = new char[settingpath.length() + 1];
+    memset (argvalue[argc + 9], 0, settingpath.length() + 1);
+    strcpy (argvalue[argc + 9], settingpath.c_str());
+
+    argvalue[argc + 10] = NULL;
     execv (argvalue[0], argvalue);
+
+
     return 0;
 }
