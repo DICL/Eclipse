@@ -1,0 +1,9 @@
+#
+#
+#
+language: cpp
+
+script: 
+  - autoreconf 
+  - sh configure
+  - make -j16
