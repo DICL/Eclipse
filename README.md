@@ -1,4 +1,4 @@
-![Eclipse](https://raw.github.com/DICL/Eclipse/master/logo.png "Logo")
+[![Build Status](https://magnum.travis-ci.com/DICL/Eclipse.svg?token=MaWCP2sHsbC2FaU6ztsx)](https://magnum.travis-ci.com/DICL/Eclipse)
 
 AUTHOR
 ======
