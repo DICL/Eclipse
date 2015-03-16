@@ -10,23 +10,6 @@ if test -z ${CXXFLAGS}; then
 fi
 AC_PROG_CXX
 
-# Checks for boost library {{{
-have_boost=yes
-AC_LANG_PUSH([C++])
-AC_CHECK_HEADERS([boost/foreach.hpp \
-                  boost/property_tree/json_parser.hpp \
-                  boost/property_tree/exceptions.hpp], [], [have_boost=no]) 
-
-if test "x${have_boost}" = xno; then
-  AC_MSG_NOTICE([Is it Centos? assuming path /usr/include/boost141/])
-  AC_SUBST(include, ["-I /usr/include/boost141/"])
-  AC_MSG_WARN([If it doesnt compile, set CPLUS_INCLUDE_PATH env to boost include path])
-fi 
-AC_LANG_POP([C++])
-# }}} 
-# Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h stddef.h stdint.h stdlib.h string.h sys/socket.h sys/time.h unistd.h])
-
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
 AC_C_INLINE
@@ -37,15 +20,65 @@ AC_TYPE_UINT8_T
 
 AC_HEADER_STDC
 
-AC_OUTPUT
-echo \
-"-------------------------------------------------
+# Check for binaries
+AC_CHECK_PROG([have_ssh], [ssh], [yes], [no])
+AC_CHECK_PROG([have_scp], [scp], [yes], [no])
+AC_CHECK_PROG([have_astyle], [astyle], [yes], [no])
 
+AC_LANG([C++])
+# BOOST LIB {{{
+have_boost=no
+AC_CHECK_HEADERS([boost/foreach.hpp \
+                  boost/property_tree/json_parser.hpp \
+                  boost/property_tree/exceptions.hpp], [have_boost=yes])
+
+if test "x${have_boost}" = xno; then
+  echo -e "
+------------------------------------------------------
+  Unable to find Boost library in the canonical path
+  Is it Centos? assuming path /usr/include/boost141/
+------------------------------------------------------\n"
+
+  CPPFLAGS='-I /usr/include/boost141'
+  AS_UNSET([ac_cv_header_boost_foreach_hpp])
+  AS_UNSET([ac_cv_header_boost_property_tree_json_parser_hpp])
+  AS_UNSET([ac_cv_header_boost_property_tree_exceptions_hpp])
+
+  AC_CHECK_HEADERS([boost/foreach.hpp \
+                  boost/property_tree/json_parser.hpp \
+                  boost/property_tree/exceptions.hpp], [have_boost=yes])
+
+  if test "x${have_boost}" = xno; then
+    echo -e "
+------------------------------------------------------
+  I cannot find where you have the boost header files.
+  Re-run configure script in this way:
+  \033@<:@31m
+    $ CPLUS_INCLUDE_PATH=/path/to/boost ./configure
+  \033@<:@0m
+------------------------------------------------------\n"
+    AC_MSG_ERROR
+  fi
+fi 
+# }}} 
+# Checks for header files.
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h stddef.h stdint.h stdlib.h string.h sys/socket.h sys/time.h unistd.h])
+
+AC_SEARCH_LIBS([pthread_create], [pthread])
+
+AC_OUTPUT
+echo -e "\
+-------------------------------------------------
+ \033@<:@31m
  ${PACKAGE_NAME} Version ${PACKAGE_VERSION}
- 
- Prefix:   '${prefix}'.
- Compiler: '${CXX} ${CXXFLAGS}'
- Includes: '${include}' 
+ \033@<:@0m
+ Prefix.......: $prefix
+ C++ Compiler.: $CXX $CXXFLAGS $CPPFLAGS
+ LIBS.........: $LIBS
+ DEFS.........: $DEFS
+ Have ssh?....: $have_ssh
+ Have scp?....: $have_scp
+ Have astyle?.: $have_astyle
  
  Now type 'make FS=@<:@<type>@:>@ @<:@<target>@:>@'
  where type is:

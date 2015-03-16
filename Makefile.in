@@ -1,11 +1,11 @@
-vpath %.cc src/file_distributor:src/orthrus:src/common
+vpath %.cc @srcdir@/src/file_distributor:@srcdir@/src/orthrus:@srcdir@/src/common
 .PHONY: lib docs src
 
 FS                     = dht
 CXX                    = @CXX@
-CXXFLAGS              ?= -Wall -std=gnu++98 @CXXFLAGS@
-INCLUDE                = -I ./ -I src/ -I src/common/ @include@
-LDFLAGS                = -lpthread 
+CXXFLAGS              ?= -Wall -std=gnu++98 @CXXFLAGS@ @DEFS@
+INCLUDE                = -I ./ -I @srcdir@/src/ -I @srcdir@/src/common/ @CPPFLAGS@
+LIBS                   = @LIBS@
 package                = @PACKAGE_NAME@
 version                = @PACKAGE_VERSION@
 prefix                 = @prefix@
@@ -20,7 +20,7 @@ SRCTARGETS             = cacheserver mrcat_core mrrm_core fd_core eclipse hash
 
 # DHT mode -------------------------------------------------------------
 ifeq ($(FS), dht)
- vpath %.cc src/master/dht:src/slave/dht:src/client/dht:src/mcc/dht
+ vpath %.cc @srcdir@/src/master/dht:@srcdir@/src/slave/dht:@srcdir@/src/client/dht:@srcdir@/src/mcc/dht
  SRCTARGETS           += slave master client mcc 
 endif 
 
@@ -29,18 +29,18 @@ OBJECTS                = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(filter-out ec
 TARGETS               := $(addprefix $(BLDDIR)/, $(filter-out hash, $(SRCTARGETS)))
 
 $(BLDDIR)/% : $(OBJDIR)/%.o
-	$(CXX) $(CXXFLAGS)  $^ -o $@ $(LDFLAGS)
+	$(CXX) $(CXXFLAGS)  $^ -o $@ $(LIBS)
 
 $(OBJDIR)/%.o : %.cc 
 	$(CXX) $(CXXFLAGS)  $(INCLUDE) -c $< -o $@
 
 #Setup recipes ---------------------------------------------------------
-all: mkdir src/common/settings.hh.gch $(OBJECTS) $(TARGETS) binaries 
+all: mkdir @srcdir@/src/common/settings.hh.gch $(OBJECTS) $(TARGETS) binaries 
 
-$(OBJDIR)/master.o    : INCLUDE := -include src/common/settings.hh $(INCLUDE) -I /usr/include/boost141/
-$(OBJDIR)/client.o    : INCLUDE := -include src/common/settings.hh $(INCLUDE) -I /usr/include/boost141/
-$(OBJDIR)/launcher.o  : INCLUDE := -include src/common/settings.hh $(INCLUDE) -I /usr/include/boost141/
-$(OBJDIR)/launcher.o  : src/file_distributor/fileserver.hh
+$(OBJDIR)/master.o    : INCLUDE := -include @srcdir@/src/common/settings.hh $(INCLUDE) -I /usr/include/boost141/
+$(OBJDIR)/client.o    : INCLUDE := -include @srcdir@/src/common/settings.hh $(INCLUDE) -I /usr/include/boost141/
+$(OBJDIR)/launcher.o  : INCLUDE := -include @srcdir@/src/common/settings.hh $(INCLUDE) -I /usr/include/boost141/
+$(OBJDIR)/launcher.o  : @srcdir@/src/file_distributor/fileserver.hh
 
 $(BLDDIR)/master      : $(OBJDIR)/master.o $(OBJDIR)/hash.o $(OBJDIR)/settings.o
 $(BLDDIR)/client      : $(OBJDIR)/client.o $(OBJDIR)/settings.o
@@ -51,23 +51,25 @@ $(BLDDIR)/mrcat_core  : $(OBJDIR)/mrcat_core.o $(OBJDIR)/hash.o $(OBJDIR)/settin
 $(BLDDIR)/mrrm_core   : $(OBJDIR)/mrrm_core.o $(OBJDIR)/hash.o $(OBJDIR)/settings.o
 $(BLDDIR)/fd_core     : $(OBJDIR)/fd_core.o $(OBJDIR)/hash.o $(OBJDIR)/settings.o
 $(BLDDIR)/eclipse     : $(OBJDIR)/launcher.o $(OBJDIR)/hash.o $(OBJDIR)/settings.o
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
 
 src/common/settings.hh.gch : src/common/settings.hh
 	$(CXX) $(CXXFLAGS) $(INCLUDE) $^
 
 mkdir: 
-	-mkdir $(OBJDIR)
+	[ ! -e build ]     && mkdir build
+	[ ! -e $(OBJDIR) ] && mkdir $(OBJDIR)
+	[ ! -e $(BLDDIR) ] && mkdir $(BLDDIR)
+	[ ! -e build/etc ] && mkdir build/etc
 
-binaries : ; -rsync -a src/bin/ $(BLDDIR)
+binaries : ; -rsync -a @srcdir@/src/bin/ $(BLDDIR); rsync -a @srcdir@/src/sample/eclipse.json build/etc
 lib      : ; -$(MAKE) -C lib/ -j16
-clean    : ; -rm $(TARGETS) $(OBJECTS)
+clean    : ; -rm -rf build config.log config.status Makefile config.h
 style    : ; astyle $(ARTISTIC_STYLE_OPTIONS) $(SRC)
 tags     : ; -ctags -R --c++-kinds=+p --fields=+iaS --extra=+q -o .tags .
 
 distclean: clean
-	-rm config.h config.h.in config.h.in~ autoscan.log config.log config.status \
-  configure Makefile autom4te.cache/ tags -rf
+	-rm @srcdir@/{config.h.in,config.h.in~,autoscan.log,configure,tags,autom4te.cache/} -rf
 
 dist: distclean
 	tar -cvzf ECLIPSE_$(version)`date +"%d-%m-%y"`.tar.gz ./*
