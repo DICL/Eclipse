@@ -39,7 +39,7 @@ int main (int argc, char** argv)
     Settings setted;
     port = setted.port();
     dhtport = setted.dhtport();
-    strcpy (master_address, setted.master_addr());
+    strcpy (master_address, setted.master_addr().c_str());
     master_is_set = true;
     
     // verify initialization

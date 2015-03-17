@@ -1,4 +1,5 @@
 AC_INIT([Eclipse], [00.12.23])
+AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_HEADERS([config.h])
 
@@ -17,10 +18,11 @@ AC_PROG_CXX
 #AC_TYPE_UINT16_T
 #AC_TYPE_UINT32_T
 #AC_TYPE_UINT8_T
-#
 #AC_HEADER_STDC
+
 AH_TEMPLATE([HELLO], [Important thins])
 AM_SILENT_RULES([yes])
+AM_CONDITIONAL(FS_IS_DHT,[echo "true"])
 
 # Check for binaries
 AC_CHECK_PROG([have_ssh], [ssh], [yes], [no])
