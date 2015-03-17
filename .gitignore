@@ -35,4 +35,4 @@ autoscan.log
 src/common/settings.hh.gch
 
 #Build
-build/bin/*
+build/*

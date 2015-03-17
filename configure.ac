@@ -1,4 +1,5 @@
-AC_INIT([Eclipse], [00.12.23])
+AC_INIT([Eclipse], [00.13.15])
+AC_CONFIG_AUX_DIR([./.autotools_aux])
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_HEADERS([config.h])

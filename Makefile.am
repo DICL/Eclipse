@@ -7,7 +7,7 @@ AM_CXXFLAGS = -Wall -std=gnu++98
 bin_PROGRAMS = client slave master eclipse mcc cacheserver mrcat_core mrrm_core fd_core
 
 if FS_IS_DHT
-client_SOURCES = src/client/client.cc src/common/settings.cc
+client_SOURCES = src/client/dht/client.cc src/common/settings.cc
 slave_SOURCES =  src/slave/dht/slave.cc src/common/settings.cc
 master_SOURCES = src/master/dht/master.cc src/common/settings.cc src/common/hash.cc
 mcc_SOURCES = src/mcc/dht/mcc.cc src/common/settings.cc
@@ -23,6 +23,7 @@ fd_core_SOURCES = src/file_distributor/fd_core.cc src/common/settings.cc src/com
 bin_SCRIPTS  = $(wildcard @srcdir@/src/bin/*)
 
 sysconf_DATA = src/sample/eclipse.json
+EXTRA_DIST = lib doc tests .autotools_aux src
 
-superclean: distclean
-	-rm -rf @srcdir@/{autom4te.cache,aclocal.m4,compile,config.h.in,configure,depcomp,install-sh,Makefile.in,missing}
+distclean-local:
+	-rm -rf @srcdir@/{autom4te.cache,aclocal.m4,config.h.in,*~,configure,Makefile.in,.autotools_aux}
