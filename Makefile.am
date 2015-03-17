@@ -1,7 +1,8 @@
 AUTOMAKE_OPTIONS = subdir-objects #copy the structure of the source directory
 
 AM_CPPFLAGS = -I@srcdir@/src/common -I@srcdir@/src
-AM_CXXFLAGS = -Wall -std=gnu++98 @CXXFLAGS@
+AM_CXXFLAGS = -Wall -std=gnu++98 
+# @CXXFLAGS@
 
 bin_PROGRAMS = client slave master eclipse mcc cacheserver mrcat_core mrrm_core fd_core
 
@@ -21,9 +22,7 @@ fd_core_SOURCES = src/file_distributor/fd_core.cc src/common/settings.cc src/com
 
 bin_SCRIPTS  = $(wildcard @srcdir@/src/bin/*)
 
-etcdir = $(prefix)/etc
-etc_DATA = src/sample/eclipse.json \
-					 src/sample/setup.conf
+sysconf_DATA = src/sample/eclipse.json
 
 superclean: distclean
 	-rm -rf @srcdir@/{autom4te.cache,aclocal.m4,compile,config.h.in,configure,depcomp,install-sh,Makefile.in,missing}

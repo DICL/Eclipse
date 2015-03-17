@@ -2,6 +2,7 @@ AC_INIT([Eclipse], [00.12.23])
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIRS([./m4/])
 
 AC_PROG_CC
 AC_PROG_MAKE_SET
@@ -12,17 +13,15 @@ fi
 AC_PROG_CXX
 
 # Checks for typedefs, structures, and compiler characteristics.
-#AC_HEADER_STDBOOL
-#AC_C_INLINE
-#AC_TYPE_SIZE_T
-#AC_TYPE_UINT16_T
-#AC_TYPE_UINT32_T
-#AC_TYPE_UINT8_T
-#AC_HEADER_STDC
+AC_TYPE_SIZE_T
+AC_TYPE_UINT16_T
+AC_TYPE_UINT32_T
+AC_TYPE_UINT8_T
+AC_HEADER_STDC
 
-AH_TEMPLATE([HELLO], [Important thins])
+filesystem=DHT
 AM_SILENT_RULES([yes])
-AM_CONDITIONAL(FS_IS_DHT,[echo "true"])
+AM_CONDITIONAL(FS_IS_DHT,[test "$filesystem" = "DHT"])
 
 # Check for binaries
 AC_CHECK_PROG([have_ssh], [ssh], [yes], [no])
@@ -38,10 +37,10 @@ AC_CHECK_HEADERS([boost/foreach.hpp \
 
 if test "${have_boost}" = "no"; then
   echo -e "
-------------------------------------------------------
-  Unable to find Boost library in the canonical path
-  Is it Centos? assuming path /usr/include/boost141/
-------------------------------------------------------\n"
+-------------------------------------------------
+ Unable to find Boost library in the canonical path
+ Is it Centos? assuming path /usr/include/boost141/
+-------------------------------------------------\n"
 
   #export CPLUS_INCLUDE_PATH='/usr/include/boost141'
   CPPFLAGS='-I /usr/include/boost141'
@@ -54,14 +53,14 @@ if test "${have_boost}" = "no"; then
                   boost/property_tree/exceptions.hpp], [have_boost=yes])
 
   if test "${have_boost}" = "no"; then
-    echo -e "
-------------------------------------------------------
-  I cannot find where you have the boost header files.
-  Re-run configure script in this way:
-  \033@<:@31m
-    $ CPLUS_INCLUDE_PATH=/path/to/boost ./configure
-  \033@<:@0m
-------------------------------------------------------\n"
+    WARN([
+-------------------------------------------------
+ I cannot find where you have the boost header files...
+ Re-run configure script in this way:
+ \033@<:@31m
+   $ CPLUS_INCLUDE_PATH=/path/to/boost ./configure
+ \033@<:@0m
+-------------------------------------------------\n])
     AC_MSG_ERROR
   fi
 fi 
@@ -71,29 +70,34 @@ AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h stddef.h stdint.h stdlib.h string.
 
 AC_SEARCH_LIBS([pthread_create], [pthread])
 
+FULLY_EVAL(["$sysconfdir"], [sysconfdirfull])
+
 AC_OUTPUT
-echo -e "\
+WARN([\
 -------------------------------------------------
  \033@<:@31m
  ${PACKAGE_NAME} Version ${PACKAGE_VERSION}
  \033@<:@0m
- Prefix.......: $prefix
- C++ Compiler.: $CXX $CXXFLAGS $CPPFLAGS
- LIBS.........: $LIBS
- DEFS.........: $DEFS
- Have ssh?....: $have_ssh
- Have scp?....: $have_scp
- Have astyle?.: $have_astyle
+ Paths
+ -----
+ Prefix...........: $prefix
+ Sysconfdir(etc)..: $sysconfdirfull
+
+ Dependencies
+ ------------
+ C++ Compiler.....: $CXX $CXXFLAGS $CPPFLAGS
+ LIBS.............: $LIBS
+ Have Boost.......: $have_boost
+ Have ssh?........: $have_ssh
+ Have scp?........: $have_scp
+ Have astyle?.....: $have_astyle
  
- Now type 'make FS=@<:@<type>@:>@ @<:@<target>@:>@'
- where type is:
- dht                - description
- nfs                - description
- hdfs               - description
+ Now type 'make @<:@-j<processors>@:>@ @<:@<target>@:>@'
+ where processors indicate how many threads you want to use
  
  where the optional <target> is:
  all|'nothing'      - build all binaries
- install            - install everything
+ install            - install everything at $prefix
     
---------------------------------------------------"
+-------------------------------------------------])
 # vim: foldmethod=marker
