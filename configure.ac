@@ -11,14 +11,16 @@ fi
 AC_PROG_CXX
 
 # Checks for typedefs, structures, and compiler characteristics.
-AC_HEADER_STDBOOL
-AC_C_INLINE
-AC_TYPE_SIZE_T
-AC_TYPE_UINT16_T
-AC_TYPE_UINT32_T
-AC_TYPE_UINT8_T
-
-AC_HEADER_STDC
+#AC_HEADER_STDBOOL
+#AC_C_INLINE
+#AC_TYPE_SIZE_T
+#AC_TYPE_UINT16_T
+#AC_TYPE_UINT32_T
+#AC_TYPE_UINT8_T
+#
+#AC_HEADER_STDC
+AH_TEMPLATE([HELLO], [Important thins])
+AM_SILENT_RULES([yes])
 
 # Check for binaries
 AC_CHECK_PROG([have_ssh], [ssh], [yes], [no])
@@ -32,13 +34,14 @@ AC_CHECK_HEADERS([boost/foreach.hpp \
                   boost/property_tree/json_parser.hpp \
                   boost/property_tree/exceptions.hpp], [have_boost=yes])
 
-if test "x${have_boost}" = xno; then
+if test "${have_boost}" = "no"; then
   echo -e "
 ------------------------------------------------------
   Unable to find Boost library in the canonical path
   Is it Centos? assuming path /usr/include/boost141/
 ------------------------------------------------------\n"
 
+  #export CPLUS_INCLUDE_PATH='/usr/include/boost141'
   CPPFLAGS='-I /usr/include/boost141'
   AS_UNSET([ac_cv_header_boost_foreach_hpp])
   AS_UNSET([ac_cv_header_boost_property_tree_json_parser_hpp])
@@ -48,7 +51,7 @@ if test "x${have_boost}" = xno; then
                   boost/property_tree/json_parser.hpp \
                   boost/property_tree/exceptions.hpp], [have_boost=yes])
 
-  if test "x${have_boost}" = xno; then
+  if test "${have_boost}" = "no"; then
     echo -e "
 ------------------------------------------------------
   I cannot find where you have the boost header files.
