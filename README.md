@@ -29,9 +29,9 @@ Call the configure script(use the prefix argument for a local installation)
     $ sh ../eclipse/path/../configure 
 
 Compile and install
+
     $ make
     $ make install
-
 
 TODO LIST
 =========
