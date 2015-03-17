@@ -26,4 +26,4 @@ etc_DATA = src/sample/eclipse.json \
 					 src/sample/setup.conf
 
 superclean: distclean
-	-rm -rf @srcdir@/{autom4te.cache,aclocal.m4,compile,config.h.in,configure,depcomp,install-sh,Makefile.in,missing,README.md}
+	-rm -rf @srcdir@/{autom4te.cache,aclocal.m4,compile,config.h.in,configure,depcomp,install-sh,Makefile.in,missing}
