@@ -37,9 +37,9 @@ $(OBJDIR)/%.o : %.cc
 #Setup recipes ---------------------------------------------------------
 all: mkdir src/common/settings.hh.gch $(OBJECTS) $(TARGETS) binaries 
 
-$(OBJDIR)/master.o    : INCLUDE := -include src/common/settings.hh $(INCLUDE) -I /usr/include/boost141/
-$(OBJDIR)/client.o    : INCLUDE := -include src/common/settings.hh $(INCLUDE) -I /usr/include/boost141/
-$(OBJDIR)/launcher.o  : INCLUDE := -include src/common/settings.hh $(INCLUDE) -I /usr/include/boost141/
+$(OBJDIR)/master.o    : INCLUDE := -include src/common/settings.hh $(INCLUDE) 
+$(OBJDIR)/client.o    : INCLUDE := -include src/common/settings.hh $(INCLUDE) 
+$(OBJDIR)/launcher.o  : INCLUDE := -include src/common/settings.hh $(INCLUDE) 
 $(OBJDIR)/launcher.o  : src/file_distributor/fileserver.hh
 
 $(BLDDIR)/master      : $(OBJDIR)/master.o $(OBJDIR)/hash.o $(OBJDIR)/settings.o
