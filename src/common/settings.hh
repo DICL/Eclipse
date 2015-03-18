@@ -6,8 +6,6 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#define FINAL_PATH "/etc/eclipse.json"
-
 using std::string;
 using std::vector;
 using namespace boost::property_tree;

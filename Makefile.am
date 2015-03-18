@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = subdir-objects #copy the structure of the source directory
 
-AM_CPPFLAGS = -I@srcdir@/src/common -I@srcdir@/src
+AM_CPPFLAGS = -I@srcdir@/src/common -I@srcdir@/src -include ./config.h
 AM_CXXFLAGS = -Wall -std=gnu++98 
 # @CXXFLAGS@
 
@@ -25,5 +25,21 @@ bin_SCRIPTS  = $(wildcard @srcdir@/src/bin/*)
 sysconf_DATA = src/sample/eclipse.json
 EXTRA_DIST = lib doc tests .autotools_aux src
 
+
 distclean-local:
 	-rm -rf @srcdir@/{autom4te.cache,aclocal.m4,config.h.in,*~,configure,Makefile.in,.autotools_aux}
+
+clean-local:
+	-rm src -rf 
+
+install-data-hook: ; \
+  input_path="@prefix@"                                           ;\
+  path=$${input_path//\//\\/}                                     ;\
+  input_confpath="@sysconfdir@"                                   ;\
+  confpath=$${input_confpath//\//\\/}                             ;\
+  for i in @bindir@/*; do                                          \
+    if [[ ! `file $${i}` =~ "ELF" ]]; then                         \
+      sed -i "s/\$$ECLIPSE_PATH/$${path}/g" $$i                   ;\
+      sed -i "s/\$$ECLIPSE_CONF_PATH/$${confpath}/g" $$i          ;\
+    fi                                                             \
+  done

@@ -6,14 +6,14 @@
 #include <boost/property_tree/exceptions.hpp>
 #include <boost/foreach.hpp>
 
-#define FINAL_PATH "/etc/eclipse.json"
+#define FINAL_PATH "/eclipse.json"
 
 using std::cout;
 using std::endl;
 
 bool Settings::get_project_path () 
 {
-  project_path = getenv ("ECLIPSE_PATH");
+  project_path = string(ECLIPSE_CONF_PATH); 
   config_path = project_path + FINAL_PATH;
   return true;
 }

@@ -2,7 +2,7 @@
 
 echo "Launching master..."
 $ECLIPSE_PATH/bin/master &
-NODELIST=$(cat $ECLIPSE_PATH/etc/eclipse.json | $ECLIPSE_PATH/bin/jsawk 'return this.nodes.join("\n")')
+NODELIST=$(cat $ECLIPSE_CONF_PATH/eclipse.json | $ECLIPSE_PATH/bin/jsawk 'return this.nodes.join("\n")')
 
 sleep 1
 

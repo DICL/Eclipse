@@ -11,6 +11,7 @@ AC_PROG_MAKE_SET
 if test -z ${CXXFLAGS}; then
   CXXFLAGS='-g -O2 -march=native'
 fi
+
 AC_PROG_CXX
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -72,6 +73,12 @@ AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h stddef.h stdint.h stdlib.h string.
 AC_SEARCH_LIBS([pthread_create], [pthread])
 
 FULLY_EVAL(["$sysconfdir"], [sysconfdirfull])
+
+AH_TEMPLATE([ECLIPSE_PATH],[Root path for the Eclipse files])
+AC_DEFINE_UNQUOTED([ECLIPSE_PATH], ["$prefix"])
+
+AH_TEMPLATE([ECLIPSE_CONF_PATH],[Configuration files (ETC) for Eclipse])
+AC_DEFINE_UNQUOTED([ECLIPSE_CONF_PATH], ["$sysconfdirfull"])
 
 AC_OUTPUT
 WARN([\
