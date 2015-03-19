@@ -2,7 +2,6 @@ AUTOMAKE_OPTIONS = subdir-objects #copy the structure of the source directory
 
 AM_CPPFLAGS = -I@srcdir@/src/common -I@srcdir@/src -include ./config.h
 AM_CXXFLAGS = -Wall -std=gnu++98 
-# @CXXFLAGS@
 
 bin_PROGRAMS = client slave master eclipse mcc cacheserver mrcat_core mrrm_core fd_core
 
