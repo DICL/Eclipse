@@ -14,6 +14,11 @@ fi
 
 AC_PROG_CXX
 
+dnl Example of default-enabled feature
+#enable_samples=no
+AC_ARG_ENABLE([samples],
+    AS_HELP_STRING([--enable-samples], [copy sample of eclipse.json]))
+
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
 AC_TYPE_UINT16_T
@@ -21,9 +26,11 @@ AC_TYPE_UINT32_T
 AC_TYPE_UINT8_T
 AC_HEADER_STDC
 
+
 filesystem=DHT
 AM_SILENT_RULES([yes])
 AM_CONDITIONAL(FS_IS_DHT,[test "$filesystem" = "DHT"])
+AM_CONDITIONAL(COPY_SAMPLES,[test "$enable_samples" = "yes"])
 
 # Check for binaries
 AC_CHECK_PROG([have_ssh], [ssh], [yes], [no])
@@ -99,6 +106,7 @@ WARN([\
  Have ssh?........: $have_ssh
  Have scp?........: $have_scp
  Have astyle?.....: $have_astyle
+ Copy samples?....: $enable_samples
  
  Now type 'make @<:@-j<processors>@:>@ @<:@<target>@:>@'
  where processors indicate how many threads you want to use

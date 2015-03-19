@@ -21,7 +21,10 @@ fd_core_SOURCES = src/file_distributor/fd_core.cc src/common/settings.cc src/com
 
 bin_SCRIPTS  = $(wildcard @srcdir@/src/bin/*)
 
+if COPY_SAMPLES
 sysconf_DATA = src/sample/eclipse.json
+endif
+
 EXTRA_DIST = lib doc tests .autotools_aux src
 
 
