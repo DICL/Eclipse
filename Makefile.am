@@ -26,7 +26,7 @@ sysconf_DATA = src/sample/eclipse.json
 endif
 
 EXTRA_DIST = lib doc tests .autotools_aux src
-
+doc_DATA = README.md LICENSE
 
 distclean-local:
 	-rm -rf @srcdir@/{autom4te.cache,aclocal.m4,config.h.in,*~,configure,Makefile.in,.autotools_aux}
@@ -34,7 +34,7 @@ distclean-local:
 clean-local:
 	-rm src -rf 
 
-install-data-hook: ; \
+install-data-hook: ; (\
   input_path="@prefix@"                                           ;\
   path=$${input_path//\//\\/}                                     ;\
   input_confpath="@sysconfdir@"                                   ;\
@@ -44,4 +44,4 @@ install-data-hook: ; \
       sed -i "s/\$$ECLIPSE_PATH/$${path}/g" $$i                   ;\
       sed -i "s/\$$ECLIPSE_CONF_PATH/$${confpath}/g" $$i          ;\
     fi                                                             \
-  done
+  done)
