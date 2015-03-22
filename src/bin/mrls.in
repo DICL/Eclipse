@@ -1,9 +1,10 @@
 #!/bin/sh
 
 rm $MR_PATH/.mrls/* > $MR_PATH/.mrls/tmp 2> $MR_PATH/.mrls/tmp
+NODELIST=$(cat @sysconfdirfull@/eclipse.json | @prefix@/bin/jsawk 'return this.nodes.join("\n")')
 
 i=1
-for line in `cat $MR_HOME/nodelist.conf`
+for line in ${NODELIST[@]}
 do
 	if (( $# > 0 ))
 	then
@@ -25,7 +26,7 @@ done
 wait
 
 i=1
-for line in `cat $MR_HOME/nodelist.conf`
+for line in ${NODELIST[@]}
 do
 	echo -e "\033[0;32mSlave$i:\033[0m" >> $MR_PATH/.mrls/mrls.tmp
 	cat $MR_PATH/.mrls/data$i.tmp >> $MR_PATH/.mrls/mrls.tmp

@@ -1,4 +1,4 @@
-NODELIST=$(cat $ECLIPSE_CONF_PATH/eclipse.json | $ECLIPSE_PATH/bin/jsawk 'return this.nodes.join("\n")')
+NODELIST=$(cat @sysconfdirfull@/eclipse.json | @prefix@/bin/jsawk 'return this.nodes.join("\n")')
 
 i=0
 for line in ${NODELIST[@]}

@@ -38,7 +38,7 @@ echo
 # make new distribution table
 echo "Generating file distribution table..."
 
-$MR_HOME/bin/fd_core $MR_PATH/.mrput/inputlist.conf $MR_PATH/.mrput/dist.sh
+@prefix@/bin/fd_core $MR_PATH/.mrput/inputlist.conf $MR_PATH/.mrput/dist.sh
 
 echo -e "\033[0;32mDone\033[0m"
 

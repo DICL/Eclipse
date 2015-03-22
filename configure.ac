@@ -4,13 +4,22 @@ AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIRS([./m4/])
+AM_SILENT_RULES([yes])
+
+AC_CONFIG_FILES([src/bin/run.sh],     [chmod +x src/bin/run.sh])
+AC_CONFIG_FILES([src/bin/killall.sh], [chmod +x src/bin/killall.sh])
+AC_CONFIG_FILES([src/bin/mrput],      [chmod +x src/bin/mrput])
+AC_CONFIG_FILES([src/bin/mrget],      [chmod +x src/bin/mrget])
+AC_CONFIG_FILES([src/bin/mrls],       [chmod +x src/bin/mrls])
+AC_CONFIG_FILES([src/bin/mrclear],    [chmod +x src/bin/mrclear])
+AC_CONFIG_FILES([src/bin/mrcat],      [chmod +x src/bin/mrcat])
+AC_CONFIG_FILES([src/bin/mrrm],       [chmod +x src/bin/mrrm])
 
 AC_PROG_CC
 AC_PROG_MAKE_SET
 
-if test -z ${CXXFLAGS}; then
-  CXXFLAGS='-g -O2 -march=native'
-fi
+test -z "$CPPFLAGS" &&
+  CXXFLAGS='-g -Os -march=native'
 
 AC_PROG_CXX
 AC_LANG([C++])
@@ -22,7 +31,7 @@ AC_TYPE_UINT32_T
 AC_TYPE_UINT8_T
 AC_HEADER_STDC
 
-# Arguments {{{
+# Argumeznts {{{
 #enable_samples=no
 AC_ARG_ENABLE([samples],
     AS_HELP_STRING([--enable-samples], [copy sample of eclipse.json]))
@@ -30,17 +39,15 @@ AC_ARG_ENABLE([samples],
 default_fs="DHT"
 AC_ARG_WITH([fs],
     [AS_HELP_STRING([--with-fs], [File system <DHT|HDFS> ])],
-    [fs="$withval"], [fs="default_fs"]) 
+    [fs="$withval"], [fs="$default_fs"]) 
 
 # Configure options: --enable-debug[=no].
 AC_ARG_ENABLE([debug],
   [AS_HELP_STRING([--enable-debug], [enable debug code (default is no)])],
     [debug="$withval"], [debug=no])
 
-filesystem=DHT
-AM_SILENT_RULES([yes])
-AM_CONDITIONAL(FS_IS_DHT,[test "$fs" = "DHT"])
-AM_CONDITIONAL(COPY_SAMPLES,[test "$enable_samples" = "yes"])
+AM_CONDITIONAL(FS_IS_DHT,[test $fs = DHT])
+AM_CONDITIONAL(COPY_SAMPLES,[test "$enable_samples" = yes])
 
 #}}}
 # Dependencies checkings {{{
@@ -56,20 +63,22 @@ AC_SEARCH_LIBS([pthread_create], [pthread])
 
 ECLIPSE_FIND_BOOST
 #}}}
+# PATHS {{{
 FULLY_EVAL(["$sysconfdir"], [sysconfdirfull])
+AC_SUBST(sysconfdirfull)
 
 AH_TEMPLATE([ECLIPSE_PATH],[Root path for the Eclipse files])
 AC_DEFINE_UNQUOTED([ECLIPSE_PATH], ["$prefix"])
 
 AH_TEMPLATE([ECLIPSE_CONF_PATH],[Configuration files (ETC) for Eclipse])
 AC_DEFINE_UNQUOTED([ECLIPSE_CONF_PATH], ["$sysconfdirfull"])
-
+#}}}
 #OUTPUT{{{
 AC_OUTPUT
 WARN([\
 -------------------------------------------------
  \033@<:@31m
- ${PACKAGE_NAME} Version ${PACKAGE_VERSION}
+ $PACKAGE_NAME Version $PACKAGE_VERSION
  \033@<:@0m
  Paths
  -----
@@ -85,7 +94,7 @@ WARN([\
  Have ssh?........: $have_ssh
  Have scp?........: $have_scp
  Have astyle?.....: $have_astyle
- Copy samples?....: $enable_samples
+ Copy samples?....: ${enable_samples:-NO}
  File System?.....: $fs
  
  Now type 'make @<:@-j<processors>@:>@ @<:@<target>@:>@'

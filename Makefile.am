@@ -19,29 +19,24 @@ mrcat_core_SOURCES = src/file_distributor/mrcat_core.cc src/common/settings.cc s
 mrrm_core_SOURCES = src/file_distributor/mrrm_core.cc src/common/settings.cc src/common/hash.cc
 fd_core_SOURCES = src/file_distributor/fd_core.cc src/common/settings.cc src/common/hash.cc
 
-bin_SCRIPTS  = $(wildcard @srcdir@/src/bin/*)
+bin_SCRIPTS  = $(wildcard src/bin/*) \
+               src/bin/mrclear_core  \
+               src/bin/runmaster.sh  \
+               src/bin/runslave.sh   \
+               src/bin/jsawk
 
 if COPY_SAMPLES
 sysconf_DATA = src/sample/eclipse.json
 endif
 
-EXTRA_DIST = lib doc tests .autotools_aux src
+EXTRA_DIST = lib doc tests .autotools_aux README.md LICENSE          \
+             $(shell find @srcdir@/src -name "*.hh" -o -name "*.cc") \
+             $(wildcard @srcdir@/src/bin/*)
+
 doc_DATA = README.md LICENSE
 
 distclean-local:
 	-rm -rf @srcdir@/{autom4te.cache,aclocal.m4,config.h.in,*~,configure,Makefile.in,.autotools_aux}
 
-clean-local:
-	-rm src -rf 
-
-install-data-hook: ; (\
-  input_path="@prefix@"                                           ;\
-  path=$${input_path//\//\\/}                                     ;\
-  input_confpath="@sysconfdir@"                                   ;\
-  confpath=$${input_confpath//\//\\/}                             ;\
-  for i in @bindir@/*; do                                          \
-    if [[ ! `file $${i}` =~ "ELF" ]]; then                         \
-      sed -i "s/\$$ECLIPSE_PATH/$${path}/g" $$i                   ;\
-      sed -i "s/\$$ECLIPSE_CONF_PATH/$${confpath}/g" $$i          ;\
-    fi                                                             \
-  done)
+#clean-local:
+#	-rm src -rf 

@@ -1,0 +1,9 @@
+#!/bin/sh
+
+NODELIST=$(cat @sysconfdirfull@/eclipse.json | @prefix@/bin/jsawk 'return this.nodes.join("\n")')
+for line in ${NODELIST[@]}
+do
+	ssh $line mrclear_core &
+done
+
+wait
