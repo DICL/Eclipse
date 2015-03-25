@@ -48,7 +48,7 @@ AC_ARG_ENABLE([debug],
     [debug="$withval"], [debug=no])
 
 AM_CONDITIONAL(FS_IS_DHT,[test $fs = DHT])
-AM_CONDITIONAL(COPY_SAMPLES,[test "$enable_samples" = no])
+AM_CONDITIONAL(COPY_SAMPLES,[test "$enable_samples" != no ])
 
 #}}}
 # Dependencies checkings {{{

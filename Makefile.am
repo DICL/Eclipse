@@ -29,7 +29,7 @@ if COPY_SAMPLES
 sysconf_DATA = src/sample/eclipse.json
 endif
 
-EXTRA_DIST = lib doc .autotools_aux README.md LICENSE          \
+EXTRA_DIST = lib doc .autotools_aux README.md LICENSE src/sample \
              $(shell find @srcdir@/src -name "*.hh" -o -name "*.cc") \
              $(wildcard @srcdir@/src/bin/*)
 
