@@ -1,6 +1,6 @@
 AC_INIT([Eclipse], [00.13.15], [vicente.bolea@gmail.com])
 AC_CONFIG_AUX_DIR([./.autotools_aux])
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([foreign subdir-objects])
 AM_SILENT_RULES([yes])
 
 AC_CONFIG_MACRO_DIRS([./m4/])
@@ -18,6 +18,7 @@ AC_CONFIG_FILES([src/bin/mrrm],       [chmod +x src/bin/mrrm])
 
 AC_PROG_CC
 AC_PROG_MAKE_SET
+AC_PROG_RANLIB
 
 test -z "$CPPFLAGS" &&
   CXXFLAGS='-g -Os -march=native'

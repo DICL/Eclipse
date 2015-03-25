@@ -1,41 +1,22 @@
-AUTOMAKE_OPTIONS = subdir-objects #copy the structure of the source directory
+AM_CPPFLAGS  = -I@top_srcdir@/src/common -I@top_srcdir@/src
+AM_CPPFLAGS += -include ./config.h -include @top_srcdir@/lib/unittest-cpp/unittest++/UnitTest++.h
+AM_CXXFLAGS  = -std=gnu++11 
+AM_LDFLAGS   = -L @top_srcdir@/lib 
+LDADD        = ./libsettings.a -lUnitTest++ 
 
-SUBDIRS = tests
+noinst_LIBRARIES = libsettings.a
+libsettings_a_SOURCES = ../src/common/settings.cc ../src/common/settings.hh
 
-AM_CPPFLAGS = -I@srcdir@/src/common -I@srcdir@/src -include ./config.h
-AM_CXXFLAGS = -Wall -std=gnu++98
+TESTS = $(test_files)
+check_PROGRAMS = $(test_files)
+check_DATA = jsonfile
 
-bin_PROGRAMS = client slave master eclipse mcc cacheserver mrcat_core mrrm_core fd_core
+jsonfile:
+	cp @top_srcdir@/src/sample/eclipse.json .
 
-if FS_IS_DHT
-client_SOURCES = src/client/dht/client.cc src/common/settings.cc
-slave_SOURCES =  src/slave/dht/slave.cc src/common/settings.cc
-master_SOURCES = src/master/dht/master.cc src/common/settings.cc src/common/hash.cc
-mcc_SOURCES = src/mcc/dht/mcc.cc src/common/settings.cc
-endif
+# Input your tests files here
+test_files = settings_tests
 
-eclipse_SOURCES = src/orthrus/launcher.cc src/common/settings.cc src/common/hash.cc
-eclipse_CXXFLAGS = $(AM_CXXFLAGS) -Wno-maybe-uninitialized
-cacheserver_SOURCES = src/orthrus/cacheserver.cc src/common/settings.cc
-mrcat_core_SOURCES = src/file_distributor/mrcat_core.cc src/common/settings.cc src/common/hash.cc
-mrrm_core_SOURCES = src/file_distributor/mrrm_core.cc src/common/settings.cc src/common/hash.cc
-fd_core_SOURCES = src/file_distributor/fd_core.cc src/common/settings.cc src/common/hash.cc
-
-bin_SCRIPTS  = $(wildcard src/bin/*) \
-               src/bin/mrclear_core  \
-               src/bin/runmaster.sh  \
-               src/bin/runslave.sh   \
-               src/bin/jsawk
-
-if COPY_SAMPLES
-sysconf_DATA = src/sample/eclipse.json
-endif
-
-EXTRA_DIST = lib doc .autotools_aux README.md LICENSE src/sample/eclipse.json \
-             $(shell find @srcdir@/src -name "*.hh" -o -name "*.cc") \
-             $(wildcard @srcdir@/src/bin/*)
-
-doc_DATA = README.md LICENSE
-
-distclean-local:
-	-rm -rf @srcdir@/{autom4te.cache,aclocal.m4,config.h.in,*~,configure,Makefile.in,.autotools_aux} tests/eclipse.json
+#Input the dependencies of the test files here
+#settings_SOURCES = settings_tests.cc
+AM_DEFAULT_SOURCE_EXT = .cc
