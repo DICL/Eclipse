@@ -1,11 +1,12 @@
 AC_INIT([Eclipse], [00.13.15], [vicente.bolea@gmail.com])
 AC_CONFIG_AUX_DIR([./.autotools_aux])
 AM_INIT_AUTOMAKE([foreign])
-AC_CONFIG_FILES([Makefile])
-AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_MACRO_DIRS([./m4/])
 AM_SILENT_RULES([yes])
 
+AC_CONFIG_MACRO_DIRS([./m4/])
+AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_FILES([Makefile tests/Makefile])
+#AC_CONFIG_FILES([tests/Makefile])
 AC_CONFIG_FILES([src/bin/run.sh],     [chmod +x src/bin/run.sh])
 AC_CONFIG_FILES([src/bin/killall.sh], [chmod +x src/bin/killall.sh])
 AC_CONFIG_FILES([src/bin/mrput],      [chmod +x src/bin/mrput])
@@ -34,7 +35,7 @@ AC_HEADER_STDC
 # Argumeznts {{{
 #enable_samples=no
 AC_ARG_ENABLE([samples],
-    AS_HELP_STRING([--enable-samples], [copy sample of eclipse.json]))
+    AS_HELP_STRING([--disable-samples], [copy sample of eclipse.json]))
 
 default_fs="DHT"
 AC_ARG_WITH([fs],
@@ -47,7 +48,7 @@ AC_ARG_ENABLE([debug],
     [debug="$withval"], [debug=no])
 
 AM_CONDITIONAL(FS_IS_DHT,[test $fs = DHT])
-AM_CONDITIONAL(COPY_SAMPLES,[test "$enable_samples" = yes])
+AM_CONDITIONAL(COPY_SAMPLES,[test "$enable_samples" = no])
 
 #}}}
 # Dependencies checkings {{{

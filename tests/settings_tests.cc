@@ -1,5 +1,4 @@
-#include "../src/common/settings.hh"
-#include <unittest++/UnitTest++.h>
+#include <settings.hh>
 #include <iostream>
 #include <sstream>
 
@@ -8,7 +7,7 @@ using namespace std;
 struct Settings_fixture
 {
   Settings* s ;
-  Settings_fixture () { s = new Settings (); }
+  Settings_fixture () { s = new Settings ("./"); }
   ~Settings_fixture () { delete s; }
 };
 
@@ -22,7 +21,7 @@ SUITE(SETTING_TESTS)
     vector<string> test = s->nodelist();
 
     int i = 1;
-    for (vector<string>::iterator it = test.begin(); it != test.end(); it++, i++) 
+    for (auto it = test.begin(); it != test.end(); it++, i++) 
     {
       ostringstream tmp;
       tmp << "192.168.1." << i; 

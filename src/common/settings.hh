@@ -17,7 +17,8 @@ class Settings
     string project_path, config_path;
 
   public:
-    Settings()  {}
+    Settings()  { hardcoded_path = true;}
+    Settings(string in)  { given_path = in; hardcoded_path = false; }
     ~Settings() {}
 
     bool get_project_path ();
@@ -30,6 +31,8 @@ class Settings
     int max_job ();
     string master_addr ();
     vector<string> nodelist ();
+    string given_path;
+    bool hardcoded_path;
 };
 
 #endif

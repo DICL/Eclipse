@@ -13,7 +13,11 @@ using std::endl;
 
 bool Settings::get_project_path () 
 {
-  project_path = string(ECLIPSE_CONF_PATH); 
+  if (hardcoded_path == true)
+    project_path = string(ECLIPSE_CONF_PATH); 
+  else 
+    project_path = given_path;
+ 
   config_path = project_path + FINAL_PATH;
   return true;
 }
