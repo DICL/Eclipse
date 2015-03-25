@@ -1,4 +1,4 @@
-AUTOMAKE_OPTIONS = subdir-objects #copy the structure of the source directory
+#AUTOMAKE_OPTIONS = subdir-objects #copy the structure of the source directory
 
 AM_CPPFLAGS  = -I@top_srcdir@/src/common -I@top_srcdir@/src
 AM_CPPFLAGS += -include ./config.h -include @top_srcdir@/lib/unittest-cpp/unittest++/UnitTest++.h

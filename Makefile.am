@@ -1,5 +1,7 @@
 AUTOMAKE_OPTIONS = subdir-objects #copy the structure of the source directory
 
+SUBDIRS = tests
+
 AM_CPPFLAGS = -I@srcdir@/src/common -I@srcdir@/src -include ./config.h
 AM_CXXFLAGS = -Wall -std=gnu++98
 
@@ -29,13 +31,11 @@ if COPY_SAMPLES
 sysconf_DATA = src/sample/eclipse.json
 endif
 
-EXTRA_DIST = lib doc .autotools_aux README.md LICENSE src/sample \
+EXTRA_DIST = lib doc .autotools_aux README.md LICENSE src/sample/eclipse.json \
              $(shell find @srcdir@/src -name "*.hh" -o -name "*.cc") \
              $(wildcard @srcdir@/src/bin/*)
 
 doc_DATA = README.md LICENSE
 
-SUBDIRS = tests
-
 distclean-local:
-	-rm -rf @srcdir@/{autom4te.cache,aclocal.m4,config.h.in,*~,configure,Makefile.in,.autotools_aux}
+	-rm -rf @srcdir@/{autom4te.cache,aclocal.m4,config.h.in,*~,configure,Makefile.in,.autotools_aux} tests/eclipse.json
