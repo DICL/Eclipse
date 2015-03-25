@@ -1,0 +1,90 @@
+#!/bin/env ruby
+
+load 'optparse'
+#load 'eclipse_hash'
+
+# This module act as a namespace for the script 
+module Ecfs
+  BUILD_PATH     = @distpath@
+  SRCDIR         = @srcdir@
+  SYSCONFPATH    = @sysconfdir@
+
+  # 
+  #
+  class Network 
+    def initialize
+      @nodelist = File.open(SYSCONFPATH) { |f| JSON.parse(f.read) }
+
+      `#{PREFIX}/bin/master &`
+      @nodelist.each do |node|
+        `ssh #{node} #{PREFIX}/bin/slave`
+      end
+
+      `#{PREFIX}/bin/cacheserver &`
+      @nodelist.each do |node|
+        `ssh #{node} #{PREFIX}/bin/eclipse`
+      end
+    end
+
+    def die
+      @nodelist = File.open(SYSCONFPATH) { |f| JSON.parse(f.read) }
+
+      `killall master`
+      `killall cacheserver`
+      @nodelist.each do |node|
+        `ssh #{node} killall slave`
+        `ssh #{node} killall eclipse`
+      end
+    end
+  end
+
+  class Ufile
+    def initiliaze name:, addr:
+      @name = name;
+      @addr = addr;
+    end
+  end
+
+  class Fs
+    def initialize
+      @files       = {}
+    end
+
+    def put filename:
+      hashvalue = `eclipse_hash #{filename}`
+      @files[filename] = ufile.new name: filename, addr: hashvalue
+      writetodisk
+    end
+
+    def get filename:
+
+    end
+
+    def rm filename:
+      hashvalue = `eclipse_hash #{filename}`
+
+      `ssh `
+
+    end
+
+    def cat filename:
+      hashvalue = `eclipse_hash #{filename}`
+      output = `ssh cat #{filepath}`
+      puts output.join
+    end
+
+    def list
+
+    end
+
+    def writetodisk 
+      File.open("tmpfile") { |f| f.write(JSON.generate(@files)) }
+    end
+
+  end
+
+#  class CLI_driver < Core
+#
+#  end
+#
+end
