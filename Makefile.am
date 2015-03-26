@@ -29,11 +29,8 @@ if COPY_SAMPLES
 sysconf_DATA = src/sample/eclipse.json
 endif
 
+doc_DATA = README.md LICENSE
+
 EXTRA_DIST = lib doc .autotools_aux README.md LICENSE src/sample/eclipse.json \
              $(shell find @srcdir@/src -name "*.hh" -o -name "*.cc") \
              $(wildcard @srcdir@/src/bin/*)
-
-doc_DATA = README.md LICENSE
-
-#distclean-local:
-#	-rm -rf @srcdir@/{autom4te.cache,aclocal.m4,config.h.in,*~,configure,Makefile.in,.autotools_aux} tests/eclipse.json
