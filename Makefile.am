@@ -30,4 +30,4 @@ endif
 dist_doc_DATA       = README.md LICENSE
 
 EXTRA_DIST          = lib doc .autotools_aux $(shell find @srcdir@/src -name "*.hh" -o -name "*.in") \
-											$(sh_scripts) src/sample/eclipse.json 
+											$(sh_scripts) src/sample/eclipse.json
