@@ -20,6 +20,9 @@ enum mapstatus
 class master_job
 {
     private:
+		int delay;
+		int delaystart;
+		bool isdelay;
         int jobid;
         int jobfd;
         int argcount;
@@ -42,6 +45,9 @@ class master_job
         
         
         int scheduled;
+		struct timeval job_start;
+		struct timeval map_end;
+		struct timeval job_end;
         
         
         
@@ -82,7 +88,11 @@ class master_job
         void schedule_task (master_task* atask, connslave* aslave);
         void finish_task (master_task* atask, connslave* aslave);
         master_task* find_taskfromid (int id);
-        
+
+		void delayed(int time);
+		void delayed();
+		void sched();
+		int getdelayed();
 };
 
 master_job::master_job()
@@ -95,6 +105,10 @@ master_job::master_job()
     this->argvalues = NULL;
     this->stage = INITIAL_STAGE;
     status = TASK_FINISHED;
+
+	this->delay = 0;
+	this->delaystart = 0;
+	this->isdelay = false;
 }
 
 master_job::master_job (int id, int fd)
@@ -108,6 +122,10 @@ master_job::master_job (int id, int fd)
     this->argvalues = NULL;
     this->stage = INITIAL_STAGE;
     status = TASK_FINISHED;
+
+	this->delay = 0;
+	this->delaystart = 0;
+	this->isdelay = false;
 }
 
 master_job::~master_job()
@@ -346,7 +364,34 @@ job_stage master_job::get_stage()
 
 void master_job::set_stage (job_stage astage)
 {
-    this->stage = astage;
+	this->stage = astage;
+}
+
+void master_job::delayed (int time)
+{
+	if (!isdelay) {
+		this->delaystart = time;
+	}
+	this->delay = time;
+	isdelay = true;
+}
+
+void master_job::delayed ()
+{
+	delay++;
+}
+
+void master_job::sched ()
+{
+	this->delay = 0;
+	this->delaystart = 0;
+	this->isdelay = false;
+}
+
+int master_job::getdelayed ()
+{
+	//return this->delay - this->delaystart;
+	return this->delay;
 }
 
 

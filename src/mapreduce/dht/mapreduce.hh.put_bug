@@ -21,6 +21,7 @@
 #include <sys/wait.h>
 #include <sys/unistd.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 
 #include "../definitions.hh"
 
@@ -785,6 +786,593 @@ void add_inputpath (string path)     // the path is relative path to DHT_PATH
 	}
 }
 
+int sockReceive(int sock, char* buf, int bytes)
+{
+	int received_bytes = 0;
+	while(bytes>0){
+		int n = read(sock, buf, bytes);
+		if(n<0){
+			perror("ERROR: socket read");
+			return -1;
+		}
+		received_bytes += n;
+		bytes -= n;
+		buf += n;
+	}
+	return 0;
+}
+
+int sockSend(int sock, char* buf, int bytes)
+{
+	int sent_bytes = 0;
+	while(bytes>0 ){
+	    fprintf(stderr,".");
+		int n = write(sock, buf, bytes);
+		if(n<0){
+			perror("ERROR: socket write");
+			return -1;
+		}
+		sent_bytes += n;
+		bytes -= n;
+		buf += n;
+	}
+	return sent_bytes;
+}
+
+int hf(char* str, int k)
+{
+  int sum=0;
+  for(int i=0;i<strlen(str);i++){
+      sum += (int) str[i];
+  }
+  return sum;
+}
+
+int put_file_metadata (char* _filePath, int fileSize) 
+{
+	// fix this later, we should get this list from job scheduler or another
+	// central resource manager
+	int num_workerservers = 38; 
+	char workerservers[38][8] = {
+		"raven01", "raven02", "raven03", "raven04", "raven05", 
+		"raven06", "raven07", "raven08", "raven09", "raven10", 
+		"raven11", "raven12", "raven13", "raven14", "raven15", 
+		"raven16", "raven17", "raven18", "raven19", "raven20", 
+		"raven21", "raven22", "raven23", "raven24", "raven25", 
+		"raven26", "raven27", "raven28", "raven29", "raven30", 
+		"raven31", "raven32", "raven33", "raven34", "raven35", 
+		"raven36", "raven37", "raven38" };
+	// fix up to here
+
+	char filePath[256];
+	bzero(filePath,256);
+	sprintf(filePath,"%s", _filePath);
+	unsigned hash_key = hf(filePath,64) % num_workerservers;
+
+	/* Create a socket point */
+	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd < 0)
+	{
+		perror("ERROR opening socket");
+		exit(1);
+	}
+	struct hostent *server;
+	server = gethostbyname(workerservers[hash_key]);
+	if (server == NULL) {
+		fprintf(stderr,"ERROR, no such host\n");
+		exit(0);
+	}
+
+	struct sockaddr_in serv_addr;
+	bzero((char *) &serv_addr, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
+	serv_addr.sin_port = htons(8933);
+
+	/* Now connect to the server */
+	if (connect(sockfd,(struct sockaddr*) &serv_addr,sizeof(serv_addr)) < 0)
+	{
+		perror("ERROR connecting");
+		exit(1);
+	}
+
+	/* Send message to the server */
+	// notify we are sending file chunks 
+	int n = sockSend(sockfd, (char*) "PUT_FILE_METADAT", 16) ;
+	if(n<0){
+		printf("socket write error\n");
+		return n;
+	}
+
+	printf("sending file path: %s\n", filePath);
+	/* Now send file path */
+	n = sockSend(sockfd, filePath, 255);
+	if (n < 0)
+	{
+		perror("ERROR writing to socket");
+		exit(1);
+	}
+
+	printf("sending file size: %d\n", fileSize);
+	/* Now send file path */
+	n = sockSend(sockfd, (char*) &fileSize, sizeof(int));
+	if (n < 0)
+	{
+		perror("ERROR writing to socket");
+		exit(1);
+	}
+
+	/* close socket */
+	close(sockfd);
+
+	return fileSize;
+}
+
+int get_file_metadata (char* _filePath) 
+{
+	// fix this later, we should get this list from job scheduler or another
+	// central resource manager
+	int num_workerservers = 38; 
+	char workerservers[38][8] = {
+		"raven01", "raven02", "raven03", "raven04", "raven05", 
+		"raven06", "raven07", "raven08", "raven09", "raven10", 
+		"raven11", "raven12", "raven13", "raven14", "raven15", 
+		"raven16", "raven17", "raven18", "raven19", "raven20", 
+		"raven21", "raven22", "raven23", "raven24", "raven25", 
+		"raven26", "raven27", "raven28", "raven29", "raven30", 
+		"raven31", "raven32", "raven33", "raven34", "raven35", 
+		"raven36", "raven37", "raven38" };
+	// fix up to here
+
+
+	char filePath[256];
+	bzero(filePath,256);
+	sprintf(filePath,"%s", _filePath);
+	unsigned hash_key = hf(filePath,64) % num_workerservers;
+
+	/* Create a socket point */
+	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd < 0)
+	{
+		perror("ERROR opening socket");
+		exit(1);
+	}
+	struct hostent *server;
+	server = gethostbyname(workerservers[hash_key%num_workerservers]);
+	if (server == NULL) {
+		fprintf(stderr,"ERROR, no such host\n");
+		exit(0);
+	}
+
+	struct sockaddr_in serv_addr;
+	bzero((char *) &serv_addr, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
+	serv_addr.sin_port = htons(8933);
+
+	/* Now connect to the server */
+	if (connect(sockfd,(struct sockaddr*) &serv_addr,sizeof(serv_addr)) < 0)
+	{
+		perror("ERROR connecting");
+		exit(1);
+	}
+
+	/* Send message to the server */
+	// notify we are sending file chunks 
+	int n = sockSend(sockfd, (char*) "GET_FILE_METADAT", 16) ;
+	if(n<0){
+		printf("socket write error\n");
+		return n;
+	}
+
+	printf("sending file path: %s\n", filePath);
+	/* Now send file path */
+	n = sockSend(sockfd, filePath, 255);
+	if (n < 0)
+	{
+		perror("ERROR writing to socket");
+		exit(1);
+	}
+
+	/* Now read server response */
+	int fileSize;
+	n = sockReceive(sockfd, (char*) &fileSize,sizeof(int));
+	if (n < 0)
+	{
+		perror("ERROR reading from socket");
+		exit(1);
+	}
+	if(fileSize < 0){
+		// error handling
+	}
+	printf("read file size: %d\n", fileSize);
+
+	/* close socket */
+	close(sockfd);
+
+	return fileSize;
+}
+
+int put_file (char* _src, char* _dest)     // the dest is relative path to DHT_PATH
+{
+	// fix this later, we should get this list from job scheduler or another
+	// central resource manager
+	int num_workerservers = 38; 
+	char workerservers[38][8] = {
+		"raven01", "raven02", "raven03", "raven04", "raven05", 
+		"raven06", "raven07", "raven08", "raven09", "raven10", 
+		"raven11", "raven12", "raven13", "raven14", "raven15", 
+		"raven16", "raven17", "raven18", "raven19", "raven20", 
+		"raven21", "raven22", "raven23", "raven24", "raven25", 
+		"raven26", "raven27", "raven28", "raven29", "raven30", 
+		"raven31", "raven32", "raven33", "raven34", "raven35", 
+		"raven36", "raven37", "raven38" };
+
+	printf("test\n");
+
+	char src[256];
+	char dest[256];
+	bzero(src,256);
+	bzero(dest,256);
+	sprintf(src,"%s", _src);
+	sprintf(dest,"%s", _dest);
+
+	// fix up to here
+
+	int hash_key = hf(dest, 64)%num_workerservers;
+	struct stat fileStat;
+	stat(src, &fileStat);
+
+	int fileSize = fileStat.st_size;
+	put_file_metadata (dest, fileStat.st_size);
+
+	int numBlocks = fileSize/FILE_CHUNK_SIZE;
+	if(fileSize%FILE_CHUNK_SIZE!=0){
+		numBlocks++;
+	}
+
+	std::vector<string> fileList[num_workerservers];
+	std::vector<int> fileOffset[num_workerservers];
+
+	printf("numBlocks: %d\n", numBlocks);
+
+	for(int i=0;i<numBlocks;i++){
+		char file_chunk_name[256];
+		bzero(file_chunk_name,64);
+		sprintf(file_chunk_name, "%s-%d", dest, i);
+
+		hash_key = hf(file_chunk_name, 64) % num_workerservers;
+
+		printf("file chunk name: %s, hash_key=%d\n", file_chunk_name, hash_key);
+
+		string str(file_chunk_name);
+		fileList[hash_key].push_back(str);
+		fileOffset[hash_key].push_back(i*FILE_CHUNK_SIZE);
+	}
+
+	int fd = open(src, O_RDONLY);
+	if(fd < 0){
+		printf("input file open error\n");
+	}
+
+	char *buf = (char*) malloc(FILE_CHUNK_SIZE);
+
+	// let's parallelize this code later
+	for(int i=0;i<num_workerservers;i++){
+	    printf("checking whether we need to send file to server %d\n", i);
+
+		if(fileList[i].size() != 0){
+	        printf("ok, we are sending %d files\n", (int) fileList[i].size());
+
+			// Create a socket point 
+			int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+			if (sockfd < 0)
+			{
+				perror("ERROR opening socket");
+				exit(1);
+			}
+
+			struct hostent *server;
+			server = gethostbyname(workerservers[i]);
+			if (server == NULL) {
+				fprintf(stderr,"ERROR, no such host\n");
+				exit(0);
+			}
+
+			struct sockaddr_in serv_addr;
+			bzero((char *) &serv_addr, sizeof(serv_addr));
+			serv_addr.sin_family = AF_INET;
+			bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
+			serv_addr.sin_port = htons(8933);
+
+			// Now connect to the server 
+			if (connect(sockfd,(struct sockaddr*) &serv_addr,sizeof(serv_addr)) < 0)
+			{
+				perror("ERROR connecting");
+				exit(1);
+			}
+
+			printf("file server socket connected\n");
+
+			// notify we are sending file chunks 
+			int n = sockSend(sockfd, (char*) "WRITE_FILE_CHUNK", 16) ;
+			if(n<0){
+				printf("socket write error\n");
+				return n;
+			}
+
+			// send how many file chunks will be sent.   
+			int nFiles = fileList[i].size();
+			printf("sending number of files: %d\n", nFiles);
+			n = sockSend(sockfd, (char*) &nFiles, sizeof(int)) ;
+			if(n<0){
+				printf("socket write error\n");
+				return n;
+			}
+
+			printf("sending %d files\n", (int) fileList[i].size());
+
+			for(unsigned int j=0;j<fileList[i].size();j++){
+				// send file chunk name 
+				printf("sending a file path: %s\n", fileList[i].at(j).c_str());
+				char tempBuf[256];
+				bzero(tempBuf,256);
+				sprintf(tempBuf,"%s", fileList[i].at(j).c_str());
+				n = sockSend(sockfd, tempBuf, 255) ;
+				if(n<0){
+					printf("socket write error\n");
+					return n;
+				}
+
+				// read file chunk from local file system
+				lseek(fd, fileOffset[i].at(j), SEEK_SET);
+				int bytes_read = read(fd, buf, FILE_CHUNK_SIZE);
+				if(bytes_read<0){
+					printf("source file read error\n");
+					return bytes_read;
+				}
+
+				// send file chunk size
+				printf("sending file size: %d\n", bytes_read);
+				n = sockSend(sockfd, (char*) &bytes_read, sizeof(int)) ;
+				if(n<0){
+					printf("socket write error\n");
+					return n;
+				}
+
+				// send file chunk  
+				printf("sending file..\n");
+				n = sockSend(sockfd, buf, bytes_read) ;
+				if(n<0){
+					printf("socket write error\n");
+					return n;
+				}
+				printf("done.\n");
+			}
+			close(sockfd);
+			printf("connection closed.\n");
+		}
+	}
+	close(fd);
+
+	free(buf);
+	return 0;
+}
+
+struct fileInfo{
+	int i;
+	int fd;
+	std::vector<string> *fileChunkNames;
+	std::vector<int> *hashKeys;
+};
+
+void* file_read_thread(void *ptr)
+{
+	// fix this later, we should get this list from job scheduler or another
+	// central resource manager
+	int num_workerservers = 38; 
+	char workerservers[38][8] = {
+		"raven01", "raven02", "raven03", "raven04", "raven05", 
+		"raven06", "raven07", "raven08", "raven09", "raven10", 
+		"raven11", "raven12", "raven13", "raven14", "raven15", 
+		"raven16", "raven17", "raven18", "raven19", "raven20", 
+		"raven21", "raven22", "raven23", "raven24", "raven25", 
+		"raven26", "raven27", "raven28", "raven29", "raven30", 
+		"raven31", "raven32", "raven33", "raven34", "raven35", 
+		"raven36", "raven37", "raven38" };
+	// fix up to here
+
+	struct fileInfo* fi = (struct fileInfo*) ptr; 
+	int i = fi->i;
+
+	char* buf = (char*) malloc(FILE_CHUNK_SIZE);
+	/* Create a socket point */
+	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd < 0)
+	{
+		perror("ERROR opening socket");
+		exit(1);
+	}
+
+	int hash_key = fi->hashKeys->at(i);
+	struct hostent *server;
+	server = gethostbyname(workerservers[hash_key]);
+	if (server == NULL) {
+		fprintf(stderr,"ERROR, no such host\n");
+		exit(0);
+	}
+	struct sockaddr_in serv_addr;
+	bzero((char *) &serv_addr, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
+	serv_addr.sin_port = htons(8933);
+
+	/* Now connect to the server */
+	if (connect(sockfd,(struct sockaddr*) &serv_addr,sizeof(serv_addr)) < 0)
+	{
+		perror("ERROR connecting");
+		exit(1);
+	}
+
+	// notify we are reading a file chunk 
+	int n = sockSend(sockfd, "READ_FILE_CHUNK_", 16) ;
+	if(n<0){
+		printf("socket write error\n");
+		pthread_exit((void*) NULL);
+	}
+
+	// send file chunk name 
+	char tempBuf[256];
+	bzero(tempBuf,255);
+	sprintf(tempBuf, "%s", fi->fileChunkNames->at(i).c_str());
+	n = sockSend(sockfd, tempBuf, 255) ;
+	if(n<0){
+		printf("socket write error\n");
+		pthread_exit((void*) NULL);
+	}
+
+	// read file chunk size
+	int chunk_size;
+	n = sockReceive(sockfd, (char*) &chunk_size, sizeof(int)) ;
+	if(n<0){
+		printf("socket read error\n");
+		pthread_exit((void*) NULL);
+	}
+
+	// read file chunk  
+	n = sockReceive(sockfd, buf, chunk_size) ;
+	if(n<0){
+		printf("socket read error\n");
+		pthread_exit((void*) NULL);
+	}
+	// close socket 
+	close(sockfd);
+
+	// write file chunk
+	off_t fsize = lseek(fi->fd, 0, SEEK_END);
+	while(fsize < i*FILE_CHUNK_SIZE) {
+		fsize = lseek(fi->fd, 0, SEEK_END);
+		usleep(1000);
+	}
+	n = write(fi->fd, buf, chunk_size);
+	fsync(fi->fd);
+
+	if(n<0){
+		printf("file write error\n");
+		pthread_exit((void*) NULL);
+	}
+	free(buf);
+
+	return NULL;
+}
+
+int get_file (char* _src, char* _dest)     // the path is relative path to DHT_PATH
+{
+	// fix this later, we should get this list from job scheduler or another
+	// central resource manager
+	int num_workerservers = 38; 
+	char workerservers[38][8] = {
+		"raven01", "raven02", "raven03", "raven04", "raven05", 
+		"raven06", "raven07", "raven08", "raven09", "raven10", 
+		"raven11", "raven12", "raven13", "raven14", "raven15", 
+		"raven16", "raven17", "raven18", "raven19", "raven20", 
+		"raven21", "raven22", "raven23", "raven24", "raven25", 
+		"raven26", "raven27", "raven28", "raven29", "raven30", 
+		"raven31", "raven32", "raven33", "raven34", "raven35", 
+		"raven36", "raven37", "raven38" };
+	// fix up to here
+
+	char src[256];
+	char dest[256];
+	bzero(src,256);
+	bzero(dest,256);
+	sprintf(src,"%s\0", _src);
+	sprintf(dest,"%s\0", _dest);
+
+	int hash_key;
+	int fileSize = get_file_metadata (src);
+
+	printf("fileSize from server: %d\n",fileSize);
+
+	int numBlocks = fileSize/FILE_CHUNK_SIZE;
+	if(fileSize%FILE_CHUNK_SIZE!=0){
+		numBlocks++;
+	}
+
+	struct fileInfo fi[numBlocks];
+	std::vector<string> fileChunkNames;
+	std::vector<int> hashKeys;
+
+	for(int i=0;i<numBlocks;i++){
+		char file_chunk_name[256];
+		bzero(file_chunk_name,256);
+		sprintf(file_chunk_name, "%s-%d", src, i);
+		printf("file chunk name: %s\n", file_chunk_name);
+
+		hash_key = hf(file_chunk_name, 64) % num_workerservers;
+
+		string str(file_chunk_name);
+		fileChunkNames.push_back(str);
+		hashKeys.push_back(hash_key);
+	}
+
+	int fd = open(dest, O_WRONLY|O_CREAT, 0644);
+	if(fd < 0){
+		printf("input file open error\n");
+	}
+
+	// let's parallelize this code later
+	/*
+	   if( pthread_mutex_init(&fi.lock, NULL) != 0){
+	   printf("pthread mutex init failed.\n");
+	   }
+	   */
+
+	int MAXTHREAD = 8; 
+	int numthread = 0;
+	int thread_start_idx = 0;
+	int thread_end_idx = -1;
+
+	pthread_t* tid = (pthread_t*) malloc(sizeof(pthread_t)*numBlocks);
+
+	for(int i=0;i<numBlocks;i++){
+		fi[i].i = i;
+		fi[i].fd = fd;
+		fi[i].fileChunkNames = &fileChunkNames;
+		fi[i].hashKeys = &hashKeys;
+		cout << "[dfsget]running file_read_thread()"<<endl;
+		pthread_create(&tid[i], NULL, file_read_thread, (void*) &fi[i]);
+
+		numthread++;
+		thread_end_idx++;
+
+		// reached max thread
+		if(numthread == MAXTHREAD)
+		{
+			for(int j = thread_start_idx; j <= thread_end_idx; j++)
+			{
+				pthread_join(tid[j], NULL);
+			}
+
+			numthread = 0;
+			thread_start_idx = thread_end_idx + 1;
+		}
+	}
+
+	for(int i = thread_start_idx; i <= thread_end_idx; i++){
+		pthread_join(tid[i], NULL);
+	}
+	/*
+	   pthread_mutex_destroy(&fi.lock);
+	   */
+
+	free(tid);
+	close(fd);
+
+	return 0;
+}
+
+
 void set_outputpath (string path)     // this user function can be used in anywhere but before initialization
 {
 	isset_outputpath = true;
@@ -854,7 +1442,7 @@ bool get_nextinput (string& inputpath)     // internal function to process next 
 		memset(read_buf, 0, BUF_SIZE);
 		strcpy(read_buf, inputname.c_str());
 
-		uint32_t hashvalue = h(read_buf, HASHLENGTH);
+		uint32_t hashvalue = hf(read_buf, HASHLENGTH);
 		hashvalue = hashvalue%nodelist.size();
 
 		address = nodelist[hashvalue];
@@ -899,10 +1487,8 @@ bool get_nextinput (string& inputpath)     // internal function to process next 
 		thefileclient.configure_buffer_initial (jobdirpath, argvalues[0], inputpaths.back(), isIcache);
 		inputpath = inputpaths.back();
 		inputpaths.pop_back();
-
 		// pre-process first record
-
-		readsuccess = thefileclient.read_record (&nextrecord);
+		readsuccess = thefileclient.read_record (nextrecord);
 
 		if (readsuccess)
 		{
@@ -917,39 +1503,13 @@ bool get_nextinput (string& inputpath)     // internal function to process next 
 	}
 }
 
-string get_next64mb()   // a user function for the map
-{
-	if (inside_map)
-	{
-		bool readsuccess = false;
-		string ret = nextrecord;
-		readsuccess = thefileclient.read_64mb (&nextrecord);
-
-		if (readsuccess)
-		{
-			is_nextrec = true;
-		}
-		else
-		{
-			is_nextrec = false;
-		}
-
-		return ret;
-	}
-	else
-	{
-		cout << "[mapreduce]Warning: the get_nextrecord() function is being used outside the map function" << endl;
-		return "";
-	}
-}
-
 string get_nextrecord()   // a user function for the map
 {
 	if (inside_map)
 	{
 		bool readsuccess = false;
 		string ret = nextrecord;
-		readsuccess = thefileclient.read_record (&nextrecord);
+		readsuccess = thefileclient.read_record (nextrecord);
 
 		if (readsuccess)
 		{
@@ -991,16 +1551,16 @@ bool get_nextkey (string* key)     // internal function for the reduce
 
 		while (readsuccess)
 		{
-			readsuccess = thefileclient.read_record (&nextvalue);
+			readsuccess = thefileclient.read_record (nextvalue);
 		}
 	}
 
 	// get next key
-	bool readsuccess = thefileclient.read_record (key);
+	bool readsuccess = thefileclient.read_record (*key);
 
 	if (readsuccess)     // next key exist
 	{
-		readsuccess = thefileclient.read_record (&nextvalue);
+		readsuccess = thefileclient.read_record (nextvalue);
 
 		if (readsuccess)
 		{
@@ -1032,11 +1592,11 @@ bool get_nextkey (string* key)     // internal function for the reduce
 			thefileclient.read_request (ipath, INTERMEDIATE);
 			currentpeer++;
 			// receive first key
-			readsuccess = thefileclient.read_record (key);
+			readsuccess = thefileclient.read_record (*key);
 
 			if (readsuccess)     // first key exist
 			{
-				readsuccess = thefileclient.read_record (&nextvalue);
+				readsuccess = thefileclient.read_record (nextvalue);
 
 				if (readsuccess)
 				{
@@ -1089,7 +1649,7 @@ string get_nextvalue()   // returns values in reduce function
 		}
 		else
 		{
-			readsuccess = thefileclient.read_record (&nextvalue);   // key value record
+			readsuccess = thefileclient.read_record (nextvalue);   // key value record
 
 			// pre-process first record
 			if (readsuccess)

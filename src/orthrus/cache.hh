@@ -13,20 +13,20 @@ using namespace std;
 class cache
 {
     private:
-        unsigned size;
-        unsigned capacity;
+        size_t size;
+        size_t capacity;
         vector<dataentry*> entries; // front() is the most recent entry, back() is the least recent entry
         
     public:
         cache();
-        cache (unsigned num);
+        cache (size_t num);
         dataentry* lookup (string filename);   // lookup makes the entry the most recent
         dataentry* lookup (unsigned index);   // lookup makes the entry the most recent
         
         void new_entry (dataentry* entry);   // a zero-sized entry is added as the most recent entry
         
         void update_size(); // this function should be called periodically
-        unsigned get_size();
+        size_t get_size();
         bool try_fit_size();
 };
 
@@ -36,7 +36,7 @@ cache::cache()
     capacity = CACHESIZE;
 }
 
-cache::cache (unsigned num)
+cache::cache (size_t num)
 {
     size = 0;
     capacity = num;
@@ -128,7 +128,7 @@ bool cache::try_fit_size()
 }
 
 
-unsigned cache::get_size()
+size_t cache::get_size()
 {
     return size;
 }

@@ -27,19 +27,22 @@ using namespace std;
 #define BUF_SIZE (8*1024) // determines maximum size of a record
 #define BUF_THRESHOLD (7*1024) // the buffer flush threshold
 #define BUF_CUT 512
-#define CACHESIZE (1*1024*1024*1024) // 1 GB of cache size
+#define CACHESIZE (1*512*1024*1024) // 1 GB of cache size
 #define BLOCKSIZE (512*1024) // 512 KB sized block <- should be multiple of BUF_SIZE
 
 #define IBLOCKSIZE (64*1024*1024) // size of intermediate flush threshold
 
+#define FILE_CHUNK_SIZE (64*1024*1024) // size of intermediate flush threshold
+#define METADATA_PORT 8932
+
 // EM-KDE
-#define ALPHA 0.001
+#define ALPHA 0.5
 #define NUMBIN 100 // number of histogram bins in the EM-KDE scheduling
 #define UPDATEINTERVAL 5000 // update interval in msec
 #define KERNELWIDTH 2 // number of bins affected by count_query() function: 1 + 2*KERNELWIDTH (except the boundary bins)
 
-#define MAP_SLOT 16
-#define REDUCE_SLOT 16
+#define MAP_SLOT 4
+#define REDUCE_SLOT 4
 
 
 #define HASHLENGTH 64
@@ -101,8 +104,9 @@ enum file_role
 int nbwrite (int fd, char* buf, char* contents)     // when the content should be specified
 {
     int written_bytes;
-    memset (buf, 0, BUF_SIZE);
     strcpy (buf, contents);
+	int writing_bytes = BUF_CUT * (strlen(contents) / BUF_CUT + 1);
+    memset (buf + strlen(contents), 0, writing_bytes - strlen(contents));
     
     while ( (written_bytes = write (fd, buf, BUF_CUT * (strlen (buf) / BUF_CUT + 1))) < 0)
     {
@@ -179,6 +183,7 @@ int nbwrite (int fd, char* buf, char* contents)     // when the content should b
 int nbwrite (int fd, char* buf)     // when the content is already on the buffer
 {
     int written_bytes;
+	int writing_bytes = BUF_CUT * (strlen(buf) / BUF_CUT + 1);
     
     while ( (written_bytes = write (fd, buf, BUF_CUT * (strlen (buf) / BUF_CUT + 1))) < 0)
     {
@@ -238,10 +243,10 @@ int nbwrite (int fd, char* buf)     // when the content is already on the buffer
         usleep (1000);
     }
     
-    if (written_bytes != BUF_CUT * ( (int) strlen (buf) / BUF_CUT + 1))
+    if (written_bytes != writing_bytes)
     {
         int progress = written_bytes;
-        int remain = BUF_CUT * (strlen (buf) / BUF_CUT + 1) - written_bytes;
+        int remain = writing_bytes - written_bytes;
         
         while (remain > 0)
         {
@@ -267,6 +272,7 @@ int nbread (int fd, char* buf)
     int total_readbytes = 0;
     int readbytes = 0;
     memset (buf, 0, BUF_SIZE);
+	//buf[BUF_CUT - 1] = 0;
     readbytes = read (fd, buf, BUF_CUT);
     
     if (readbytes == 0)
@@ -324,6 +330,7 @@ int nbread (int fd, char* buf)
         {
             while (1)
             {
+				//buf[total_readbytes + BUF_CUT - (total_readbytes % BUF_CUT) - 1] = 0;
                 readbytes = read (fd, buf + total_readbytes, BUF_CUT - (total_readbytes % BUF_CUT));
                 
                 if (readbytes == 0)

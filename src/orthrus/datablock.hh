@@ -19,7 +19,7 @@ class datablock
         ~datablock();
         
         int write_record (string record);   // true when succeeded, false when insufficient capacity
-        bool read_record (unsigned pos, string& record);   // -1 when data reaches end of block
+        bool read_record (unsigned pos, string* record);   // -1 when data reaches end of block
         char* get_data();
         unsigned get_size();
         void set_size (unsigned num);
@@ -84,11 +84,11 @@ int datablock::write_record (string record)
     }
 }
 
-bool datablock::read_record (unsigned index, string& record)     // return next index if there is next record, or -1
+bool datablock::read_record (unsigned index, string* record)     // return next index if there is next record, or -1
 {
     if (index < recordindex.size() - 1)     // there is another data to read
     {
-        record.assign (data + recordindex[index], recordindex[index + 1] - recordindex[index] - 1);
+        record->assign (data + recordindex[index], recordindex[index + 1] - recordindex[index] - 1);
         return true;
     }
     else

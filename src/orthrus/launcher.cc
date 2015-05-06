@@ -27,6 +27,7 @@ int dhtport = -1;
 
 fileserver afileserver;
 
+// worker server main function
 int main (int argc, const char *argv[])
 {
     // initialize data structures from setup.conf

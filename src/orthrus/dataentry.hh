@@ -121,7 +121,7 @@ class entryreader
         entryreader();
         entryreader (dataentry* entry);
         void set_targetentry (dataentry* entry);
-        bool read_record (string& record);   // return false when it reaches end of data
+        bool read_record (string* record);   // return false when it reaches end of data
 };
 
 entryreader::entryreader()
@@ -147,7 +147,7 @@ void entryreader::set_targetentry (dataentry* entry)
     entry->lock_entry();
 }
 
-bool entryreader::read_record (string& record)
+bool entryreader::read_record (string* record)
 {
     if (targetentry->datablocks[blockindex]->read_record (index, record))       // a record successfully read
     {
