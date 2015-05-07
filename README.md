@@ -16,10 +16,14 @@ COMPILING & INSTALLING
 
 Generate files needed for building eclipse
 
+    $ sh autogen.sh
+
+    or:
+
     $ autoreconf -i
 
 If you are developing this project I recommend you to 
-build it in a different folder, if not objects and binaries will
+build it in a different folder, otherwise objects and binaries will
 mix up with the sources. If so here type those commands:
 
     $ mkdir build && cd build

@@ -27,14 +27,15 @@ if test "${have_boost}" = "no"; then
 -------------------------------------------------
  I cannot find where you have the boost header files...
  OS supported?...: $is_supported
- Our OS guess?...: $is_supported
- booth path......: $booth_path
+ Our OS guess?...: $OS
+ booth path......: $boost_path
  
  Re-run configure script in this way:
  \033@<:@31m
    $ CPLUS_INCLUDE_PATH=/path/to/boost ./configure
  \033@<:@0m
 -------------------------------------------------\n])
+unset is_supported
   AC_MSG_ERROR
 fi # }}}
 ])
