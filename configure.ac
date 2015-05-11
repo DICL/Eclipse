@@ -1,4 +1,4 @@
-AC_INIT([Eclipse], [00.13.15], [vicente.bolea@gmail.com])
+AC_INIT([Eclipse], [00.13.15], [vicente.bolea@gmail.com], [], [dicl.unist.ac.kr])
 AC_CONFIG_AUX_DIR([./.autotools_aux])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AM_SILENT_RULES([yes])
