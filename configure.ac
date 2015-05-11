@@ -14,6 +14,7 @@ AC_CONFIG_FILES([src/bin/mrls],       [chmod +x src/bin/mrls])
 AC_CONFIG_FILES([src/bin/mrclear],    [chmod +x src/bin/mrclear])
 AC_CONFIG_FILES([src/bin/mrcat],      [chmod +x src/bin/mrcat])
 AC_CONFIG_FILES([src/bin/mrrm],       [chmod +x src/bin/mrrm])
+AC_CONFIG_FILES([src/fs/ecfs],       [chmod +x src/fs/ecfs])
 
 AC_PROG_CC
 AC_PROG_MAKE_SET

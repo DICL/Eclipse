@@ -1,33 +1,30 @@
 #!/bin/env ruby
 
-load 'optparse'
-#load 'eclipse_hash'
+require 'optparse'
+require 'ffi'
 
 # This module act as a namespace for the script 
 module Ecfs
-  BUILD_PATH     = @distpath@
-  SRCDIR         = @srcdir@
-  SYSCONFPATH    = @sysconfdir@
+  CONFPATH       = "@sysconfdir@/eclipse.json" 
+  BINDIR         = "@bindir@"
 
-  # 
-  #
   class Network 
     def initialize
-      @nodelist = File.open(SYSCONFPATH) { |f| JSON.parse(f.read) }
+      @nodelist = File.open(CONFPATH) { |f| JSON.parse(f.read) }["nodes"]
 
-      `#{PREFIX}/bin/master &`
+      `#{BINDIR}/master &`
       @nodelist.each do |node|
-        `ssh #{node} #{PREFIX}/bin/slave`
+        `ssh #{node} #{BINDIR}/slave &`
       end
 
-      `#{PREFIX}/bin/cacheserver &`
+      `#{BINDIR}/cacheserver &`
       @nodelist.each do |node|
-        `ssh #{node} #{PREFIX}/bin/eclipse`
+        `ssh #{node} #{BINDIR}/eclipse &`
       end
     end
 
     def die
-      @nodelist = File.open(SYSCONFPATH) { |f| JSON.parse(f.read) }
+      @nodelist = File.open(CONFPATH) { |f| JSON.parse(f.read) }
 
       `killall master`
       `killall cacheserver`
@@ -48,10 +45,19 @@ module Ecfs
   class Fs
     def initialize
       @files       = {}
+      @config = File.open(CONFPATH) { |f| JSON.parse(f.read) }
+      @nodelist = @config["nodes"]
+      @fs_path  = @config["fs_path"] + ".list"
+
+      module Eclipse
+        extend FFI::Library                                                           
+        ffi_lib './hash.so'
+        attach_function :h, [ :string , :size_t ], :ushort
+      end
     end
 
     def put filename:
-      hashvalue = `eclipse_hash #{filename}`
+      hashvalue = Eclipse.h(filename)
       @files[filename] = ufile.new name: filename, addr: hashvalue
       writetodisk
     end
@@ -61,24 +67,26 @@ module Ecfs
     end
 
     def rm filename:
-      hashvalue = `eclipse_hash #{filename}`
+      hashvalue = Eclipse.h(filename)
 
       `ssh `
 
     end
 
     def cat filename:
-      hashvalue = `eclipse_hash #{filename}`
+      hashvalue = Eclipse.h(filename)
       output = `ssh cat #{filepath}`
       puts output.join
     end
 
     def list
+      @files.each do |f|
 
+      end
     end
 
     def writetodisk 
-      File.open("tmpfile") { |f| f.write(JSON.generate(@files)) }
+      File.open(@fs_path) { |f| f.write(JSON.generate(@files)) }
     end
 
   end
