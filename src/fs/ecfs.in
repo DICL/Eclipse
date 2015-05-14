@@ -2,14 +2,18 @@
 
 require 'optparse'
 require 'ffi'
+require 'ostruct'
+require 'awesome_print'
+require 'json'
 
-# This module act as a namespace for the script 
+# This module act as a namespace for the script
 module Ecfs
-  CONFPATH       = "@sysconfdir@/eclipse.json" 
-  BINDIR         = "@bindir@"
+  CONFPATH       = "@sysconfdirfull@/eclipse.json"
+  BINDIR         = "@bindirfull@"
+  LIBDIR         = "@libdirfull@"
 
-  class Network 
-    def initialize
+  class Core
+    def self.launch 
       @nodelist = File.open(CONFPATH) { |f| JSON.parse(f.read) }["nodes"]
 
       `#{BINDIR}/master &`
@@ -23,8 +27,8 @@ module Ecfs
       end
     end
 
-    def die
-      @nodelist = File.open(CONFPATH) { |f| JSON.parse(f.read) }
+    def self.die
+      @nodelist = File.open(CONFPATH) { |f| JSON.parse(f.read) }["nodes"]
 
       `killall master`
       `killall cacheserver`
@@ -35,64 +39,79 @@ module Ecfs
     end
   end
 
-  class Ufile
-    def initiliaze name:, addr:
-      @name = name;
-      @addr = addr;
-    end
-  end
-
   class Fs
-    def initialize
-      @files       = {}
-      @config = File.open(CONFPATH) { |f| JSON.parse(f.read) }
-      @nodelist = @config["nodes"]
-      @fs_path  = @config["fs_path"] + ".list"
+    module Eclipse
+      extend FFI::Library
+      ffi_lib "#{LIBDIR}/libehash.so"
+      attach_function :h, [ :string , :size_t ], :ushort
+      alias_method :hash, :h
+    end
 
-      module Eclipse
-        extend FFI::Library                                                           
-        ffi_lib './hash.so'
-        attach_function :h, [ :string , :size_t ], :ushort
-      end
+    def initialize
+      @files           = {}
+      @config          = File.open(CONFPATH) { |f| JSON.parse(f.read) }
+      @nodelist        = @config["nodes"]
+      @fs_path         = @config["fs_path"] + ".list"
+      @fs_scratch_path = @config["fs_scratch_path"] + ".list"
+
     end
 
     def put filename:
-      hashvalue = Eclipse.h(filename)
-      @files[filename] = ufile.new name: filename, addr: hashvalue
+      @files[filename] = OpenStruct.new(:name => filename,
+                                        :addr => @nodelist[Eclipse.hash(filename)])
       writetodisk
     end
 
     def get filename:
-
+      cat(filename)
     end
 
     def rm filename:
-      hashvalue = Eclipse.h(filename)
-
-      `ssh `
-
+      node       = @nodelist[Eclipse.hash(filename)]
+      pathtofile = @fs_scratch_path + "/" + filename
+      `ssh #{node} rm -f #{pathtofile}`
     end
 
     def cat filename:
-      hashvalue = Eclipse.h(filename)
-      output = `ssh cat #{filepath}`
-      puts output.join
+      hashvalue = Eclipse.hash(filename)
+      puts `ssh #{hashvalue} cat #{filepath}`
     end
 
     def list
-      @files.each do |f|
-
-      end
+      ap @files
     end
 
-    def writetodisk 
-      File.open(@fs_path) { |f| f.write(JSON.generate(@files)) }
+    #def clear
+    #end
+
+    def writetodisk
+      File.open(@fs_path, 'w') { |f| f.write(JSON.generate(@files)) }
     end
 
   end
 
-#  class CLI_driver < Core
-#
-#  end
-#
+  class CLI_driver < Fs 
+    def initialize input: #{{{
+      @options = {}
+
+      OptionParser.new do |opts|
+        opts.banner = <<EOF
+ecfs (Eclipse FileSystem) is an script to manage the fs
+Usage: ecfs [-v/--verbose] [options]
+EOF
+        opts.version = 1.0
+        opts.program_name = "Eclipse Launcher"
+        opts.separator "\nCore options"
+        opts.on("-l", "--launch", "Create new openchord network") { Core.launch }
+        opts.on("-d", "--die", "Close the network") { Core.die}
+        opts.separator "\nFilesystem options"
+        opts.on("-p", "--put FILE", "insert FILE") {|f| put(f) }
+        opts.on("-g", "--get FILE", "get FILE") { |f| get(f)}
+        opts.separator ""
+        opts.on_tail("-h", "--help"   , "recursive this") { puts opts }
+      end.parse! input
+    end #}}}
+  end
 end
+
+Ecfs::CLI_driver.new input: ARGV

@@ -19,9 +19,16 @@ mrcat_core_SOURCES  = src/file_distributor/mrcat_core.cc src/common/settings.cc 
 mrrm_core_SOURCES   = src/file_distributor/mrrm_core.cc src/common/settings.cc src/common/hash.cc
 fd_core_SOURCES     = src/file_distributor/fd_core.cc src/common/settings.cc src/common/hash.cc
 
+
+# libs -----
+lib_LTLIBRARIES      = libehash.la
+libehash_la_SOURCES  = src/common/hash.cc 
+libehash_la_CXXFLAGS = $(AM_CXXFLAGS) -shared
+libehash_la_LDFLAGS  = -version-info 0:0:0
+
 # Scripts -------
 sh_scripts          = src/bin/mrclear_core src/bin/runmaster.sh src/bin/runslave.sh src/bin/jsawk
-bin_SCRIPTS         = $(wildcard src/bin/*) $(sh_scripts)
+bin_SCRIPTS         = $(wildcard src/bin/*) $(sh_scripts) src/fs/ecfs
 # ------
 if COPY_SAMPLES
 sysconf_DATA        = src/sample/eclipse.json
