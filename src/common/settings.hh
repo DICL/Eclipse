@@ -30,6 +30,7 @@ class Settings
     int dhtport ();
     int max_job ();
     string master_addr ();
+    string ipc_path ();
     vector<string> nodelist ();
     string given_path;
     bool hardcoded_path;

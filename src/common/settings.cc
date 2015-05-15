@@ -47,6 +47,7 @@ int Settings::port ()              { return pt.get<int> ("port"); }
 int Settings::dhtport ()           { return pt.get<int> ("dhtport"); }
 int Settings::max_job ()           { return pt.get<int> ("max_job"); }
 string Settings::master_addr ()    { return pt.get<string> ("master_address"); }
+string Settings::ipc_path ()    { return pt.get<string> ("IPC_path"); }
 
 vector<string> Settings::nodelist () 
 {

@@ -8,36 +8,57 @@ require 'json'
 
 # This module act as a namespace for the script
 module Ecfs
-  CONFPATH       = "@sysconfdirfull@/eclipse.json"
-  BINDIR         = "@bindirfull@"
-  LIBDIR         = "@libdirfull@"
+  CONFPATH = "@sysconfdirfull@/eclipse.json"
+  BINDIR   = "@bindirfull@"
+  LIBDIR   = "@libdirfull@"
 
-  class Core
+  class Core #{{{
     def self.launch 
       @nodelist = File.open(CONFPATH) { |f| JSON.parse(f.read) }["nodes"]
 
-      `#{BINDIR}/master &`
+      `#{BINDIR}/master &>/dev/null &`
+      `sleep 1`
       @nodelist.each do |node|
-        `ssh #{node} #{BINDIR}/slave &`
+        system "ssh #{node} 'nohup #{BINDIR}/slave </dev/null &>/dev/null & exit'"
       end
 
-      `#{BINDIR}/cacheserver &`
+      `#{BINDIR}/cacheserver &>/dev/null &`
+      `sleep 1`
       @nodelist.each do |node|
-        `ssh #{node} #{BINDIR}/eclipse &`
+        system "ssh #{node} 'nohup #{BINDIR}/eclipse </dev/null &>/dev/null & exit'"
       end
     end
+
+    # :TODO: big refactor
+    def self.show 
+      @nodelist = File.open(CONFPATH) { |f| JSON.parse(f.read) }["nodes"]
+      `pgrep -u #{`whoami`.chomp} master`
+      status = $?.exitstatus == 0 ? "Running" : "Stopped"
+
+      `pgrep -u #{`whoami`.chomp} cacheserver`
+      status2 = $?.exitstatus == 0 ? "Running" : "Stopped"
+      puts "#{"Localhost".green} [Master: #{status.red}] [Cacheserver: #{status2.red}]"
+      @nodelist.each do |node|                                    # Kill for each of the nodes
+        `ssh #{node} pgrep -u #{`whoami`.chomp} slave`
+        status = $?.exitstatus == 0 ? "Running" : "Stopped"
+
+        `ssh #{node} pgrep -u #{`whoami`.chomp} eclipse`
+        status2 = $?.exitstatus == 0 ? "Running" : "Stopped"
+        puts "#{`ssh #{node} hostname`.chomp.green} [Slave: #{status.red}] [Eclipse: #{status2.red}]"
+      end
+    end 
 
     def self.die
       @nodelist = File.open(CONFPATH) { |f| JSON.parse(f.read) }["nodes"]
 
-      `killall master`
-      `killall cacheserver`
+      `pkill -u #{`whoami`.chomp} master`
+      `pkill -u #{`whoami`.chomp} cacheserver`
       @nodelist.each do |node|
-        `ssh #{node} killall slave`
-        `ssh #{node} killall eclipse`
+        `ssh #{node} pkill -u #{`whoami`.chomp} slave`
+        `ssh #{node} pkill -u #{`whoami`.chomp} eclipse`
       end
     end
-  end
+  end #}}}
 
   class Fs
     module Eclipse
@@ -104,6 +125,7 @@ EOF
         opts.separator "\nCore options"
         opts.on("-l", "--launch", "Create new openchord network") { Core.launch }
         opts.on("-d", "--die", "Close the network") { Core.die}
+        opts.on("-s", "--status", "Close the network") { Core.show}
         opts.separator "\nFilesystem options"
         opts.on("-p", "--put FILE", "insert FILE") {|f| put(f) }
         opts.on("-g", "--get FILE", "get FILE") { |f| get(f)}
