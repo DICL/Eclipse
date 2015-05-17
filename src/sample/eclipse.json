@@ -3,8 +3,8 @@
  "dhtport"              : 8005,
  "max_job"              : 1024,
  "config_relative_path" : "/etc/eclipse.json",
- "fs_path"              : "/home/vicente/mr_storage/",
- "fs_scratch_path"      : "/scratch/vicente/mr_storage/",
+ "fs_path"              : "/home/vicente/mr_storage",
+ "fs_scratch_path"      : "/scratch/vicente/mr_storage",
  "IPC_path"             : "/scratch/vicente/socket",
  "master_address"       : "192.168.1.201",
  "nodes"                : [

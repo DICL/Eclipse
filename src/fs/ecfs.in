@@ -13,7 +13,7 @@ module Ecfs
   LIBDIR   = "@libdirfull@"
 
   class Core #{{{
-    def self.launch 
+    def self.launch
       @nodelist = File.open(CONFPATH) { |f| JSON.parse(f.read) }["nodes"]
 
       `#{BINDIR}/master &>/dev/null &`
@@ -30,7 +30,7 @@ module Ecfs
     end
 
     # :TODO: big refactor
-    def self.show 
+    def self.show
       @nodelist = File.open(CONFPATH) { |f| JSON.parse(f.read) }["nodes"]
       `pgrep -u #{`whoami`.chomp} master`
       status = $?.exitstatus == 0 ? "Running" : "Stopped"
@@ -46,7 +46,7 @@ module Ecfs
         status2 = $?.exitstatus == 0 ? "Running" : "Stopped"
         puts "#{`ssh #{node} hostname`.chomp.green} [Slave: #{status.red}] [Eclipse: #{status2.red}]"
       end
-    end 
+    end
 
     def self.die
       @nodelist = File.open(CONFPATH) { |f| JSON.parse(f.read) }["nodes"]
@@ -65,73 +65,96 @@ module Ecfs
       extend FFI::Library
       ffi_lib "#{LIBDIR}/libehash.so"
       attach_function :h, [ :string , :size_t ], :ushort
-      alias_method :hash, :h
     end
 
     def initialize
+      @verbose         = false
       @files           = {}
       @config          = File.open(CONFPATH) { |f| JSON.parse(f.read) }
       @nodelist        = @config["nodes"]
-      @fs_path         = @config["fs_path"] + ".list"
-      @fs_scratch_path = @config["fs_scratch_path"] + ".list"
-
+      @fs_path         = @config["fs_path"]
+      @fs_scratch_path = @config["fs_scratch_path"]
+      @fs_tmpfile      = @config["fs_path"] + "/.list"
+      @files           = File.open(@fs_tmpfile) { |f| JSON.parse(f.read) } if File.exist? @fs_tmpfile
     end
 
-    def put filename:
-      @files[filename] = OpenStruct.new(:name => filename,
-                                        :addr => @nodelist[Eclipse.hash(filename)])
-      writetodisk
+    def hash(input);         Eclipse.h(input, input.length) end
+    def node_containing(fn); @nodelist[hash(fn) % @nodelist.length] end
+
+    def put(input)
+      input.each do |fn|
+        node = node_containing(fn)
+        @files[fn] = node
+
+        File.open(@fs_tmpfile, 'w') { |f| f.write(JSON.generate(@files)) }
+        cmd = "scp #{@fs_path}/#{fn} #{node}:#{@fs_scratch_path}/#{fn}"
+        puts cmd if @verbose
+        system cmd
+      end
     end
 
     def get filename:
-      cat(filename)
+      raise "\'#{filename}\' not found in Eclipse FS" unless @files[filename]
+
+      node = node_containing(filename)
+      system "ssh #{node} cat #{@fs_scratch_path}/#{filename}"
     end
 
-    def rm filename:
-      node       = @nodelist[Eclipse.hash(filename)]
-      pathtofile = @fs_scratch_path + "/" + filename
-      `ssh #{node} rm -f #{pathtofile}`
-    end
+    def rm(input)
+      input.each do |fn|
+        raise "\'#{fn}\' not found in Eclipse FS" unless @files[fn]
 
-    def cat filename:
-      hashvalue = Eclipse.hash(filename)
-      puts `ssh #{hashvalue} cat #{filepath}`
+        node = node_containing(fn)
+        pathtofile = @fs_scratch_path + "/" + fn
+        cmd = "ssh #{node} rm -f #{pathtofile}"
+        puts cmd if @verbose
+        system cmd
+        @files.delete(fn)
+        File.open(@fs_tmpfile, 'w') { |f| f.write(JSON.generate(@files)) }
+      end
     end
 
     def list
       ap @files
     end
-
-    #def clear
-    #end
-
-    def writetodisk
-      File.open(@fs_path, 'w') { |f| f.write(JSON.generate(@files)) }
-    end
-
   end
 
-  class CLI_driver < Fs 
+  class CLI_driver < Fs
     def initialize input: #{{{
       @options = {}
-
+      super()
       OptionParser.new do |opts|
         opts.banner = <<EOF
 ecfs (Eclipse FileSystem) is an script to manage the fs
-Usage: ecfs [-v/--verbose] [options]
+Usage: ecfs [options] <actions> [FILE]...
 EOF
         opts.version = 1.0
         opts.program_name = "Eclipse Launcher"
-        opts.separator "\nCore options"
-        opts.on("-l", "--launch", "Create new openchord network") { Core.launch }
-        opts.on("-d", "--die", "Close the network") { Core.die}
-        opts.on("-s", "--status", "Close the network") { Core.show}
-        opts.separator "\nFilesystem options"
-        opts.on("-p", "--put FILE", "insert FILE") {|f| put(f) }
-        opts.on("-g", "--get FILE", "get FILE") { |f| get(f)}
+        opts.separator "Core actions"
+        opts.separator "   launch       Create new Eclipse network"
+        opts.separator "   die          Close the network"
+        opts.separator "   show         Check the status of the network"
         opts.separator ""
-        opts.on_tail("-h", "--help"   , "recursive this") { puts opts }
+        opts.separator "Filesystem actions"
+        opts.separator "   put FILE...  insert FILE..."
+        opts.separator "   get FILE...  \'cat\' the FILE..."
+        opts.separator "   rm FILE...   remove FILE..."
+        opts.separator "   ls           list all the files in the FS"
+        opts.separator ""
+        opts.separator "Options"
+        opts.on_tail("-h", "--help"   , "recursive this")         { puts opts }
+        opts.on_tail("-v", "--verbose" , "printout verbose info") { @verbose = true }
       end.parse! input
+
+      case ARGV.shift
+      when "launch"; Core.launch
+      when "die";    Core.die
+      when "show";   Core.show
+      when "put";    put(ARGV)
+      when "get";    get(filename: ARGV[0])
+      when "rm";     rm(ARGV)
+      when "ls";     list
+      end
     end #}}}
   end
 end
