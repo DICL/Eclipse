@@ -13,12 +13,20 @@ using std::endl;
 
 bool Settings::get_project_path () 
 {
-  if (hardcoded_path == true)
+  string home_location = string(getenv("HOME")) + "/.eclipse.json";
+  if (access(home_location.c_str(), F_OK ) != -1) {
     project_path = string(ECLIPSE_CONF_PATH); 
-  else 
-    project_path = given_path;
+    config_path = home_location;
+
+  } else {
+    if (hardcoded_path == true)
+      project_path = string(ECLIPSE_CONF_PATH); 
+    else 
+      project_path = given_path;
+
+    config_path = project_path + FINAL_PATH;
+  }
  
-  config_path = project_path + FINAL_PATH;
   return true;
 }
 

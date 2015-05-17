@@ -1,10 +1,9 @@
 #!/bin/env ruby
 
-require 'optparse'
-require 'ffi'
-require 'ostruct'
-require 'awesome_print'
-require 'json'
+require 'optparse'          # For parsing the options
+require 'ffi'               # For loading C functions, in this case the hash functions
+require 'awesome_print'     #
+require 'json'              # 
 
 # This module act as a namespace for the script
 module Ecfs
@@ -13,9 +12,21 @@ module Ecfs
   LIBDIR   = "@libdirfull@"
 
   class Core #{{{
-    def self.launch
-      @nodelist = File.open(CONFPATH) { |f| JSON.parse(f.read) }["nodes"]
+    def initialize 
+      @nodelist = File.open(find_confpath) { |f| JSON.parse(f.read) }["nodes"]
+      @verbose  = false
+    end
 
+    def find_confpath
+      home = "#{ENV['HOME']}/.eclipse.json"
+      if File.exist? home
+        return home
+      else
+        return CONFPATH
+      end 
+    end
+
+    def launch #{{{
       `#{BINDIR}/master &>/dev/null &`
       `sleep 1`
       @nodelist.each do |node|
@@ -27,17 +38,17 @@ module Ecfs
       @nodelist.each do |node|
         system "ssh #{node} 'nohup #{BINDIR}/eclipse </dev/null &>/dev/null & exit'"
       end
-    end
+    end #}}}
 
     # :TODO: big refactor
-    def self.show
-      @nodelist = File.open(CONFPATH) { |f| JSON.parse(f.read) }["nodes"]
+    def show #{{{
       `pgrep -u #{`whoami`.chomp} master`
       status = $?.exitstatus == 0 ? "Running" : "Stopped"
 
       `pgrep -u #{`whoami`.chomp} cacheserver`
       status2 = $?.exitstatus == 0 ? "Running" : "Stopped"
       puts "#{"Localhost".green} [Master: #{status.red}] [Cacheserver: #{status2.red}]"
+
       @nodelist.each do |node|                                    # Kill for each of the nodes
         `ssh #{node} pgrep -u #{`whoami`.chomp} slave`
         status = $?.exitstatus == 0 ? "Running" : "Stopped"
@@ -46,21 +57,19 @@ module Ecfs
         status2 = $?.exitstatus == 0 ? "Running" : "Stopped"
         puts "#{`ssh #{node} hostname`.chomp.green} [Slave: #{status.red}] [Eclipse: #{status2.red}]"
       end
-    end
+    end #}}}
 
-    def self.die
-      @nodelist = File.open(CONFPATH) { |f| JSON.parse(f.read) }["nodes"]
-
+    def close #{{{
       `pkill -u #{`whoami`.chomp} master`
       `pkill -u #{`whoami`.chomp} cacheserver`
       @nodelist.each do |node|
         `ssh #{node} pkill -u #{`whoami`.chomp} slave`
         `ssh #{node} pkill -u #{`whoami`.chomp} eclipse`
-      end
+      end #}}}
     end
   end #}}}
 
-  class Fs
+  class Fs < Core #{{{
     module Eclipse
       extend FFI::Library
       ffi_lib "#{LIBDIR}/libehash.so"
@@ -68,14 +77,13 @@ module Ecfs
     end
 
     def initialize
-      @verbose         = false
       @files           = {}
-      @config          = File.open(CONFPATH) { |f| JSON.parse(f.read) }
-      @nodelist        = @config["nodes"]
+      @config          = File.open(find_confpath) { |f| JSON.parse(f.read) }
       @fs_path         = @config["fs_path"]
       @fs_scratch_path = @config["fs_scratch_path"]
       @fs_tmpfile      = @config["fs_path"] + "/.list"
       @files           = File.open(@fs_tmpfile) { |f| JSON.parse(f.read) } if File.exist? @fs_tmpfile
+      super()
     end
 
     def hash(input);         Eclipse.h(input, input.length) end
@@ -93,11 +101,11 @@ module Ecfs
       end
     end
 
-    def get filename:
-      raise "\'#{filename}\' not found in Eclipse FS" unless @files[filename]
-
-      node = node_containing(filename)
-      system "ssh #{node} cat #{@fs_scratch_path}/#{filename}"
+    def get(input)
+      input.each do |fn|
+        raise "\'#{fn}\' not found in Eclipse FS" unless @files[fn]
+        system "ssh #{node_containing(fn)} cat #{@fs_scratch_path}/#{fn}"
+      end
     end
 
     def rm(input)
@@ -117,46 +125,51 @@ module Ecfs
     def list
       ap @files
     end
-  end
 
-  class CLI_driver < Fs
-    def initialize input: #{{{
+    def config
+      ap self.instance_variables.map{|var|  [var, self.instance_variable_get(var)]}.to_h
+    end
+  end #}}}
+
+  class CLI_driver < Fs  #{{{
+    def initialize input:
       @options = {}
       super()
       OptionParser.new do |opts|
-        opts.banner = <<EOF
-ecfs (Eclipse FileSystem) is an script to manage the fs
-Usage: ecfs [options] <actions> [FILE]...
-EOF
+        opts.banner = "ecfs (Eclipse FileSystem) is an script to manage the fs\n" +
+          "Usage: ecfs [options] <actions> [FILE]..."
         opts.version = 1.0
         opts.program_name = "Eclipse Launcher"
         opts.separator "Core actions"
-        opts.separator "   launch       Create new Eclipse network"
-        opts.separator "   die          Close the network"
-        opts.separator "   show         Check the status of the network"
+        opts.separator "    launch       Create new Eclipse network"
+        opts.separator "    close        Close the network"
+        opts.separator "    status       Check the status of the network"
         opts.separator ""
         opts.separator "Filesystem actions"
-        opts.separator "   put FILE...  insert FILE..."
-        opts.separator "   get FILE...  \'cat\' the FILE..."
-        opts.separator "   rm FILE...   remove FILE..."
-        opts.separator "   ls           list all the files in the FS"
+        opts.separator "    put FILE...  insert FILE..."
+        opts.separator "    get FILE...  \'cat\' the FILE..."
+        opts.separator "    rm FILE...   remove FILE..."
+        opts.separator "    ls           list all the files in the FS"
+        opts.separator "    config       list all the internal variables"
         opts.separator ""
         opts.separator "Options"
-        opts.on_tail("-h", "--help"   , "recursive this")         { puts opts }
+        opts.on_tail("-h", "--help"   , "recursive this")         { puts opts; exit}
         opts.on_tail("-v", "--verbose" , "printout verbose info") { @verbose = true }
       end.parse! input
 
-      case ARGV.shift
-      when "launch"; Core.launch
-      when "die";    Core.die
-      when "show";   Core.show
-      when "put";    put(ARGV)
-      when "get";    get(filename: ARGV[0])
-      when "rm";     rm(ARGV)
-      when "ls";     list
+      case input.shift
+      when 'launch' then launch
+      when 'close' then  close
+      when 'status' then show
+      when 'put' then    put input
+      when 'get' then    get input
+      when 'rm' then     rm input
+      when 'ls' then     list
+      when 'config' then config
+      else               raise "Not action given"
       end
-    end #}}}
-  end
+    end
+  end #}}}
 end
 
 Ecfs::CLI_driver.new input: ARGV
