@@ -76,14 +76,15 @@ int fileserver::run_server (int port, string master_address)
     // read hostname from hostname file
     ifstream hostfile;
     string word;
-    string hostpath = DHT_PATH;
-    hostpath.append ("hostname");
+    
+    Settings setted;
+    setted.load_settings();
+    string hostpath = setted.scratch_path();
+    hostpath.append ("/hostname");
     hostfile.open (hostpath.c_str());
     hostfile >> localhostname;
     hostfile.close();
 
-    Settings setted;
-    setted.load_settings();
     nodelist = setted.nodelist();
     string ipc_path = setted.ipc_path();
     

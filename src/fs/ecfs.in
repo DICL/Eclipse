@@ -40,7 +40,6 @@ module Ecfs
       end
     end #}}}
 
-    # :TODO: big refactor
     def show #{{{
       `pgrep -u #{`whoami`.chomp} master`
       status = $?.exitstatus == 0 ? "Running" : "Stopped"

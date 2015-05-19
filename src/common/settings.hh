@@ -31,6 +31,8 @@ class Settings
     int max_job ();
     string master_addr ();
     string ipc_path ();
+    string mr_path ();
+    string scratch_path ();
     vector<string> nodelist ();
     string given_path;
     bool hardcoded_path;

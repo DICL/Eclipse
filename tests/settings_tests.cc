@@ -16,7 +16,7 @@ SUITE(SETTING_TESTS)
   TEST_FIXTURE(Settings_fixture, basic) 
   {
     s->load_settings();
-    CHECK_EQUAL (s->port(), 8000);
+    CHECK_EQUAL (s->port(), 8004);
     CHECK_EQUAL (s->master_addr(), "192.168.1.201");
     vector<string> test = s->nodelist();
 
