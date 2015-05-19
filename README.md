@@ -1,4 +1,4 @@
-[![Build Status](https://magnum.travis-ci.com/DICL/Eclipse.svg?token=MaWCP2sHsbC2FaU6ztsx)](https://magnum.travis-ci.com/DICL/Eclipse)
+[![Build Status](https://magnum.travis-ci.com/DICL/Eclipse.svg?token=MaWCP2sHsbC2FaU6ztsx)](https://magnum.travis-ci.com/DICL/Eclipse) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/DICL/DICL_ECLIPSE?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
 
 AUTHOR
 ======
