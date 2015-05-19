@@ -25,6 +25,7 @@ int dhtport = -1;
 
 int serverfd = -1;
 int ipcfd = -1;
+string ipc_path;
 
 int buffersize = 8388608; // 8 MB buffer
 
@@ -46,10 +47,11 @@ int main (int argc, char** argv)
     setted.load_settings();
     dhtport = setted.dhtport();
     nodelist = setted.nodelist();
+    ipc_path = setted.ipc_path();
     
-    if (access (IPC_PATH, F_OK) == 0)
+    if (access (ipc_path.c_str(), F_OK) == 0)
     {
-        unlink (IPC_PATH);
+        unlink (ipc_path.c_str());
     }
     
     open_server (dhtport);
@@ -348,10 +350,13 @@ void open_server (int port)
         exit (-1);
     }
     
+    Settings setted;
+    setted.load_settings();
+
     // bind
     memset ( (void*) &serveraddr2, 0, sizeof (serveraddr2));
     serveraddr2.sun_family = AF_UNIX;
-    strcpy (serveraddr2.sun_path, IPC_PATH);
+    strcpy (serveraddr2.sun_path, setted.ipc_path().c_str());
     
     if (bind (ipcfd, (struct sockaddr *) &serveraddr2, SUN_LEN (&serveraddr2)) < 0)
     {

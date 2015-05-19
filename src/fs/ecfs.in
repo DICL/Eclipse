@@ -1,0 +1,174 @@
+#!/bin/env ruby
+
+require 'optparse'          # For parsing the options
+require 'ffi'               # For loading C functions, in this case the hash functions
+require 'awesome_print'     #
+require 'json'              # 
+
+# This module act as a namespace for the script
+module Ecfs
+  CONFPATH = "@sysconfdirfull@/eclipse.json"
+  BINDIR   = "@bindirfull@"
+  LIBDIR   = "@libdirfull@"
+
+  class Core #{{{
+    def initialize 
+      @nodelist = File.open(find_confpath) { |f| JSON.parse(f.read) }["nodes"]
+      @verbose  = false
+    end
+
+    def find_confpath
+      home = "#{ENV['HOME']}/.eclipse.json"
+      if File.exist? home
+        return home
+      else
+        return CONFPATH
+      end 
+    end
+
+    def launch #{{{
+      `#{BINDIR}/master &>/dev/null &`
+      `sleep 1`
+      @nodelist.each do |node|
+        system "ssh #{node} 'nohup #{BINDIR}/slave </dev/null &>/dev/null & exit'"
+      end
+
+      `#{BINDIR}/cacheserver &>/dev/null &`
+      `sleep 1`
+      @nodelist.each do |node|
+        system "ssh #{node} 'nohup #{BINDIR}/eclipse </dev/null &>/dev/null & exit'"
+      end
+    end #}}}
+
+    def show #{{{
+      `pgrep -u #{`whoami`.chomp} master`
+      status = $?.exitstatus == 0 ? "Running" : "Stopped"
+
+      `pgrep -u #{`whoami`.chomp} cacheserver`
+      status2 = $?.exitstatus == 0 ? "Running" : "Stopped"
+      puts "#{"Localhost".green} [Master: #{status.red}] [Cacheserver: #{status2.red}]"
+
+      @nodelist.each do |node|                                    # Kill for each of the nodes
+        `ssh #{node} pgrep -u #{`whoami`.chomp} slave`
+        status = $?.exitstatus == 0 ? "Running" : "Stopped"
+
+        `ssh #{node} pgrep -u #{`whoami`.chomp} eclipse`
+        status2 = $?.exitstatus == 0 ? "Running" : "Stopped"
+        puts "#{`ssh #{node} hostname`.chomp.green} [Slave: #{status.red}] [Eclipse: #{status2.red}]"
+      end
+    end #}}}
+
+    def close #{{{
+      `pkill -u #{`whoami`.chomp} master`
+      `pkill -u #{`whoami`.chomp} cacheserver`
+      @nodelist.each do |node|
+        `ssh #{node} pkill -u #{`whoami`.chomp} slave`
+        `ssh #{node} pkill -u #{`whoami`.chomp} eclipse`
+      end #}}}
+    end
+  end #}}}
+
+  class Fs < Core #{{{
+    module Eclipse
+      extend FFI::Library
+      ffi_lib "#{LIBDIR}/libehash.so"
+      attach_function :h, [ :string , :size_t ], :ushort
+    end
+
+    def initialize
+      @files           = {}
+      @config          = File.open(find_confpath) { |f| JSON.parse(f.read) }
+      @fs_path         = @config["fs_path"]
+      @fs_scratch_path = @config["fs_scratch_path"]
+      @fs_tmpfile      = @config["fs_path"] + "/.list"
+      @files           = File.open(@fs_tmpfile) { |f| JSON.parse(f.read) } if File.exist? @fs_tmpfile
+      super()
+    end
+
+    def hash(input);         Eclipse.h(input, input.length) end
+    def node_containing(fn); @nodelist[hash(fn) % @nodelist.length] end
+
+    def put(input)
+      input.each do |fn|
+        node = node_containing(fn)
+        @files[fn] = node
+
+        File.open(@fs_tmpfile, 'w') { |f| f.write(JSON.generate(@files)) }
+        cmd = "scp #{@fs_path}/#{fn} #{node}:#{@fs_scratch_path}/#{fn}"
+        puts cmd if @verbose
+        system cmd
+      end
+    end
+
+    def get(input)
+      input.each do |fn|
+        raise "\'#{fn}\' not found in Eclipse FS" unless @files[fn]
+        system "ssh #{node_containing(fn)} cat #{@fs_scratch_path}/#{fn}"
+      end
+    end
+
+    def rm(input)
+      input.each do |fn|
+        raise "\'#{fn}\' not found in Eclipse FS" unless @files[fn]
+
+        node = node_containing(fn)
+        pathtofile = @fs_scratch_path + "/" + fn
+        cmd = "ssh #{node} rm -f #{pathtofile}"
+        puts cmd if @verbose
+        system cmd
+        @files.delete(fn)
+        File.open(@fs_tmpfile, 'w') { |f| f.write(JSON.generate(@files)) }
+      end
+    end
+
+    def list
+      ap @files
+    end
+
+    def config
+      ap self.instance_variables.map{|var|  [var, self.instance_variable_get(var)]}.to_h
+    end
+  end #}}}
+
+  class CLI_driver < Fs  #{{{
+    def initialize input:
+      @options = {}
+      super()
+      OptionParser.new do |opts|
+        opts.banner = "ecfs (Eclipse FileSystem) is an script to manage the fs\n" +
+          "Usage: ecfs [options] <actions> [FILE]..."
+        opts.version = 1.0
+        opts.program_name = "Eclipse Launcher"
+        opts.separator "Core actions"
+        opts.separator "    launch       Create new Eclipse network"
+        opts.separator "    close        Close the network"
+        opts.separator "    status       Check the status of the network"
+        opts.separator ""
+        opts.separator "Filesystem actions"
+        opts.separator "    put FILE...  insert FILE..."
+        opts.separator "    get FILE...  \'cat\' the FILE..."
+        opts.separator "    rm FILE...   remove FILE..."
+        opts.separator "    ls           list all the files in the FS"
+        opts.separator "    config       list all the internal variables"
+        opts.separator ""
+        opts.separator "Options"
+        opts.on_tail("-h", "--help"   , "recursive this")         { puts opts; exit}
+        opts.on_tail("-v", "--verbose" , "printout verbose info") { @verbose = true }
+      end.parse! input
+
+      case input.shift
+      when 'launch' then launch
+      when 'close' then  close
+      when 'status' then show
+      when 'put' then    put input
+      when 'get' then    get input
+      when 'rm' then     rm input
+      when 'ls' then     list
+      when 'config' then config
+      else               raise "Not action given"
+      end
+    end
+  end #}}}
+end
+
+Ecfs::CLI_driver.new input: ARGV

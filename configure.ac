@@ -2,6 +2,7 @@ AC_INIT([Eclipse], [00.13.15], [vicente.bolea@gmail.com], [], [dicl.unist.ac.kr]
 AC_CONFIG_AUX_DIR([./.autotools_aux])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AM_SILENT_RULES([yes])
+LT_INIT([dlopen])
 
 AC_CONFIG_MACRO_DIRS([./m4/])
 AC_CONFIG_HEADERS([config.h])
@@ -14,10 +15,10 @@ AC_CONFIG_FILES([src/bin/mrls],       [chmod +x src/bin/mrls])
 AC_CONFIG_FILES([src/bin/mrclear],    [chmod +x src/bin/mrclear])
 AC_CONFIG_FILES([src/bin/mrcat],      [chmod +x src/bin/mrcat])
 AC_CONFIG_FILES([src/bin/mrrm],       [chmod +x src/bin/mrrm])
+AC_CONFIG_FILES([src/fs/ecfs],       [chmod +x src/fs/ecfs])
 
 AC_PROG_CC
 AC_PROG_MAKE_SET
-AC_PROG_RANLIB
 
 test -z "$CPPFLAGS" &&
   CXXFLAGS='-g -Os -march=native'
@@ -67,6 +68,12 @@ ECLIPSE_FIND_BOOST
 # PATHS {{{
 FULLY_EVAL(["$sysconfdir"], [sysconfdirfull])
 AC_SUBST(sysconfdirfull)
+
+FULLY_EVAL(["$bindir"], [bindirfull])
+AC_SUBST(bindirfull)
+
+FULLY_EVAL(["$libdir"], [libdirfull])
+AC_SUBST(libdirfull)
 
 AH_TEMPLATE([ECLIPSE_PATH],[Root path for the Eclipse files])
 AC_DEFINE_UNQUOTED([ECLIPSE_PATH], ["$prefix"])

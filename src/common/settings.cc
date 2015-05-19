@@ -13,12 +13,20 @@ using std::endl;
 
 bool Settings::get_project_path () 
 {
-  if (hardcoded_path == true)
+  string home_location = string(getenv("HOME")) + "/.eclipse.json";
+  if (access(home_location.c_str(), F_OK ) != -1) {
     project_path = string(ECLIPSE_CONF_PATH); 
-  else 
-    project_path = given_path;
+    config_path = home_location;
+
+  } else {
+    if (hardcoded_path == true)
+      project_path = string(ECLIPSE_CONF_PATH); 
+    else 
+      project_path = given_path;
+
+    config_path = project_path + FINAL_PATH;
+  }
  
-  config_path = project_path + FINAL_PATH;
   return true;
 }
 
@@ -47,6 +55,9 @@ int Settings::port ()              { return pt.get<int> ("port"); }
 int Settings::dhtport ()           { return pt.get<int> ("dhtport"); }
 int Settings::max_job ()           { return pt.get<int> ("max_job"); }
 string Settings::master_addr ()    { return pt.get<string> ("master_address"); }
+string Settings::ipc_path ()       { return pt.get<string> ("IPC_path"); }
+string Settings::mr_path ()        { return pt.get<string> ("fs_path"); }
+string Settings::scratch_path ()   { return pt.get<string> ("fs_scratch_path"); }
 
 vector<string> Settings::nodelist () 
 {

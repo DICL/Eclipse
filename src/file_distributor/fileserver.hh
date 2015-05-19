@@ -76,19 +76,21 @@ int fileserver::run_server (int port, string master_address)
     // read hostname from hostname file
     ifstream hostfile;
     string word;
-    string hostpath = DHT_PATH;
-    hostpath.append ("hostname");
+    
+    Settings setted;
+    setted.load_settings();
+    string hostpath = setted.scratch_path();
+    hostpath.append ("/hostname");
     hostfile.open (hostpath.c_str());
     hostfile >> localhostname;
     hostfile.close();
 
-    Settings setted;
-    setted.load_settings();
     nodelist = setted.nodelist();
+    string ipc_path = setted.ipc_path();
     
-    if (access (IPC_PATH, F_OK) == 0)
+    if (access (ipc_path.c_str(), F_OK) == 0)
     {
-        unlink (IPC_PATH);
+        unlink (ipc_path.c_str());
     }
     
     // determine the network topology by reading node list information
@@ -275,7 +277,7 @@ int fileserver::run_server (int port, string master_address)
     // bind
     memset ( (void*) &serveraddr2, 0, sizeof (serveraddr2));
     serveraddr2.sun_family = AF_UNIX;
-    strcpy (serveraddr2.sun_path, IPC_PATH);
+    strcpy (serveraddr2.sun_path, ipc_path.c_str());
     
     if (bind (ipcfd, (struct sockaddr *) &serveraddr2, SUN_LEN (&serveraddr2)) < 0)
     {

@@ -447,7 +447,10 @@ void summ_mapreduce()
             ss << " argvalues";
             // find the program name and pass as 0th argument
             char* tmp = new char[strlen (argvalues[0]) + 1];
-            string apath = MR_PATH;
+
+            Settings setted;
+            setted.load_settings();
+            string apath = setted.mr_path();
             char* token;
             char* next_token;
             strcpy (tmp, argvalues[0]);
@@ -460,7 +463,7 @@ void summ_mapreduce()
             }
             
             ss << " ";
-            apath.append ("app/");
+            apath.append ("/app/");
             apath.append (token);   // token <- the program name
             ss << apath;
             delete[] tmp;

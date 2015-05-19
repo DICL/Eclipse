@@ -2,6 +2,7 @@
 
 [ ! -e .autotools_aux ] && mkdir .autotools_aux
 
+libtoolize
 aclocal -I m4                     # Generate aclocal
 autoconf                          # Generate configure script 
 autoheader                        # Generate config.h

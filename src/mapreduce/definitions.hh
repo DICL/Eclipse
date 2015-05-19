@@ -22,7 +22,7 @@ using namespace std;
 
 #define DHT_PATH "/scratch/youngmoon01/mr_storage/"
 #define MR_PATH "/home/youngmoon01/mr_storage/"
-#define IPC_PATH "/scratch/youngmoon01/socketfile"
+#define IPC_PATH "/scratch/youngmoon01/socketfile3"
 #define LIB_PATH "/home/youngmoon01/MRR/src/"
 #define BUF_SIZE (8*1024) // determines maximum size of a record
 #define BUF_THRESHOLD (7*1024) // the buffer flush threshold

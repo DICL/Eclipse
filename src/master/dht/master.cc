@@ -72,6 +72,7 @@ int main (int argc, char** argv)
     port = setted.port();
     dhtport = setted.dhtport();
     max_job = setted.max_job();
+    string ipc_path = setted.ipc_path();
     
     // verify initialization
     if (port == -1)
