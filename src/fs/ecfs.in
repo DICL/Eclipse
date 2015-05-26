@@ -1,5 +1,5 @@
 #!/bin/env ruby
-
+# vim: ft=ruby : fileencoding=utf-8 : foldmethod=marker : set autoindent
 require 'optparse'          # For parsing the options
 require 'ffi'               # For loading C functions, in this case the hash functions
 require 'awesome_print'     #
@@ -11,12 +11,15 @@ module Ecfs
   BINDIR   = "@bindirfull@"
   LIBDIR   = "@libdirfull@"
 
-  class Core #{{{
+  class Core 
+    # Initialize {{{
     def initialize 
       @nodelist = File.open(find_confpath) { |f| JSON.parse(f.read) }["nodes"]
       @verbose  = false
     end
 
+    # }}}
+    # find_confpath {{{
     def find_confpath
       home = "#{ENV['HOME']}/.eclipse.json"
       if File.exist? home
@@ -25,8 +28,9 @@ module Ecfs
         return CONFPATH
       end 
     end
-
-    def launch #{{{
+    # }}}
+    # launch {{{
+    def launch
       `#{BINDIR}/master &>/dev/null &`
       `sleep 1`
       @nodelist.each do |node|
@@ -38,9 +42,11 @@ module Ecfs
       @nodelist.each do |node|
         system "ssh #{node} 'nohup #{BINDIR}/eclipse </dev/null &>/dev/null & exit'"
       end
-    end #}}}
+    end 
 
-    def show #{{{
+    #}}}
+    # show {{{
+    def show 
       `pgrep -u #{`whoami`.chomp} master`
       status = $?.exitstatus == 0 ? "Running" : "Stopped"
 
@@ -56,26 +62,29 @@ module Ecfs
         status2 = $?.exitstatus == 0 ? "Running" : "Stopped"
         puts "#{`ssh #{node} hostname`.chomp.green} [Slave: #{status.red}] [Eclipse: #{status2.red}]"
       end
-    end #}}}
+    end 
 
-    def close #{{{
+    #}}}
+    # close {{{
+    def close
       `pkill -u #{`whoami`.chomp} master`
       `pkill -u #{`whoami`.chomp} cacheserver`
       @nodelist.each do |node|
         `ssh #{node} pkill -u #{`whoami`.chomp} slave`
         `ssh #{node} pkill -u #{`whoami`.chomp} eclipse`
-      end #}}}
-    end
-  end #}}}
+      end 
+    end #}}}
+  end
 
-  class Fs < Core #{{{
-    module Eclipse
+  class Fs < Core
+    module Eclipse  #{{{
       extend FFI::Library
       ffi_lib "#{LIBDIR}/libehash.so"
       attach_function :h, [ :string , :size_t ], :ushort
     end
 
-    def initialize
+    #}}} 
+    def initialize #{{{
       @files           = {}
       @config          = File.open(find_confpath) { |f| JSON.parse(f.read) }
       @fs_path         = @config["fs_path"]
@@ -88,6 +97,8 @@ module Ecfs
     def hash(input);         Eclipse.h(input, input.length) end
     def node_containing(fn); @nodelist[hash(fn) % @nodelist.length] end
 
+    #}}}
+    # put {{{
     def put(input)
       input.each do |fn|
         node = node_containing(fn)
@@ -100,6 +111,8 @@ module Ecfs
       end
     end
 
+    #}}}
+    # get {{{
     def get(input)
       input.each do |fn|
         raise "\'#{fn}\' not found in Eclipse FS" unless @files[fn]
@@ -107,6 +120,8 @@ module Ecfs
       end
     end
 
+    #}}}
+    # rm {{{
     def rm(input)
       input.each do |fn|
         raise "\'#{fn}\' not found in Eclipse FS" unless @files[fn]
@@ -121,17 +136,19 @@ module Ecfs
       end
     end
 
-    def list
+    #}}}
+    def list #{{{
       ap @files
     end
 
-    def config
+    #}}}
+    def config #{{{
       ap self.instance_variables.map{|var|  [var, self.instance_variable_get(var)]}.to_h
-    end
-  end #}}}
+    end  #}}}
+  end
 
-  class CLI_driver < Fs  #{{{
-    def initialize input:
+  class CLI_driver < Fs 
+    def initialize input:  #{{{
       @options = {}
       super()
       OptionParser.new do |opts|
@@ -167,8 +184,8 @@ module Ecfs
       when 'config' then config
       else               raise "Not action given"
       end
-    end
-  end #}}}
+    end #}}}
+  end
 end
 
 Ecfs::CLI_driver.new input: ARGV
