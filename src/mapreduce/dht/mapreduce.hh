@@ -21,6 +21,7 @@
 #include <sys/unistd.h>
 #include <arpa/inet.h>
 
+#include "../../common/settings.hh"
 #include "../definitions.hh"
 
 using namespace std;
@@ -132,45 +133,12 @@ void init_mapreduce (int argc, char** argv)
         role = JOB;
     }
     
-    ifstream conf;
-    string token;
-    string confpath = LIB_PATH;
-    confpath.append ("setup.conf");
-    conf.open (confpath.c_str());
-    conf >> token;
-    
-    while (!conf.eof())
-    {
-        if (token == "port")
-        {
-            conf >> token;
-            port = atoi (token.c_str());
-        }
-        else if (token == "dhtport")
-        {
-            conf >> token;
-            dhtport = atoi (token.c_str());
-        }
-        else if (token == "max_job")
-        {
-            // ignore and just pass through this case
-            conf >> token;
-        }
-        else if (token == "master_address")
-        {
-            conf >> token;
-            strcpy (master_address, token.c_str());
-            master_is_set = true;
-        }
-        else
-        {
-            cout << "Unknown configure record: " << token << endl;
-        }
-        
-        conf >> token;
-    }
-    
-    conf.close();
+    Settings setted;
+    setted.load_settings();
+    port = setted.port();
+    dhtport = setted.dhtport();
+    strcpy (master_address, setted.master_addr().c_str());
+    master_is_set = true;
     
     // verify initialization
     if (port == -1)

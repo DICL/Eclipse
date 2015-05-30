@@ -89,6 +89,8 @@ module Ecfs
       @config          = File.open(find_confpath) { |f| JSON.parse(f.read) }
       @fs_path         = @config["fs_path"]
       @fs_scratch_path = @config["fs_scratch_path"]
+      @headers_path    = @config["headers_path"]
+      @build_path      = @config["build_path"]
       @fs_tmpfile      = @config["fs_path"] + "/.list"
       @files           = File.open(@fs_tmpfile) { |f| JSON.parse(f.read) } if File.exist? @fs_tmpfile
       super()
@@ -145,6 +147,24 @@ module Ecfs
     def config #{{{
       ap self.instance_variables.map{|var|  [var, self.instance_variable_get(var)]}.to_h
     end  #}}}
+    # mcc {{{
+    def mcc(input)
+      input.each do |fn|
+        headers = "-I #{@headers_path}/mapreduce/dht/ "
+        headers+= "-I #{@headers_path} "
+        headers+= "-include #{@headers_path}/common/settings.hh " 
+        headers+= "-I #{@build_path}"
+        
+        objects = "#{@build_path}/src/common/hash.o "
+        objects+= "#{@build_path}/src/common/settings.o"
+
+        cmd = "g++ #{headers} #{fn} #{objects}"
+        puts cmd if @verbose
+        system cmd
+      end
+    end
+
+    #}}}
   end
 
   class CLI_driver < Fs 
@@ -167,6 +187,7 @@ module Ecfs
         opts.separator "    rm FILE...   remove FILE..."
         opts.separator "    ls           list all the files in the FS"
         opts.separator "    config       list all the internal variables"
+        opts.separator "    mcc FILE...  Compile file with EclipseFS API"
         opts.separator ""
         opts.separator "Options"
         opts.on_tail("-h", "--help"   , "recursive this")         { puts opts; exit}
@@ -181,7 +202,8 @@ module Ecfs
       when 'get' then    get input
       when 'rm' then     rm input
       when 'ls' then     list
-      when 'config' then config
+      when 'config' then config 
+      when 'mcc' then    mcc input
       else               raise "Not action given"
       end
     end #}}}

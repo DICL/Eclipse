@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdio>
 #include <mapreduce/definitions.hh>
 #include <common/settings.hh>
 #include "mcc.hh"
@@ -33,9 +34,9 @@ int main (int argc, char** argv)
 
     string strPATH = setted.lib_path();
     string libpath = strPATH;
-    libpath.append ("mapreduce/dht/");
+    libpath.append ("/mapreduce/dht/");
     string hashpath = setted.lib_path();
-    hashpath.append ("common/hash.o");
+    hashpath.append ("/common/hash.o");
     
     for (int i = 1; i < argc; i++)
     {
@@ -60,6 +61,7 @@ int main (int argc, char** argv)
     memset (argvalue[argc + 4], 0, strlen (hashpath.c_str()) + 1);
     strcpy (argvalue[argc + 4], hashpath.c_str());
     argvalue[argc + 5] = NULL;
+    for (int i = 0; i < 5; i++) printf ("%s\n", argvalue[i]);
     execv (argvalue[0], argvalue);
     return 0;
 }

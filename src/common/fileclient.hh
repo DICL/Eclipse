@@ -75,7 +75,7 @@ int fileclient::connect_to_server()
 
     memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
     serveraddr.sun_family = AF_UNIX;
-    strcpy (serveraddr.sun_path, setted.ipc_path());
+    strcpy (serveraddr.sun_path, setted.ipc_path().c_str());
     
 //struct timeval time_start;
 //struct timeval time_end;
