@@ -9,7 +9,7 @@
 #include "messagebuffer.hh"
 #include "idistributor.hh"
 #include "writecount.hh"
-#include <mapreduce/definitions.hh>
+#include <common/ecfs.hh>
 
 using namespace std;
 

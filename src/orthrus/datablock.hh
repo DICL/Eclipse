@@ -2,7 +2,9 @@
 #define __DATABLOCK__
 
 #include <iostream>
-#include <mapreduce/definitions.hh>
+//#include <common/ecfs.hh>
+#include "../common/ecfs.hh"
+
 #include <string.h>
 
 using namespace std;
@@ -11,7 +13,7 @@ class datablock
 {
     private:
         char* data;
-        unsigned size; // block size(BLOCKSIZE) is defined in mapreduce/definitions.hh
+        unsigned size; // block size(BLOCKSIZE) is defined in common/ecfs.hh
         vector<int> recordindex; // index of start of each record
         
     public:

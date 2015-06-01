@@ -5,7 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include <mapreduce/definitions.hh>
+#include <common/ecfs.hh>
 #include <common/hash.hh>
 #include <common/msgaggregator.hh>
 #include <sys/socket.h>

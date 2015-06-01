@@ -4,7 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <fcntl.h>
-#include <mapreduce/definitions.hh>
+#include <common/ecfs.hh>
 #include <orthrus/dataentry.hh>
 #include "filepeer.hh"
 #include "writecount.hh"

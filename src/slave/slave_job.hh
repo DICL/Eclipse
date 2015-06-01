@@ -12,7 +12,7 @@
 #include <vector>
 #include <string>
 #include <set>
-#include <mapreduce/definitions.hh>
+#include <common/ecfs.hh>
 #include <common/msgaggregator.hh>
 #include "slave_task.hh"
 
@@ -329,7 +329,7 @@ int slave_task::get_numinputpaths()
 #include <vector>
 #include <string>
 #include <set>
-#include <mapreduce/definitions.hh>
+#include <common/ecfs.hh>
 #include "slave_task.hh"
 
 using namespace std;

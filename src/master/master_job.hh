@@ -2,7 +2,7 @@
 #define __MASTER_JOB__
 
 #include <iostream>
-#include <mapreduce/definitions.hh>
+#include <common/ecfs.hh>
 #include <string>
 #include <vector>
 #include <set>

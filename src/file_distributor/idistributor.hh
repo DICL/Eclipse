@@ -5,7 +5,7 @@
 #include <sstream>
 #include "writecount.hh"
 #include "iwriter.hh"
-#include <mapreduce/definitions.hh>
+#include <common/ecfs.hh>
 #include <common/msgaggregator.hh>
 
 using namespace std;
