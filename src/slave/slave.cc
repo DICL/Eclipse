@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <netdb.h>
 #include <unistd.h>
-#include <mapreduce/definitions.hh>
+#include <common/ecfs.hh>
 #include "slave.hh"
 #include "slave_job.hh"
 #include "slave_task.hh"

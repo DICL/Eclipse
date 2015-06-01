@@ -8,14 +8,13 @@
 #include <iostream>
 #include <set>
 #include <stdlib.h>
-#include <boost/property_tree/ptree.hpp>
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
 #include <fstream>
 #include <fcntl.h>
 
-//#include <mapreduce/definitions.hh>
+#include <boost/property_tree/ptree.hpp>
 
 #define HADOOP_FLAG "-lhdfs"
 #define JAVA_FLAG "-ljvm"
@@ -41,10 +40,6 @@
 #define HASHLENGTH 64
 
 #define BACKLOG 16384
-
-
-using namespace std;
-
 
 enum mr_role
 {
@@ -97,10 +92,9 @@ enum file_role
     UNDEFINED
 };
 
-
-
 using std::string;
 using std::vector;
+using std::set;
 using namespace boost::property_tree;
 
 // Hash function--------------------------------------------
@@ -117,13 +111,15 @@ using namespace boost::property_tree;
 
 extern "C" uint32_t h (const char *, size_t);
 //----------------------------------------------------------
+int nbwrite (int, char*, char* contents);
+int nbwrite (int, char*);
+int nbread (int, char*);
 
 
-#include <file_distributor/messagebuffer.hh>
-#include <orthrus/dataentry.hh>
+#include "dataentry.hh"
+#include "messagebuffer.hh"
 #include "settings.hh"
 #include "mapreduce.hh"
-#include "file_connclient.hh"
 #include "fileclient.hh"
 #include "msgaggregator.hh"
 

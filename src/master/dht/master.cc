@@ -1,4 +1,12 @@
 #include "master.hh"
+
+#include "../common/ecfs.hh"
+#include "../cacheserver/histogram.hh"
+#include "../master_job.hh"
+#include "../master_task.hh"
+#include "../connslave.hh"
+#include "../connclient.hh"
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -6,8 +14,6 @@
 #include <vector>
 #include <sys/unistd.h>
 #include <sys/un.h>
-#include <common/msgaggregator.hh>
-#include <common/hash.hh>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -15,14 +21,6 @@
 #include <sys/wait.h>
 #include <arpa/inet.h>
 #include <pthread.h>
-#include <mapreduce/definitions.hh>
-#include <common/settings.hh>
-#include <orthrus/histogram.hh>
-#include "../master_job.hh"
-#include "../master_task.hh"
-#include "../connslave.hh"
-#include "../connclient.hh"
-
 
 // Available scheduling: {FCFS, EMKDE}
 #define EMKDE // scheduler

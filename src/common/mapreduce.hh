@@ -11,14 +11,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <netdb.h>
-#include <sys/fcntl.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/unistd.h>
-#include <arpa/inet.h>
-
-using namespace std;
 
 // user functions
 void init_mapreduce (int argc, char** argv);   // initialize mapreduce configure

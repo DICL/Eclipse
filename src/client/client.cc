@@ -11,7 +11,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <netdb.h>
-#include "../mapreduce/definitions.hh"
+#include "../common/ecfs.hh"
 #include "../common/settings.hh"
 
 using namespace std;

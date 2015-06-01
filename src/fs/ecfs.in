@@ -90,7 +90,7 @@ module Ecfs
       @fs_path         = @config["fs_path"]
       @fs_scratch_path = @config["fs_scratch_path"]
       @headers_path    = @config["headers_path"]
-      @build_path      = @config["build_path"]
+      @libs_path       = @config["libs_path"]
       @fs_tmpfile      = @config["fs_path"] + "/.list"
       @files           = File.open(@fs_tmpfile) { |f| JSON.parse(f.read) } if File.exist? @fs_tmpfile
       super()
@@ -150,15 +150,10 @@ module Ecfs
     # mcc {{{
     def mcc(input)
       input.each do |fn|
-        headers = "-I #{@headers_path}/mapreduce/dht/ "
-        headers+= "-I #{@headers_path} "
-        headers+= "-include #{@headers_path}/common/settings.hh " 
-        headers+= "-I #{@build_path}"
-        
-        objects = "#{@build_path}/src/common/hash.o "
-        objects+= "#{@build_path}/src/common/settings.o"
+        headers = "-I #{@headers_path}"
+        objects = " #{@libs_path}/libecfs.a"
 
-        cmd = "g++ #{headers} #{fn} #{objects}"
+        cmd = "g++ -static #{headers} #{fn} #{objects}"
         puts cmd if @verbose
         system cmd
       end
