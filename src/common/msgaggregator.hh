@@ -1,7 +1,7 @@
 #ifndef __MSGAGGREGATOR__
 #define __MSGAGGREGATOR__
 
-#include <common/ecfs.hh>
+#include "ecfs.hh"
 #include <file_distributor/messagebuffer.hh>
 #include <orthrus/dataentry.hh>
 #include <iostream>

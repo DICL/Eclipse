@@ -15,9 +15,7 @@
 #include <fstream>
 #include <fcntl.h>
 
-//#include <common/ecfs.hh>
-#include <file_distributor/messagebuffer.hh>
-#include <orthrus/dataentry.hh>
+//#include <mapreduce/definitions.hh>
 
 #define HADOOP_FLAG "-lhdfs"
 #define JAVA_FLAG "-ljvm"
@@ -99,6 +97,8 @@ enum file_role
     UNDEFINED
 };
 
+
+
 using std::string;
 using std::vector;
 using namespace boost::property_tree;
@@ -118,6 +118,9 @@ using namespace boost::property_tree;
 extern "C" uint32_t h (const char *, size_t);
 //----------------------------------------------------------
 
+
+#include <file_distributor/messagebuffer.hh>
+#include <orthrus/dataentry.hh>
 #include "settings.hh"
 #include "mapreduce.hh"
 #include "file_connclient.hh"
