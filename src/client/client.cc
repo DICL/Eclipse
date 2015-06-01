@@ -1,7 +1,13 @@
 #include "client.hh"
+#include "../common/ecfs.hh"
+#include "../common/settings.hh"
+
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
+#include <sstream>
+#include <stdlib.h>
 #include <sys/unistd.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -11,8 +17,6 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <netdb.h>
-#include "../common/ecfs.hh"
-#include "../common/settings.hh"
 
 using namespace std;
 
@@ -23,6 +27,8 @@ int port = -1;
 int dhtport = -1;
 int masterfd = -1;
 bool master_is_set = false;
+vector<string> nodelist;
+
 
 int main (int argc, char** argv)
 {
@@ -35,13 +41,14 @@ int main (int argc, char** argv)
         return 1;
     }
     
-    // initialize data structures from setup.conf
+    string token;
     Settings setted;
+    setted.load_settings();
     port = setted.port();
     dhtport = setted.dhtport();
     strcpy (master_address, setted.master_addr().c_str());
     master_is_set = true;
-    
+
     // verify initialization
     if (port == -1)
     {
@@ -54,6 +61,8 @@ int main (int argc, char** argv)
         cout << "[client]master_address should be specified in the setup.conf" << endl;
         exit (1);
     }
+    
+    nodelist = setted.nodelist();
     
     // copy request command to write buffer
     if (strncmp (argv[1], "stop", 4) == 0)
@@ -81,39 +90,6 @@ int main (int argc, char** argv)
         // TODO: lists request and their usage
         exit (0);
     }
-    /*
-    else if(strncmp(argv[1], "submit", 6) == 0) // submit a job
-    {
-      // compile the submitted job
-      if(argc<3)
-      {
-        cout<<"The file name to submit is missing"<<endl;
-        cout<<"usage: client submit [program path]"<<endl;
-        cout<<"Exiting..."<<endl;
-        return 1;
-      }
-    
-      string args = argv[2];
-    
-      string writestring = "submit ";
-      writestring.append(args);
-    
-      for(int i=3; i<argc; i++)
-      {
-        args = argv[i];
-        writestring.append(" ");
-        writestring.append(args);
-      }
-    
-      // TODO: argument passing should be implemented when needed
-    
-      memset(write_buf, 0, BUF_SIZE);
-      strcpy(write_buf, writestring.c_str());
-    
-      // TODO: Check if the file exist and if it's executable
-      cout<<"Submitting the job..."<<endl;
-    }
-    */
     else
     {
         memset (write_buf, 0, BUF_SIZE);
@@ -198,11 +174,36 @@ void* signal_listener (void* args)
             if (strncmp (read_buf, "whoareyou", 9) == 0)
             {
                 // respond to "whoareyou"
-                memset (tmp_buf, 0, BUF_SIZE);
+                memset (tmp_buf, 0, strlen ("client") + 1);
                 strcpy (tmp_buf, "client");
                 nbwrite (serverfd, tmp_buf);
                 // request to master
                 nbwrite (serverfd, write_buf);
+                
+                if (strncmp (write_buf, "stop", 4) == 0)       // if argument is "stop"
+                {
+                    // send close message to cacheserver
+                    int fd;
+                    fd = connect_to_server (master_address, dhtport);
+                    
+                    if (fd <= 0)
+                    {
+                        cout << "[client]Error occured during the connection to the cacheserver" << endl;
+                    }
+                    
+                    nbwrite (fd, write_buf);
+                    close (fd);
+                    /*
+                    for(int i = 0; (unsigned)i < nodelist.size(); i++)
+                    {
+                      memset(tmp_buf, 0, nodelist[i].length() + 1);
+                      strcpy(tmp_buf, nodelist[i].c_str());
+                      fd = connect_to_server(tmp_buf, dhtport);
+                      nbwrite(fd, write_buf);
+                      close(fd);
+                    }
+                    */
+                }
             }
             else if (strncmp (read_buf, "close", 5) == 0)
             {
