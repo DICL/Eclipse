@@ -7,6 +7,7 @@
 #include "filepeer.hh"
 #include "file_connclient.hh"
 #include <mapreduce/definitions.hh>
+#include "../common/settings.hh"
 
 using namespace std;
 
@@ -26,6 +27,7 @@ class ireader
         file_connclient* dstclient;
         
         char write_buf[BUF_SIZE];
+        string dht_path;
         
         vector<ifstream*> files;
         vector<string> filepaths;
@@ -64,12 +66,16 @@ ireader::ireader (int ajobid, int anumiblock, int anetworkidx, int abridgeid, br
     dsttype = adsttype;
     pos = 0;
     
+    Settings setted;
+    setted.load_settings();
+    dht_path = setted.scratch_path();
+
     // prepare reading idata from multiple file block according to jobid and numiblock
     for (int i = 0; i < numiblock; i++)
     {
         string filename;
         stringstream ss;
-        ss << DHT_PATH;
+        ss << dht_path;
         ss << ".job_";
         ss << jobid;
         ss << "_";
@@ -140,6 +146,7 @@ ireader::ireader (int ajobid, int anumiblock, int anetworkidx, int abridgeid, br
         write_buf[pos] = '\n';
         pos++;
     }
+
 }
 
 bool ireader::read_idata()

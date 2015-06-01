@@ -79,7 +79,7 @@ module Ecfs
   class Fs < Core
     module Eclipse  #{{{
       extend FFI::Library
-      ffi_lib "#{LIBDIR}/libehash.so"
+      ffi_lib "#{LIBDIR}/libecfs.so"
       attach_function :h, [ :string , :size_t ], :ushort
     end
 

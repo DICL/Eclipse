@@ -26,7 +26,7 @@
 #include "iwriter.hh"
 #include "writecount.hh"
 #include <sys/fcntl.h>
-#include <common/settings.hh>
+#include "../common/settings.hh"
 
 using namespace std;
 
@@ -49,6 +49,7 @@ class fileserver   // each slave node has an object of fileserver
         
         char read_buf[BUF_SIZE];
         char write_buf[BUF_SIZE];
+        string dht_path;
         
     public:
         vector<filepeer*> peers;
@@ -68,6 +69,10 @@ fileserver::fileserver()
     cacheserverfd = -1;
     ipcfd = -1;
     fbidclock = 0; // fb id starts from 0
+
+    Settings setted;
+    setted.load_settings();
+    dht_path = setted.scratch_path();
 }
 
 int fileserver::run_server (int port, string master_address)
@@ -3058,7 +3063,7 @@ filebridge* fileserver::find_Icachebridge (string inputname, int& bridgeindex)
 
 bool fileserver::write_file (string fname, string& record)
 {
-    string fpath = DHT_PATH;
+    string fpath = dht_path;
     int writefilefd = -1;
     int ret;
     fpath.append (fname);

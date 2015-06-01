@@ -9,6 +9,7 @@
 #include "filepeer.hh"
 #include "writecount.hh"
 #include "file_connclient.hh"
+#include "../common/settings.hh"
 
 using namespace std;
 
@@ -29,6 +30,7 @@ class filebridge
         
         string Icachekey;
         string jobdirpath; // used for the distribution of Icache contents
+        string dht_path;
         
         //char read_buf[BUF_SIZE]; // this is not for reading message from other connection, but for buffering reading file
         //string dataname; // the key of the data which is used as input of hash function
@@ -99,6 +101,10 @@ filebridge::filebridge (int anid)
     writebuffer = NULL;
     theidistributor = NULL;
     //keybuffer.configure_initial("Ikey\n");
+
+    Settings setted;
+    setted.load_settings();
+    dht_path = setted.scratch_path();
 }
 
 filebridge::~filebridge()
@@ -201,7 +207,7 @@ entrywriter* filebridge::get_entrywriter()
 
 void filebridge::open_readfile (string fname)
 {
-    string fpath = DHT_PATH;
+    string fpath = dht_path;
     fpath.append (fname);
     this->readfilestream.open (fpath.c_str());
     

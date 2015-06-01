@@ -12,18 +12,18 @@
 using namespace std;
 
 // HDFS
-#define HDMR_PATH "/user/youngmoon01/mr_storage/"
-#define HDFS_PATH "/home/youngmoon01/hadoop-2.2.0/include/"
-#define JAVA_LIB "/home/youngmoon01/jdk1.7.0_17/jre/lib/amd64/server/"
-#define HDFS_LIB "/home/youngmoon01/hadoop-2.2.0/lib/native/"
+//#define HDMR_PATH "/user/youngmoon01/mr_storage/"
+//#define HDFS_PATH "/home/youngmoon01/hadoop-2.2.0/include/"
+//#define JAVA_LIB "/home/youngmoon01/jdk1.7.0_17/jre/lib/amd64/server/"
+//#define HDFS_LIB "/home/youngmoon01/hadoop-2.2.0/lib/native/"
 #define HADOOP_FLAG "-lhdfs"
 #define JAVA_FLAG "-ljvm"
 
 
-#define DHT_PATH "/scratch/youngmoon01/mr_storage/"
-#define MR_PATH "/home/youngmoon01/mr_storage/"
-#define IPC_PATH "/scratch/youngmoon01/socketfile3"
-#define LIB_PATH "/home/youngmoon01/MRR/src/"
+//#define DHT_PATH "/scratch/youngmoon01/mr_storage/"
+//#define MR_PATH "/home/youngmoon01/mr_storage/"
+//#define IPC_PATH "/scratch/youngmoon01/socketfile3"
+//#define LIB_PATH "/home/youngmoon01/MRR/src/"
 #define BUF_SIZE (8*1024) // determines maximum size of a record
 #define BUF_THRESHOLD (7*1024) // the buffer flush threshold
 #define BUF_CUT 512

@@ -60,7 +60,7 @@ int main (int argc, char** argv)
     
     // read hostname from hostname file
     ifstream hostfile;
-    string hostpath = DHT_PATH;
+    string hostpath = setted.scratch_path();
     hostpath.append ("hostname");
     hostfile.open (hostpath.c_str());
     hostfile >> localhostname;

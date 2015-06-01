@@ -215,7 +215,7 @@ int main (int argc, char** argv)
     
     memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
     serveraddr.sun_family = AF_UNIX;
-    strcpy (serveraddr.sun_path, IPC_PATH);
+    strcpy (serveraddr.sun_path, ipc_path.c_str());
     
     while (connect (ipcfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
     {

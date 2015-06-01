@@ -6,6 +6,7 @@
 #include <sstream>
 #include <map>
 #include <mapreduce/definitions.hh>
+#include "../common/settings.hh"
 
 using namespace std;
 
@@ -29,6 +30,7 @@ class iwriter
         string filepath;
         
         long currentsize;
+        string dht_path;
         
     public:
         iwriter (int ajobid, int anetworkidx);
@@ -58,6 +60,10 @@ iwriter::iwriter (int ajobid, int anetworkidx)
     themaps.push_back (new map<string, vector<string>*>);
     // we can increase the numblock because first write is guaranteed after the iwriter is initialized
     numblock++;
+
+    Settings setted;
+    setted.load_settings();
+    dht_path = setted.scratch_path();
 }
 
 iwriter::~iwriter()
@@ -106,7 +112,7 @@ void iwriter::add_keyvalue (string key, string value)
             vectorindex = 0;
             pos = 0;
             // determine the path of file
-            filepath = DHT_PATH;
+            filepath = dht_path;
             stringstream ss;
             ss << ".job_";
             ss << jobid;
@@ -218,7 +224,7 @@ bool iwriter::write_to_disk()   // return true if write_to_disk should be stoppe
             vectorindex = 0;
             pos = 0;
             // determine the path of file
-            filepath = DHT_PATH;
+            filepath = dht_path;
             stringstream ss;
             ss << ".job_";
             ss << jobid;
@@ -254,7 +260,7 @@ void iwriter::flush()   // last call before iwriter is deleted. this is not an i
         vectorindex = 0;
         pos = 0;
         // determine the path of file
-        filepath = DHT_PATH;
+        filepath = dht_path;
         stringstream ss;
         ss << ".job_";
         ss << jobid;
