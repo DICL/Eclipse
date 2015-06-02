@@ -150,10 +150,11 @@ module Ecfs
     # mcc {{{
     def mcc(input)
       input.each do |fn|
-        headers = "-I #{@headers_path}"
-        objects = " #{@libs_path}/libecfs.a"
+        #headers = "-I #{@headers_path}"
+        #objects = " #{@libs_path}/libecfs.a"
 
-        cmd = "g++ -static #{headers} #{fn} #{objects}"
+        #cmd = "g++ -static #{headers} #{fn} #{objects}"
+        cmd = "g++ #{fn} -l ecfs"
         puts cmd if @verbose
         system cmd
       end
@@ -187,6 +188,7 @@ module Ecfs
         opts.separator "Options"
         opts.on_tail("-h", "--help"   , "recursive this")         { puts opts; exit}
         opts.on_tail("-v", "--verbose" , "printout verbose info") { @verbose = true }
+        opts.on_tail("-V", "--version" , "printout version") { puts ::Version }
       end.parse! input
 
       case input.shift
