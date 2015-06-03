@@ -29,7 +29,7 @@ For single user installation for developers
 
 Now edit in your **~/.bashrc** or **~/.profile**:
 
-    export PATH="/home/*..PATH/To/eclipse/..*/sandbox/bin"
+    export PATH="/home/*..PATH/To/eclipse/..*/sandbox/bin":$PATH
     export LIBRARY_PATH="/home/*..PATH/To/eclipse/..*/sandbox/lib"
     export C_INCLUDE_PATH="/home/*..PATH/To/eclipse/..*/sandbox/include"
     export MANPATH=`manpath`:/home*..PATH/To/eclipse/..*/sandbox/share/man
