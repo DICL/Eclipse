@@ -10,11 +10,10 @@
 #include <sys/fcntl.h>
 #include <sys/wait.h>
 #include <arpa/inet.h>
-#include <mapreduce/definitions.hh>
+#include <common/ecfs.hh>
 #include "cacheclient.hh"
 #include "iwfrequest.hh"
 #include "histogram.hh"
-#include <common/settings.hh>
 
 using namespace std;
 

@@ -14,34 +14,29 @@ memory management and implementing an efficient suffle phase.
 COMPILING & INSTALLING
 =====================
 
-Generate files needed for building eclipse
+For single user installation for developers
+-------------------------------------------
 
-    $ sh autogen.sh
+    $ mkdir -p local_eclipse/{tmp,sandbox}                 # Create a sandbox directories
+    $ cd local_eclipse                                     # enter in the directory
+    $ git clone *eclipse git URL*                          # Clone the project from github
+    $ sh autogen.sh                                        #
+    $ cd ../tmp                                            # 
+    $ sh ../Eclipse/configure --prefix=`pwd`/../sandbox
 
-    or:
+    ### This last command will be needed whenever you want to recompile the source
+    $ make [-j#] install                                   # Compile & install add -j flag to speed up
 
-    $ autoreconf -i
+Now edit in your **~/.bashrc** or **~/.profile**:
 
-If you are developing this project I recommend you to 
-build it in a different folder, otherwise objects and binaries will
-mix up with the sources. If so here type those commands:
+    export PATH="/home/*..PATH/To/eclipse/..*/sandbox/bin":$PATH
+    export LIBRARY_PATH="/home/*..PATH/To/eclipse/..*/sandbox/lib"
+    export C_INCLUDE_PATH="/home/*..PATH/To/eclipse/..*/sandbox/include"
+    export MANPATH=`manpath`:/home*..PATH/To/eclipse/..*/sandbox/share/man
 
-    $ mkdir build && cd build
-    
-Call the configure script(use the prefix argument for a local installation)
+For the configuration refer to the manpage:
 
-    $ sh ../eclipse/path/../configure 
-
-Compile and install
-
-    $ make
-    $ make install
-
-TODO LIST
-=========
- - [x] Merge all the branch to start new workflow
- - [ ] Integrate with GNU/lustre fs
- - [ ] Change Network current interface (sockets) to MPI
+    $ man eclipsefs
 
 AUTHOR
 ======

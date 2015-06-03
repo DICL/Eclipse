@@ -6,7 +6,7 @@
 #include <sstream>
 #include "filepeer.hh"
 #include "file_connclient.hh"
-#include <mapreduce/definitions.hh>
+#include <common/ecfs.hh>
 #include "../common/settings.hh"
 
 using namespace std;

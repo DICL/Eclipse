@@ -2,7 +2,7 @@
 #define __HISTOGRAM__
 
 #include <iostream>
-#include <mapreduce/definitions.hh>
+#include <common/ecfs.hh>
 
 #define MAX_UINT 4294967295
 

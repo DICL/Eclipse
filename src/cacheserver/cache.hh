@@ -2,8 +2,8 @@
 #define __CACHE__
 
 #include <iostream>
-#include <orthrus/dataentry.hh>
-#include <orthrus/datablock.hh>
+#include <common/dataentry.hh>
+#include <common/datablock.hh>
 
 using namespace std;
 

@@ -5,7 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <map>
-#include <mapreduce/definitions.hh>
+#include <common/ecfs.hh>
 #include "../common/settings.hh"
 
 using namespace std;

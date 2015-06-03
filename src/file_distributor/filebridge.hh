@@ -4,12 +4,11 @@
 #include <iostream>
 #include <fstream>
 #include <fcntl.h>
-#include <mapreduce/definitions.hh>
-#include <orthrus/dataentry.hh>
+#include <common/ecfs.hh>
+#include "../common/dataentry.hh"
 #include "filepeer.hh"
 #include "writecount.hh"
 #include "file_connclient.hh"
-#include "../common/settings.hh"
 
 using namespace std;
 

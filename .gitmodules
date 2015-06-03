@@ -1,3 +1,0 @@
-[submodule "lib/unittest-cpp"]
-	path = lib/unittest-cpp
-	url = git@github.com:vicentebolea/unittest-cpp.git

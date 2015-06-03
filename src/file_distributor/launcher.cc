@@ -1,6 +1,5 @@
 #include <iostream>
 #include <vector>
-#include <file_distributor/fileserver.hh>
 #include <fstream>
 #include <sstream>
 #include <sys/unistd.h>
@@ -12,9 +11,10 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
-#include <mapreduce/definitions.hh>
-#include <common/settings.hh>
 #include <exception>
+
+#include <common/ecfs.hh>
+#include "fileserver.hh"
 
 using namespace std;
 

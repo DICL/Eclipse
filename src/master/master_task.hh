@@ -2,7 +2,7 @@
 #define __MASTER_TASK__
 
 #include <iostream>
-#include <mapreduce/definitions.hh>
+#include <common/ecfs.hh>
 
 using namespace std;
 

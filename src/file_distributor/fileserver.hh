@@ -5,9 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include <mapreduce/definitions.hh>
-#include <common/hash.hh>
-#include <common/msgaggregator.hh>
+#include <common/ecfs.hh>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/unistd.h>
@@ -15,9 +13,9 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include "file_connclient.hh"
-#include <orthrus/histogram.hh>
-#include <orthrus/cache.hh>
-#include <orthrus/dataentry.hh>
+#include <cacheserver/histogram.hh>
+#include <cacheserver/cache.hh>
+#include <common/dataentry.hh>
 #include "messagebuffer.hh"
 #include "filepeer.hh"
 #include "filebridge.hh"
@@ -26,7 +24,6 @@
 #include "iwriter.hh"
 #include "writecount.hh"
 #include <sys/fcntl.h>
-#include "../common/settings.hh"
 
 using namespace std;
 

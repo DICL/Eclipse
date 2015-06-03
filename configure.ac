@@ -7,21 +7,14 @@ LT_INIT([dlopen])
 AC_CONFIG_MACRO_DIRS([./m4/])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile tests/Makefile])
-#AC_CONFIG_FILES([src/bin/run.sh],     [chmod +x src/bin/run.sh])
-#AC_CONFIG_FILES([src/bin/killall.sh], [chmod +x src/bin/killall.sh])
-#AC_CONFIG_FILES([src/bin/mrput],      [chmod +x src/bin/mrput])
-#AC_CONFIG_FILES([src/bin/mrget],      [chmod +x src/bin/mrget])
-#AC_CONFIG_FILES([src/bin/mrls],       [chmod +x src/bin/mrls])
-#AC_CONFIG_FILES([src/bin/mrclear],    [chmod +x src/bin/mrclear])
-#AC_CONFIG_FILES([src/bin/mrcat],      [chmod +x src/bin/mrcat])
-#AC_CONFIG_FILES([src/bin/mrrm],       [chmod +x src/bin/mrrm])
-AC_CONFIG_FILES([src/fs/ecfs],       [chmod +x src/fs/ecfs])
+AC_CONFIG_FILES([src/fs/ecfs],        [chmod +x src/fs/ecfs])
+AC_CONFIG_FILES([tests/integration],  [chmod +x test/integration])
 
 AC_PROG_CC
 AC_PROG_MAKE_SET
 
 test -z "$CPPFLAGS" &&
-  CXXFLAGS='-g -Os -march=native'
+  CXXFLAGS='-g -O0 -march=native'
 
 AC_PROG_CXX
 AC_LANG([C++])

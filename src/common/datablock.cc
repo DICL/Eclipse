@@ -1,29 +1,8 @@
-#ifndef __DATABLOCK__
-#define __DATABLOCK__
+#include "datablock.hh"
 
 #include <iostream>
-#include <mapreduce/definitions.hh>
+#include "ecfs.hh"
 #include <string.h>
-
-using namespace std;
-
-class datablock
-{
-    private:
-        char* data;
-        unsigned size; // block size(BLOCKSIZE) is defined in mapreduce/definitions.hh
-        vector<int> recordindex; // index of start of each record
-        
-    public:
-        datablock();
-        ~datablock();
-        
-        int write_record (string record);   // true when succeeded, false when insufficient capacity
-        bool read_record (unsigned pos, string& record);   // -1 when data reaches end of block
-        char* get_data();
-        unsigned get_size();
-        void set_size (unsigned num);
-};
 
 datablock::datablock()
 {
@@ -96,5 +75,3 @@ bool datablock::read_record (unsigned index, string& record)     // return next 
         return false;
     }
 }
-
-#endif

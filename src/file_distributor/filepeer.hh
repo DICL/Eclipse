@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <common/msgaggregator.hh>
-#include <file_distributor/messagebuffer.hh>
+#include <common/messagebuffer.hh>
 
 using namespace std;
 

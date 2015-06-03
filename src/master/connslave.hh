@@ -2,7 +2,7 @@
 #define __CONNSLAVE__
 
 #include <iostream>
-#include <mapreduce/definitions.hh>
+#include <common/ecfs.hh>
 #include "master_task.hh"
 
 class connslave   // connection to the slave

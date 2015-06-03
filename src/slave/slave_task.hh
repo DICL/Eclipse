@@ -2,7 +2,7 @@
 #define _SLAVE_TASK_
 
 #include <iostream>
-#include <mapreduce/definitions.hh>
+#include <common/ecfs.hh>
 #include <vector>
 #include <string>
 
