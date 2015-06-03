@@ -20,6 +20,11 @@ ecfs will intelligently call the inner binaries:
 
  + A shared partition in all the nodes (usually home partition).
  + Individual partiton in each node (usually called scratch by convention).
+ + A ruby interpreter (version >= 2.0.0) with the next gems:
+   - awesome_print
+   - pry 
+   - ffi
+ + [OPTIONAL] UnitTest++ installed for running the tests
 
 .SH FILES
 .B ~/.eclipse.json 

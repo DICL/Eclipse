@@ -1,4 +1,4 @@
-AC_INIT([Eclipse], [00.13.15], [vicente.bolea@gmail.com], [], [dicl.unist.ac.kr])
+AC_INIT([Eclipse], [00.18.04], [vicente.bolea@gmail.com], [], [dicl.unist.ac.kr])
 AC_CONFIG_AUX_DIR([./.autotools_aux])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AM_SILENT_RULES([yes])
@@ -10,21 +10,11 @@ AC_CONFIG_FILES([Makefile tests/Makefile])
 AC_CONFIG_FILES([src/fs/ecfs],        [chmod +x src/fs/ecfs])
 AC_CONFIG_FILES([tests/integration],  [chmod +x test/integration])
 
-AC_PROG_CC
-AC_PROG_MAKE_SET
-
 test -z "$CPPFLAGS" &&
   CXXFLAGS='-g -O0 -march=native'
 
 AC_PROG_CXX
 AC_LANG([C++])
-
-# Checks for typedefs, structures, and compiler characteristics.
-AC_TYPE_SIZE_T
-AC_TYPE_UINT16_T
-AC_TYPE_UINT32_T
-AC_TYPE_UINT8_T
-AC_HEADER_STDC
 
 # Argumeznts {{{
 #enable_samples=no
@@ -46,17 +36,28 @@ AM_CONDITIONAL(COPY_SAMPLES,[test "$enable_samples" != no ])
 
 #}}}
 # Dependencies checkings {{{
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_TYPE_SIZE_T
+AC_TYPE_UINT16_T
+AC_TYPE_UINT32_T
+AC_TYPE_UINT8_T
+AC_HEADER_STDC
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h sys/socket.h sys/time.h unistd.h])
+AC_SEARCH_LIBS([pthread_create], [pthread])
+
 # Check for binaries
 AC_CHECK_PROG([have_ssh], [ssh], [yes], [no])
 AC_CHECK_PROG([have_scp], [scp], [yes], [no])
 AC_CHECK_PROG([have_astyle], [astyle], [yes], [no])
 
-# Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h stddef.h stdint.h stdlib.h string.h sys/socket.h sys/time.h unistd.h])
-
-AC_SEARCH_LIBS([pthread_create], [pthread])
-
+have_ruby=no
+have_unittest=no
 ECLIPSE_FIND_BOOST
+AX_PROG_RUBY_VERSION([2.1.0], [have_ruby=yes], [have_ruby=no])
+AC_CHECK_HEADERS([UnitTest++/UnitTest++.h], [have_unittest=yes], [have_unittest=no])
+#AC_CHECK_LIB([UnitTest++], [UnitTest::RunAllTests])
+
 #}}}
 # PATHS {{{
 FULLY_EVAL(["$sysconfdir"], [sysconfdirfull])
@@ -81,22 +82,28 @@ WARN([\
  \033@<:@31m
  $PACKAGE_NAME Version $PACKAGE_VERSION
  \033@<:@0m
- Paths
+ Paths & Settings
  -----
  Prefix...........: $prefix
  Sysconfdir(etc)..: $sysconfdirfull
+ C++ Compiler.....: $CXX $CXXFLAGS $CPPFLAGS
+ LIBS.............: $LIBS
+ Copy samples?....: ${enable_samples:-NO}
+ File System?.....: $fs
 
  Dependencies
  ------------
- C++ Compiler.....: $CXX $CXXFLAGS $CPPFLAGS
- LIBS.............: $LIBS
+ [Required]
  Boost path.......: ${BOOST:-DEFAULT}
- Have Boost.......: $have_boost
+ Have Boost?......: $have_boost
+ Have Ruby?.......: $have_ruby
  Have ssh?........: $have_ssh
  Have scp?........: $have_scp
+
+ [Optional]
+ Have UnitTest++?.: $have_unittest
  Have astyle?.....: $have_astyle
- Copy samples?....: ${enable_samples:-NO}
- File System?.....: $fs
+
  
  Now type 'make @<:@-j<processors>@:>@ @<:@<target>@:>@'
  where processors indicate how many threads you want to use

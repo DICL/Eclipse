@@ -19,10 +19,10 @@ For single user installation for developers
 
     $ mkdir -p local_eclipse/{tmp,sandbox}                 # Create a sandbox directories
     $ cd local_eclipse                                     # enter in the directory
-    $ git clone *eclipse git URL*                          # Clone the project from github
-    $ sh autogen.sh                                        #
-    $ cd ../tmp                                            # 
-    $ sh ../Eclipse/configure --prefix=`pwd`/../sandbox
+    $ git clone git@github.com:DICL/Eclipse.git            # Clone the project from github
+    $ sh autogen.sh                                        # Generate configure script 
+    $ cd ../tmp                                            # Go to building folder
+    $ sh ../Eclipse/configure --prefix=`pwd`/../sandbox    # Generate Makefile
 
     ### This last command will be needed whenever you want to recompile the source
     $ make [-j#] install                                   # Compile & install add -j flag to speed up
