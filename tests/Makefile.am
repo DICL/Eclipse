@@ -1,17 +1,15 @@
-AM_CPPFLAGS  = -I@top_srcdir@/src/common -I@top_srcdir@/src
-AM_CPPFLAGS += -include ./config.h -include UnitTest++/UnitTest++.h
-AM_CXXFLAGS  = -std=gnu++11
-LDADD        = ../libecfs.la -lUnitTest++
+AM_CPPFLAGS      = -I@top_srcdir@/src/common -I@top_srcdir@/src
+AM_CPPFLAGS     += -include ./config.h -include UnitTest++/UnitTest++.h
+AM_CXXFLAGS      = -std=gnu++11
+LDADD            = ../libecfs.la -lUnitTest++
 
-TESTS = $(test_files)
-check_PROGRAMS = $(test_files)
-check_DATA = jsonfile
-DISTCLEANFILES = eclipse.json
-
-jsonfile: ; cp @top_srcdir@/doc/eclipse.json .
+check_PROGRAMS   = settings
+check_SCRIPTS    = integration
+check_DATA       = @top_srcdir@/doc/eclipse.json
+CLEANFILES       = eclipse.json integration 
 
 # Input your tests files here
-test_files = settings
+TESTS            = settings integration 
 
 # Input the dependencies of the test files here
-settings_SOURCES = settings_tests.cc 
+settings_SOURCES = settings_tests.cc

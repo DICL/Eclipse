@@ -4,21 +4,19 @@
 
 using namespace std;
 
-struct Settings_fixture
+struct Settings_fixture: public Settings
 {
-  Settings* s ;
-  Settings_fixture () { s = new Settings ("./"); }
-  ~Settings_fixture () { delete s; }
+  Settings_fixture () : Settings ("./")  { }
 };
 
 SUITE(SETTING_TESTS) 
 {
   TEST_FIXTURE(Settings_fixture, basic) 
   {
-    s->load_settings();
-    CHECK_EQUAL (s->port(), 8004);
-    CHECK_EQUAL (s->master_addr(), "192.168.1.201");
-    vector<string> test = s->nodelist();
+    load_settings();
+    CHECK_EQUAL (port(), 8008);
+    CHECK_EQUAL (master_addr(), "192.168.1.201");
+    vector<string> test = nodelist();
 
     int i = 1;
     for (auto it = test.begin(); it != test.end(); it++, i++) 

@@ -8,7 +8,7 @@ AC_CONFIG_MACRO_DIRS([./m4/])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile tests/Makefile])
 AC_CONFIG_FILES([src/fs/ecfs],        [chmod +x src/fs/ecfs])
-AC_CONFIG_FILES([tests/integration],  [chmod +x test/integration])
+AC_CONFIG_FILES([tests/integration],  [chmod +x tests/integration])
 
 test -z "$CPPFLAGS" &&
   CXXFLAGS='-g -O0 -march=native'
@@ -55,8 +55,10 @@ have_ruby=no
 have_unittest=no
 ECLIPSE_FIND_BOOST
 AX_PROG_RUBY_VERSION([2.1.0], [have_ruby=yes], [have_ruby=no])
-AC_CHECK_HEADERS([UnitTest++/UnitTest++.h], [have_unittest=yes], [have_unittest=no])
+#AC_CHECK_HEADERS([UnitTest++/UnitTest++.h], [have_unittest=yes], [have_unittest=no])
 #AC_CHECK_LIB([UnitTest++], [UnitTest::RunAllTests])
+PKG_CHECK_EXISTS([UnitTest++], [have_unittest=yes], [have_unittest=no])
+
 
 #}}}
 # PATHS {{{
