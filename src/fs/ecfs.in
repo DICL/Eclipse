@@ -1,5 +1,7 @@
 #!/bin/env ruby
 # vim: ft=ruby : fileencoding=utf-8 : foldmethod=marker : set autoindent
+# Author:: Vicente Adolfo Bolea Sanchez <vicente.bolea@gmail.com>
+#
 require 'optparse'          # For parsing the options
 require 'ffi'               # For loading C functions, in this case the hash functions
 require 'awesome_print'     #
@@ -10,6 +12,7 @@ module Ecfs
   CONFPATH = "@sysconfdirfull@/eclipse.json"
   BINDIR   = "@bindirfull@"
   LIBDIR   = "@libdirfull@"
+  CXX      = "@CXX@"
 
   class Core 
     # Initialize {{{
@@ -148,16 +151,12 @@ module Ecfs
       ap self.instance_variables.map{|var|  [var, self.instance_variable_get(var)]}.to_h
     end  #}}}
     # mcc {{{
-    def mcc(input)
-      input.each do |fn|
-        #headers = "-I #{@headers_path}"
-        #objects = " #{@libs_path}/libecfs.a"
+    def mcc(output, input)
+      sources = input.join(' ')
 
-        #cmd = "g++ -static #{headers} #{fn} #{objects}"
-        cmd = "g++ #{fn} -l ecfs"
-        puts cmd if @verbose
-        system cmd
-      end
+      cmd = "#{CXX} -static -o #{output} #{sources} -l ecfs"
+      puts cmd if @verbose
+      system cmd
     end
 
     #}}}
@@ -183,12 +182,12 @@ module Ecfs
         opts.separator "    rm FILE...   remove FILE..."
         opts.separator "    ls           list all the files in the FS"
         opts.separator "    config       list all the internal variables"
-        opts.separator "    mcc FILE...  Compile file with EclipseFS API"
+        opts.separator "    mcc OUTPUT INPUT...  Compile file with EclipseFS API using OUTPUT name"
         opts.separator ""
         opts.separator "Options"
         opts.on_tail("-h", "--help"   , "recursive this")         { puts opts; exit}
         opts.on_tail("-v", "--verbose" , "printout verbose info") { @verbose = true }
-        opts.on_tail("-V", "--version" , "printout version") { puts ::Version }
+        opts.on_tail("-V", "--version" , "printout version") { puts opts.ver; exit }
       end.parse! input
 
       case input.shift
@@ -200,7 +199,7 @@ module Ecfs
       when 'rm' then     rm input
       when 'ls' then     list
       when 'config' then config 
-      when 'mcc' then    mcc input
+      when 'mcc' then    mcc(input[0], input.slice(1, input.length))
       else               raise "Not action given"
       end
     end #}}}
