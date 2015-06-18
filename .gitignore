@@ -12,6 +12,8 @@
 *.la
 *.a
 .tags
+tags
+cscope.*
 
 *.swp
 *.swo

@@ -6,36 +6,42 @@ dnl
 AC_DEFUN([ECLIPSE_FIND_BOOST], 
 [
 # BOOST LIB {{{
-have_boost=no
 is_supported=yes
 
-OS=`cat /etc/*release | sed -rn 's/.*(Ubuntu|CentOS).*/\1/p; q'`
-case $OS in
-  Ubuntu) ;;
-  CentOS) boost_path=`file /usr/local/include/boost* | cut -d ":" -f 1`
-          CPPFLAGS="-I $boost_path"
-          ;;
-  *)      is_supported=no ;;
-esac 
+if test "$boost_path" == no ; then
+  AC_MSG_CHECKING([for Boost path which isnot specified, trying to guessing OS])
+  OS=`cat /etc/*release | sed -rn 's/.*(Ubuntu|CentOS).*/\1/p; q'`
+  case $OS in
+    Ubuntu) ;;
+    CentOS) boost_path=`file /usr/local/include/boost* | cut -d ":" -f 1`
+            CPPFLAGS="-I $boost_path"
+            ;;
+    *)      is_supported=no ;;
+  esac 
+fi
+AC_MSG_RESULT([$OS])
 
+have_boost=no
 AC_CHECK_HEADERS([boost/foreach.hpp \
                   boost/property_tree/json_parser.hpp \
                   boost/property_tree/exceptions.hpp], [have_boost=yes])
 
 if test "${have_boost}" = "no"; then
-  WARN([
+  AC_MSG_ERROR([
 -------------------------------------------------
  I cannot find where you have the boost header files...
  OS supported?...: $is_supported
- Our OS guess?...: $OS
+ Our OS guess?...: ${OS:-BoostPathSpecified}
  booth path......: $boost_path
  
  Re-run configure script in this way:
- \033@<:@31m
+
+   $ ./configure --with-boost=/path/to/boost
+   or
    $ CPLUS_INCLUDE_PATH=/path/to/boost ./configure
- \033@<:@0m
--------------------------------------------------\n])
+
+-------------------------------------------------])
+fi
 unset is_supported
-  AC_MSG_ERROR
-fi # }}}
+# }}}
 ])

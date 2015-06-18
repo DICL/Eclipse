@@ -10,14 +10,13 @@ AC_CONFIG_FILES([Makefile tests/Makefile])
 AC_CONFIG_FILES([src/fs/ecfs],        [chmod +x src/fs/ecfs])
 AC_CONFIG_FILES([tests/integration],  [chmod +x tests/integration])
 
-test -z "$CPPFLAGS" &&
-  CXXFLAGS='-g -O0 -march=native'
+AM_CONDITIONAL([DEFAULT_CXXFLAGS], [test -z "$CXXFLAGS"])
+AM_COND_IF([DEFAULT_CXXFLAGS], [CXXFLAGS='-g -O0 -march=native'])
 
 AC_PROG_CXX
 AC_LANG([C++])
 
 # Argumeznts {{{
-#enable_samples=no
 AC_ARG_ENABLE([samples],
     AS_HELP_STRING([--disable-samples], [copy sample of eclipse.json]))
 
@@ -26,13 +25,21 @@ AC_ARG_WITH([fs],
     [AS_HELP_STRING([--with-fs], [File system <DHT|HDFS> ])],
     [fs="$withval"], [fs="$default_fs"]) 
 
+AC_ARG_WITH([boost],
+    [AS_HELP_STRING([--with-boost], [specify boost path])],
+    [boost_path="$withval"], [boost_path=no]) 
+
+    if test "$boost_path" != no ; then
+      CPPFLAGS="$CPPFLAGS -I $boost_path"
+    fi
+
 # Configure options: --enable-debug[=no].
 AC_ARG_ENABLE([debug],
   [AS_HELP_STRING([--enable-debug], [enable debug code (default is no)])],
     [debug="$withval"], [debug=no])
 
-AM_CONDITIONAL(FS_IS_DHT,[test $fs = DHT])
-AM_CONDITIONAL(COPY_SAMPLES,[test "$enable_samples" != no ])
+AM_CONDITIONAL(FS_IS_DHT, [test "$fs" = DHT])
+AM_CONDITIONAL(COPY_SAMPLES, [test "$enable_samples" != no ])
 
 #}}}
 # Dependencies checkings {{{
@@ -55,10 +62,7 @@ have_ruby=no
 have_unittest=no
 ECLIPSE_FIND_BOOST
 AX_PROG_RUBY_VERSION([2.1.0], [have_ruby=yes], [have_ruby=no])
-#AC_CHECK_HEADERS([UnitTest++/UnitTest++.h], [have_unittest=yes], [have_unittest=no])
-#AC_CHECK_LIB([UnitTest++], [UnitTest::RunAllTests])
 PKG_CHECK_EXISTS([UnitTest++], [have_unittest=yes], [have_unittest=no])
-
 
 #}}}
 # PATHS {{{
@@ -71,9 +75,6 @@ AC_SUBST(bindirfull)
 FULLY_EVAL(["$libdir"], [libdirfull])
 AC_SUBST(libdirfull)
 
-AH_TEMPLATE([ECLIPSE_PATH],[Root path for the Eclipse files])
-AC_DEFINE_UNQUOTED([ECLIPSE_PATH], ["$prefix"])
-
 AH_TEMPLATE([ECLIPSE_CONF_PATH],[Configuration files (ETC) for Eclipse])
 AC_DEFINE_UNQUOTED([ECLIPSE_CONF_PATH], ["$sysconfdirfull"])
 #}}}
@@ -81,9 +82,9 @@ AC_DEFINE_UNQUOTED([ECLIPSE_CONF_PATH], ["$sysconfdirfull"])
 AC_OUTPUT
 WARN([\
 -------------------------------------------------
- \033@<:@31m
+
  $PACKAGE_NAME Version $PACKAGE_VERSION
- \033@<:@0m
+
  Paths & Settings
  -----
  Prefix...........: $prefix
@@ -96,7 +97,7 @@ WARN([\
  Dependencies
  ------------
  [Required]
- Boost path.......: ${BOOST:-DEFAULT}
+ Boost path.......: ${boost_path:-DEFAULT}
  Have Boost?......: $have_boost
  Have Ruby?.......: $have_ruby
  Have ssh?........: $have_ssh
@@ -105,14 +106,10 @@ WARN([\
  [Optional]
  Have UnitTest++?.: $have_unittest
  Have astyle?.....: $have_astyle
-
  
- Now type 'make @<:@-j<processors>@:>@ @<:@<target>@:>@'
- where processors indicate how many threads you want to use
- 
- where the optional <target> is:
- all|'nothing'      - build all binaries
- install            - install everything at $prefix
+ Next, type:
+ AS_HELP_STRING([make @<:@-j<processors>@:>@], [Processors indicate how many threads you want to use])
+ AS_HELP_STRING([make install],                [Will install the project in: $prefix])
     
 -------------------------------------------------]) #}}}
 # vim: foldmethod=marker

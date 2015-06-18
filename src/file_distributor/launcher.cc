@@ -1,52 +1,26 @@
-#include <iostream>
-#include <vector>
-#include <fstream>
-#include <sstream>
-#include <sys/unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <sys/fcntl.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <exception>
-
-#include <common/ecfs.hh>
+#include "../common/ecfs.hh"
 #include "fileserver.hh"
 
-using namespace std;
+#include <iostream>
+#include <exception>
 
-char master_address[BUF_SIZE];
+int main (int argc, const char *argv[]) {
+  using namespace std;
 
-bool master_is_set = false;
+  char* master_address;
+  int dhtport;
+  fileserver afileserver;
 
-int port = -1;
-int dhtport = -1;
-
-fileserver afileserver;
-
-int main (int argc, const char *argv[])
-{
-    // initialize data structures from setup.conf
-    string token;
+  try {
     Settings setted;
     setted.load_settings();
+    dhtport        = setted.dhtport();
+    master_address = strndup (setted.master_addr().c_str(), BUF_SIZE);
 
-    try
-    {
-      port = setted.port();
-      dhtport = setted.dhtport();
-      strcpy (master_address, setted.master_addr().c_str());
-      master_is_set = true;
-    }
-    catch (exception& e) 
-    {
-      cout << e.what() << endl;
-    }
+  } catch (exception& e) {
+    cerr << e.what() << endl;
+  }
 
-    // run the file server
-    afileserver.run_server (dhtport, master_address);
-    return 0;
+  afileserver.run_server (dhtport, master_address); //! run the file server
+  return EXIT_SUCCESS;
 }
