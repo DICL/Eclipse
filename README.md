@@ -7,9 +7,10 @@ Eclipse is a novel experimental MapReduce framework integrated with distributed
 semantic caches and Chord based Distributed Hash Table file system.
 
 Eclipse was created to satisfy the need for better performance in the Hadoop framework.
-Eclipse outperforms better by addressing some key facts such as dealing with the 
-HDFS storage bottleneck, providing a better concurrency scheduling, imposing austere 
-memory management and implementing an efficient suffle phase. 
+Eclipse outperforms better by addressing some key facts such as:
+ - Dealing with the HDFS storage bottleneck.
+ - Providing a better concurrency scheduling.
+ - Imposing austere memory management and implementing an efficient suffle phase. 
 
 COMPILING & INSTALLING
 =====================
