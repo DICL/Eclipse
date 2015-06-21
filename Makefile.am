@@ -10,23 +10,18 @@ lib_LTLIBRARIES     = libecfs.la
 libecfs_la_SOURCES  = src/common/hash.cc src/common/settings.cc \
 											src/common/fileclient.cc src/common/msgaggregator.cc src/common/util.cc src/common/mapreduce.cc \
 											src/common/dataentry.cc src/common/datablock.cc src/common/messagebuffer.cc
-libecfs_la_CXXFLAGS = $(AM_CXXFLAGS) # -shared
 libecfs_la_LDFLAGS  = -version-info 0:0:0
 
-if FS_IS_DHT
-client_SOURCES      = src/client/client.cc
-client_LDADD        = libecfs.la
-slave_SOURCES       = src/slave/slave.cc 
-slave_LDADD         = libecfs.la
-master_SOURCES      = src/master/master.cc 
-master_LDADD        = libecfs.la
-endif
+# Binaries ----
+AM_LDFLAGS          = -static
+LDADD               = libecfs.la
 
+client_SOURCES      = src/client/client.cc
+slave_SOURCES       = src/slave/slave.cc 
+master_SOURCES      = src/master/master.cc 
 eclipse_SOURCES     = src/file_distributor/launcher.cc
 eclipse_CXXFLAGS    = $(AM_CXXFLAGS) -Wno-maybe-uninitialized
-eclipse_LDADD       = libecfs.la
 cacheserver_SOURCES = src/cacheserver/cacheserver.cc 
-cacheserver_LDADD   = libecfs.la
 
 pkginclude_HEADERS  = src/common/ecfs.hh src/common/file_connclient.hh src/common/fileclient.hh \
                       src/common/msgaggregator.hh src/common/settings.hh src/common/dataentry.hh \
