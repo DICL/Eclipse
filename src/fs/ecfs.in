@@ -128,6 +128,8 @@ module Ecfs
     #}}}
     # rm {{{
     def rm(input)
+      input = @files.keys.grep(%r[#{@regex}]) if @regex
+
       input.each do |fn|
         raise "\'#{fn}\' not found in Eclipse FS" unless @files[fn]
 
@@ -151,14 +153,19 @@ module Ecfs
       ap self.instance_variables.map{|var|  [var, self.instance_variable_get(var)]}.to_h
     end  #}}}
     # mcc {{{
-    def mcc(output, input)
+    def mcc(input)
       sources = input.join(' ')
+      raise 'Need to specify output file (-o File)' unless @outputfile 
 
-      cmd = "#{CXX} -static -o #{output} #{sources} -l ecfs"
+      cmd = "#{CXX} -static -o #{@outputfile} #{sources} -l ecfs"
       puts cmd if @verbose
       system cmd
     end
 
+    #}}}
+    def clear #{{{
+      rm @files.keys
+    end
     #}}}
   end
 
@@ -180,14 +187,17 @@ module Ecfs
         opts.separator "    put FILE...  insert FILE..."
         opts.separator "    get FILE...  \'cat\' the FILE..."
         opts.separator "    rm FILE...   remove FILE..."
+        opts.separator "    clear        remove all the files in the FS"
         opts.separator "    ls           list all the files in the FS"
         opts.separator "    config       list all the internal variables"
-        opts.separator "    mcc OUTPUT INPUT...  Compile file with EclipseFS API using OUTPUT name"
+        opts.separator "    mcc -o OUTPUT INPUT...  Compile file with EclipseFS API using OUTPUT name"
         opts.separator ""
         opts.separator "Options"
         opts.on_tail("-h", "--help"   , "recursive this")         { puts opts; exit}
         opts.on_tail("-v", "--verbose" , "printout verbose info") { @verbose = true }
         opts.on_tail("-V", "--version" , "printout version") { puts opts.ver; exit }
+        opts.on_tail("-o FILE", "output file, for mcc") { |f| @outputfile = f }
+        opts.on_tail("-r REGEX", "regex for remove or ls") { |r| @regex = r }
       end.parse! input
 
       case input.shift
@@ -197,9 +207,10 @@ module Ecfs
       when 'put' then    put input
       when 'get' then    get input
       when 'rm' then     rm input
+      when 'clear' then  clear
       when 'ls' then     list
       when 'config' then config 
-      when 'mcc' then    mcc(input[0], input.slice(1, input.length))
+      when 'mcc' then    mcc input
       else               raise "Not action given"
       end
     end #}}}
