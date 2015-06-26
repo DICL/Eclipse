@@ -7,35 +7,31 @@
 #include <boost/property_tree/ptree.hpp>
 
 using std::string;
-using std::vector;
 using namespace boost::property_tree;
 
 class Settings 
 {
   protected:
+
     boost::property_tree::ptree pt;
-    string project_path, config_path;
+    string config_path, given_path;
+    bool hardcoded_path;
+    bool get_project_path ();
 
   public:
-    Settings()  { hardcoded_path = true;}
-    Settings(string in)  { given_path = in; hardcoded_path = false; }
+    Settings() : hardcoded_path(false) { }
+    Settings(string in) : given_path (in), hardcoded_path (true) { }
     ~Settings() {}
 
-    bool get_project_path ();
     bool load_settings ();
 
     //Getters
-    const string lib_path ();
-    int port ();
-    int dhtport ();
+    string operator[] (string);
+    string getip () const;
+    int port_mr ();
+    int port_cache ();
     int max_job ();
-    string master_addr ();
-    string ipc_path ();
-    string mr_path ();
-    string scratch_path ();
-    vector<string> nodelist ();
-    string given_path;
-    bool hardcoded_path;
+    std::vector<string> nodelist ();
 };
 
 #endif
