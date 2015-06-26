@@ -1,0 +1,48 @@
+#!/bin/env ruby
+# vim: ft=ruby : fileencoding=utf-8 : foldmethod=marker : set autoindent
+# Author:: Vicente Adolfo Bolea Sanchez <vicente.bolea@gmail.com>
+#
+
+require 'json'              # 
+BINDIR   = "@bindirfull@"
+PORT     = "2222"
+
+class Eclipse_dbg
+  def initialize(cmd)
+    @nodelist = File.open('/home/vicente/.eclipse.json') { |f| JSON.parse(f.read) }["nodes"]
+
+    send(cmd.to_s)
+
+  end
+
+  def master_detached
+    system "gdbserver :#{PORT} #{BINDIR}/master &"
+  end
+
+  def connect 
+    exec("(echo 'target remote localhost:'#{PORT}; cat) | gdb -q #{BINDIR}/master")
+  end
+
+  def master
+    exec("gdb #{BINDIR}/master")
+  end
+
+  def slaves 
+    @nodelist.each do |node|
+      system "ssh #{node} 'nohup #{BINDIR}/slave </dev/null &>/dev/null & exit'"
+    end
+  end
+
+  def cacheserver
+    system "#{BINDIR}/cacheserver &"
+  end 
+
+  def eclipse
+    @nodelist.each do |node|
+      exit if node == "192.168.1.10"
+      system "ssh #{node} 'nohup #{BINDIR}/eclipse </dev/null &>/dev/null & exit'"
+    end
+  end
+end
+
+Eclipse_dbg.new ARGV[0]

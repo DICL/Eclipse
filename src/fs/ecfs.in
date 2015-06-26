@@ -17,7 +17,7 @@ module Ecfs
   class Core 
     # Initialize {{{
     def initialize 
-      @nodelist = File.open(find_confpath) { |f| JSON.parse(f.read) }["nodes"]
+      @nodelist = File.open(find_confpath) { |f| JSON.parse(f.read) }['network']['nodes']
       @verbose  = false
     end
 
@@ -90,11 +90,9 @@ module Ecfs
     def initialize #{{{
       @files           = {}
       @config          = File.open(find_confpath) { |f| JSON.parse(f.read) }
-      @fs_path         = @config["fs_path"]
-      @fs_scratch_path = @config["fs_scratch_path"]
-      @headers_path    = @config["headers_path"]
-      @libs_path       = @config["libs_path"]
-      @fs_tmpfile      = @config["fs_path"] + "/.list"
+      @fs_path         = @config['path']['filesystem']
+      @fs_scratch_path = @config['path']['scratch']
+      @fs_tmpfile      = @fs_path + "/.list"
       @files           = File.open(@fs_tmpfile) { |f| JSON.parse(f.read) } if File.exist? @fs_tmpfile
       super()
     end

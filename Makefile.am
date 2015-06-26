@@ -1,7 +1,7 @@
 SUBDIRS             = . tests
 
 AM_CPPFLAGS         = -I@srcdir@/src/common -I@srcdir@/src -include ./config.h
-AM_CXXFLAGS         = -Wall -std=gnu++98
+AM_CXXFLAGS         = -Wall -std=gnu++98 -ggdb3
 
 bin_PROGRAMS        = client slave master eclipse cacheserver
 
@@ -27,7 +27,7 @@ pkginclude_HEADERS  = src/common/ecfs.hh src/common/file_connclient.hh src/commo
                       src/common/msgaggregator.hh src/common/settings.hh src/common/dataentry.hh \
 											src/common/messagebuffer.hh src/common/datablock.hh src/common/mapreduce.hh
 # Scripts -------
-bin_SCRIPTS         = src/fs/ecfs
+bin_SCRIPTS         = src/fs/ecfs src/fs/eclipse-debug
 # ------
 if COPY_SAMPLES
 sysconf_DATA        = doc/eclipse.json
