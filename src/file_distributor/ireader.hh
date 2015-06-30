@@ -67,8 +67,8 @@ ireader::ireader (int ajobid, int anumiblock, int anetworkidx, int abridgeid, br
     pos = 0;
     
     Settings setted;
-    setted.load_settings();
-    dht_path = setted.scratch_path();
+    setted.load();
+    dht_path = setted.get<string>("path.scratch");
 
     // prepare reading idata from multiple file block according to jobid and numiblock
     for (int i = 0; i < numiblock; i++)

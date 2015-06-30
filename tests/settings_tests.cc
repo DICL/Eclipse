@@ -1,22 +1,24 @@
 #include <settings.hh>
 #include <iostream>
 #include <sstream>
+#include <vector>
 
 using namespace std;
 
 struct Settings_fixture: public Settings
 {
-  Settings_fixture () : Settings ("./")  { }
+  Settings_fixture () { }
 };
 
 SUITE(SETTING_TESTS) 
 {
-  TEST_FIXTURE(Settings_fixture, basic) 
-  {
-    load_settings();
-    CHECK_EQUAL (port(), 8008);
-    CHECK_EQUAL (master_addr(), "192.168.1.201");
-    vector<string> test = nodelist();
+ TEST_FIXTURE(Settings_fixture, basic) 
+ {
+    load();
+
+    CHECK_EQUAL (get<int> ("port"), 8008);
+    CHECK_EQUAL (get<string> ("master_address"), "192.168.1.201");
+    vector<string> test = get<vector<string> >("nodes");
 
     int i = 1;
     for (auto it = test.begin(); it != test.end(); it++, i++) 
@@ -24,10 +26,9 @@ SUITE(SETTING_TESTS)
       ostringstream tmp;
       tmp << "192.168.1." << i; 
       string _ip = tmp.str();
-      cout << *it << endl;
       CHECK_EQUAL (*it, _ip);
     }
-  }
+ }
 }
 
 int main () {

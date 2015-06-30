@@ -91,24 +91,10 @@ void init_mapreduce (int argc, char** argv)
     }
     
     Settings setted;
-    setted.load_settings();
-    port = setted.port();
-    dhtport = setted.dhtport();
-    strcpy (master_address, setted.master_addr().c_str());
-    master_is_set = true;
-    
-    // verify initialization
-    if (port == -1)
-    {
-        cout << "Port should be specified in the setup.conf" << endl;
-        exit (1);
-    }
-    
-    if (master_is_set == false)
-    {
-        cout << "Master_address should be specified in the setup.conf" << endl;
-        exit (1);
-    }
+    setted.load();
+    port    = setted.get<int>("network.port_mapreduce");
+    dhtport = setted.get<int>("network.port_cache");
+    strcpy (master_address, setted.get<string>("network.master").c_str());
     
     if (role == JOB)     // when the role is job
     {
@@ -374,8 +360,8 @@ void summ_mapreduce()
             char* tmp = new char[strlen (argvalues[0]) + 1];
 
             Settings setted;
-            setted.load_settings();
-            string apath = setted.mr_path();
+            setted.load();
+            string apath = setted.get<string>("path.mr");
             char* token;
             char* next_token;
             strcpy (tmp, argvalues[0]);

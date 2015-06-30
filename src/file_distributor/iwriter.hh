@@ -62,8 +62,8 @@ iwriter::iwriter (int ajobid, int anetworkidx)
     numblock++;
 
     Settings setted;
-    setted.load_settings();
-    dht_path = setted.scratch_path();
+    setted.load();
+    dht_path = setted.get<string>("path.scratch");
 }
 
 iwriter::~iwriter()

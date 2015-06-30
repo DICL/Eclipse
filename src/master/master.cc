@@ -61,31 +61,15 @@ char write_buf[BUF_SIZE]; // write buffer for signal_listener thread
 
 int main (int argc, char** argv)
 {
-    // initialize data structures from setup.conf
-    ifstream conf;
     string token;
     Settings setted;
-    setted.load_settings();
+    setted.load();
 
-    port = setted.port();
-    dhtport = setted.dhtport();
-    max_job = setted.max_job();
-    string ipc_path = setted.ipc_path();
-    
-    // verify initialization
-    if (port == -1)
-    {
-        cout << "[master]port should be specified in the setup.conf" << endl;
-        exit (1);
-    }
-    
-    if (max_job == -1)
-    {
-        cout << "[master]max_job should be specified in the setup.conf" << endl;
-        exit (1);
-    }
-    
-    nodelist = setted.nodelist();
+    port            = setted.get<int> ("network.port_mapreduce");
+    dhtport         = setted.get<int> ("network.port_cache");
+    max_job         = setted.get<int> ("max_job");
+    string ipc_path = setted.get<string> ("path.ipc");
+    nodelist        = setted.get<vector<string> > ("network.nodes");
     
     for (int i = 0; (unsigned) i < nodelist.size(); i++)
     {

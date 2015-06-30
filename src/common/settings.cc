@@ -1,7 +1,9 @@
 #include "settings.hh"
 #include <iostream>
+#include <vector>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/exceptions.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <boost/foreach.hpp>
 #include <ifaddrs.h>
 #include <stdlib.h>
@@ -13,17 +15,36 @@
 using std::cout;
 using std::endl;
 using std::vector;
+using std::string;
+using namespace boost::property_tree;
 
+// class SettingsImpl {{{
+class Settings::SettingsImpl {
+  protected:
+    ptree pt;
+    string config_path, given_path;
+    bool hardcoded_path;
+    bool get_project_path ();
+
+  public:
+    SettingsImpl() : hardcoded_path(false) { }
+    SettingsImpl(string in) : given_path (in), hardcoded_path (true) { }
+    bool load ();
+
+    template <typename T> T get (string) ;
+    string getip () const ;
+};
+//}}}
 // get_project_path {{{
-bool Settings::get_project_path () 
+bool Settings::SettingsImpl::get_project_path () 
 {
   string home_location   = string(getenv("HOME")) + "/.eclipse.json";
   string system_location = "/etc/eclipse.json";
 
   if (hardcoded_path) {
-    config_path = given_path;                                           // Finally the one of the constructor
+    config_path = given_path;                                           // Frist the from constructor
 
-  } else if (access(home_location.c_str(), F_OK) == EXIT_SUCCESS) {     // First at home
+  } else if (access(home_location.c_str(), F_OK) == EXIT_SUCCESS) {     // Then at home
     config_path = home_location;
 
   } else if (access(system_location.c_str(), F_OK) == EXIT_SUCCESS) {   // Then at /etc
@@ -40,18 +61,18 @@ bool Settings::get_project_path ()
   return true;
 }
 // }}}
-// load_settings {{{
+// load {{{
 //
-bool Settings::load_settings ()
+bool Settings::SettingsImpl::load ()
 {
   get_project_path();
-  boost::property_tree::json_parser::read_json (config_path, pt);
+  json_parser::read_json (config_path, pt);
 
   return true;
 }
 // }}}
 // getip {{{
-string Settings::getip () const
+string Settings::SettingsImpl::getip () const
 {
   char if_ip [INET_ADDRSTRLEN];
   struct ifaddrs *ifAddrStruct = NULL, *ifa = NULL;
@@ -69,19 +90,42 @@ string Settings::getip () const
   return string (if_ip);
 }
 // }}}
-//Getters {{{
-int Settings::port_mr ()           { return pt.get<int> ("network.port_mapreduce"); }
-int Settings::port_cache ()        { return pt.get<int> ("network.port_cache"); }
-int Settings::max_job ()           { return pt.get<int> ("max_job"); }
-string Settings::operator[] (string str) { return pt.get<string> (str.c_str()); }
-// }}}
-// nodelist {{{
-vector<string> Settings::nodelist () 
-{
+// Get specializations {{{
+template<> vector<string> Settings::SettingsImpl::get<vector<string> > (string str) { 
   vector<string> output;
-  BOOST_FOREACH(ptree::value_type& v, pt.get_child ("network.nodes")) 
+  BOOST_FOREACH(ptree::value_type& v, pt.get_child (str.c_str())) 
   {
     output.push_back (v.second.data());
   }
   return output;
 }
+
+template<> string Settings::SettingsImpl::get<string> (string str) { 
+   return pt.get<string> (str.c_str()); 
+}
+
+template<> int Settings::SettingsImpl::get<int> (string str) { 
+    return pt.get<int> (str.c_str()); 
+}
+ //}}}
+// Settings method{{{
+//
+Settings::Settings() { impl = new SettingsImpl(); }
+Settings::Settings(string in) { impl = new SettingsImpl(in); }
+Settings::~Settings() { delete impl; }
+
+bool Settings::load () { return impl->load (); }
+string Settings::getip () { return impl->getip(); }
+ 
+template<> int Settings::get (string str) { 
+  return impl->get<int>(str); 
+}
+
+template<> string Settings::get (string str) {
+  return impl->get<string>(str); 
+}
+
+template<> vector<string> Settings::get (string str) { 
+  return impl->get<vector<string> >(str); 
+}
+// }}}

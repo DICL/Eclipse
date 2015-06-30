@@ -43,10 +43,10 @@ int main (int argc, char** argv)
 {
     master_connection themaster; // from <orthrus/cacheclient.hh>
     Settings setted;
-    setted.load_settings();
-    dhtport = setted.dhtport();
-    nodelist = setted.nodelist();
-    ipc_path = setted.ipc_path();
+    setted.load();
+    dhtport = setted.get<int> ("network.port_cache");
+    nodelist = setted.get<vector<string> > ("network.nodes");
+    ipc_path = setted.get<string> ("path.ipc");
     
     if (access (ipc_path.c_str(), F_OK) == 0)
     {
@@ -350,12 +350,12 @@ void open_server (int port)
     }
     
     Settings setted;
-    setted.load_settings();
+    setted.load();
 
     // bind
     memset ( (void*) &serveraddr2, 0, sizeof (serveraddr2));
     serveraddr2.sun_family = AF_UNIX;
-    strcpy (serveraddr2.sun_path, setted.ipc_path().c_str());
+    strcpy (serveraddr2.sun_path, setted.get<string> ("path.ipc").c_str());
     
     if (bind (ipcfd, (struct sockaddr *) &serveraddr2, SUN_LEN (&serveraddr2)) < 0)
     {

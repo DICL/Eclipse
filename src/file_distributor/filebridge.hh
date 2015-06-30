@@ -102,8 +102,8 @@ filebridge::filebridge (int anid)
     //keybuffer.configure_initial("Ikey\n");
 
     Settings setted;
-    setted.load_settings();
-    dht_path = setted.scratch_path();
+    setted.load();
+    dht_path = setted.get<string>("path.scratch");
 }
 
 filebridge::~filebridge()

@@ -2,36 +2,23 @@
 #define __SETTINGS_HH_
 
 #include <string>
-#include <vector>
-
-#include <boost/property_tree/ptree.hpp>
-
-using std::string;
-using namespace boost::property_tree;
 
 class Settings 
 {
-  protected:
-
-    boost::property_tree::ptree pt;
-    string config_path, given_path;
-    bool hardcoded_path;
-    bool get_project_path ();
+  private:
+    class SettingsImpl;
+    SettingsImpl* impl;
 
   public:
-    Settings() : hardcoded_path(false) { }
-    Settings(string in) : given_path (in), hardcoded_path (true) { }
-    ~Settings() {}
+    Settings();
+    Settings(std::string);
+    ~Settings();
 
-    bool load_settings ();
+    bool load ();
 
-    //Getters
-    string operator[] (string);
-    string getip () const;
-    int port_mr ();
-    int port_cache ();
-    int max_job ();
-    std::vector<string> nodelist ();
+    // Getters
+    template <typename T> T get (std::string);
+    std::string getip ();
 };
 
 #endif

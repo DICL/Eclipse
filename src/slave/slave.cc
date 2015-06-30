@@ -29,7 +29,6 @@ int masterfd = -1;
 
 int buffersize = 8388608; // 8 MB buffer size
 
-bool master_is_set = false;
 char master_address[BUF_SIZE];
 string localhostname;
 vector<slave_job*> running_jobs; // a vector of job, one or multiple tasks of which are running on this slave node
@@ -39,34 +38,14 @@ int main (int argc, char** argv)
 {
     // initialize data structures from setup.conf
     Settings setted;
-    setted.load_settings();
-    port = setted.port();
-    dhtport = setted.dhtport();
-    strcpy (master_address, setted.master_addr().c_str());
-    master_is_set = true;
+    setted.load();
+    port = setted.get<int>("network.port_mapreduce");
+    dhtport = setted.get<int>("network.port_cache");
+    strcpy (master_address, setted.get<string>("network.master").c_str());
+    localhostname = setted.getip();
 
-    // verify initialization
-    if (port == -1)
-    {
-        cout << "[slave]port should be specified in the setup.conf" << endl;
-        return 1;
-    }
-    
-    if (master_is_set == false)
-    {
-        cout << "[slave]master_address should be specified in the setup.conf" << endl;
-        return 1;
-    }
-    
-    // read hostname from hostname file
-    ifstream hostfile;
-    string hostpath = setted.scratch_path();
-    hostpath.append ("hostname");
-    hostfile.open (hostpath.c_str());
-    hostfile >> localhostname;
     // connect to master
     masterfd = connect_to_server (master_address, port);
-    
     if (masterfd < 0)
     {
         cout << "[slave]Connecting to master failed" << endl;

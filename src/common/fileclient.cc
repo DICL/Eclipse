@@ -38,11 +38,11 @@ int fileclient::connect_to_server()
     }
     
     Settings setted;
-    setted.load_settings();
+    setted.load();
 
     memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
     serveraddr.sun_family = AF_UNIX;
-    strcpy (serveraddr.sun_path, setted.ipc_path().c_str());
+    strcpy (serveraddr.sun_path, setted.get<string>("path.ipc").c_str());
     
 //struct timeval time_start;
 //struct timeval time_end;

@@ -43,10 +43,10 @@ int main (int argc, char** argv)
     
     string token;
     Settings setted;
-    setted.load_settings();
-    port = setted.port();
-    dhtport = setted.dhtport();
-    strcpy (master_address, setted.master_addr().c_str());
+    setted.load();
+    port = setted.get<int>("network.port_mapreduce");
+    dhtport = setted.get<int> ("network.port_cache");
+    strcpy (master_address, setted.get<string>("network.master").c_str());
     master_is_set = true;
 
     // verify initialization
@@ -62,7 +62,7 @@ int main (int argc, char** argv)
         exit (1);
     }
     
-    nodelist = setted.nodelist();
+    nodelist = setted.get<vector<string> > ("network.nodes");
     
     // copy request command to write buffer
     if (strncmp (argv[1], "stop", 4) == 0)

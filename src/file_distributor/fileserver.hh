@@ -70,8 +70,8 @@ fileserver::fileserver()
     fbidclock = 0; // fb id starts from 0
 
     Settings setted;
-    setted.load_settings();
-    dht_path = setted.scratch_path();
+    setted.load();
+    dht_path = setted.get<string>("path.scratch");
 }
 //}}}
 // find_peer {{{
@@ -153,22 +153,14 @@ int fileserver::run_server (int port, string master_address)
 {
     // Initialize {{{
     int buffersize = 8388608; // 8 MB buffer size
-    // read hostname from hostname file
-    ifstream hostfile;
-    string word;
     
     Settings setted;
-    setted.load_settings();
-    string hostpath = setted.scratch_path();
-    hostpath.append ("/hostname");
-    hostfile.open (hostpath.c_str());
-    hostfile >> localhostname;
-    hostfile.close();
-
-    nodelist = setted.nodelist();
-    string ipc_path = setted.ipc_path();
+    setted.load();
+    nodelist        = setted.get<vector<string> > ("network.nodes");
+    string ipc_path = setted.get<string> ("path.ipc");
+    localhostname   = setted.getip();
     
-    if (access (ipc_path.c_str(), F_OK) == 0)
+    if (access (ipc_path.c_str(), F_OK) == EXIT_SUCCESS)
     {
         unlink (ipc_path.c_str());
     }
