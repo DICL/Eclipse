@@ -14,11 +14,6 @@
 #include <fstream>
 #include <fcntl.h>
 
-#include <boost/property_tree/ptree.hpp>
-
-#define HADOOP_FLAG "-lhdfs"
-#define JAVA_FLAG "-ljvm"
-
 #define BUF_SIZE (8*1024) // determines maximum size of a record
 #define BUF_THRESHOLD (7*1024) // the buffer flush threshold
 #define BUF_CUT 512
@@ -35,7 +30,6 @@
 
 #define MAP_SLOT 16
 #define REDUCE_SLOT 16
-
 
 #define HASHLENGTH 64
 
@@ -95,7 +89,6 @@ enum file_role
 using std::string;
 using std::vector;
 using std::set;
-using namespace boost::property_tree;
 
 // Hash function--------------------------------------------
 #undef get16bits

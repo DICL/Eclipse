@@ -1,3 +1,4 @@
+#include "file_connclient.hh"
 #include "ecfs.hh"
 
 file_connclient::file_connclient (int fd)
@@ -7,7 +8,7 @@ file_connclient::file_connclient (int fd)
     this->role = UNDEFINED;
 }
 
-file_connclient::file_connclient (int fd, file_client_role arole, string aname)
+file_connclient::file_connclient (int fd, file_role arole, string aname)
 {
     this->fd = fd;
     this->filename = aname;
@@ -26,12 +27,12 @@ int file_connclient::get_fd()
     return this->fd;
 }
 
-void file_connclient::set_role (file_client_role arole)
+void file_connclient::set_role (file_role arole)
 {
     this->role = arole;
 }
 
-file_client_role file_connclient::get_role()
+file_role file_connclient::get_role()
 {
     return this->role;
 }
@@ -48,7 +49,9 @@ string file_connclient::get_filename()
 
 void file_connclient::open_readfile (string fname)
 {
-    string fpath = DHT_PATH;
+    Settings setted;
+    setted.load();
+    string fpath = setted.get<string>("path.scratch") + '/';
     fpath.append (fname);
     this->readfilestream.open (fpath.c_str());
     
@@ -62,7 +65,9 @@ void file_connclient::open_readfile (string fname)
 
 void file_connclient::open_writefile (string fname)
 {
-    string fpath = DHT_PATH;
+    Settings setted;
+    setted.load();
+    string fpath = setted.get<string>("path.scratch") + '/';
     fpath.append (fname);
     this->writefilefd = open (fpath.c_str(), O_APPEND | O_SYNC | O_WRONLY | O_CREAT, 0644);
     return;

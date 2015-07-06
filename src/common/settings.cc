@@ -9,6 +9,12 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <string.h> /* for strncpy */
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <net/if.h>
 
 #define FINAL_PATH "/eclipse.json"
 
@@ -74,18 +80,23 @@ bool Settings::SettingsImpl::load ()
 // getip {{{
 string Settings::SettingsImpl::getip () const
 {
-  char if_ip [INET_ADDRSTRLEN];
-  struct ifaddrs *ifAddrStruct = NULL, *ifa = NULL;
-  string interface = pt.get<string> ("network.iface");
+ int fd;
+ struct ifreq ifr;
+ char if_ip [INET_ADDRSTRLEN];
+ string interface = pt.get<string> ("network.iface");
 
-  getifaddrs (&ifAddrStruct);
+ fd = socket(AF_INET, SOCK_DGRAM, 0);
 
-  for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
-    if (ifa->ifa_name == interface)
-      inet_ntop (AF_INET, &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr, if_ip, INET_ADDRSTRLEN);
-  }
+ /* I want to get an IPv4 IP address */
+ ifr.ifr_addr.sa_family = AF_INET;
 
-  if(ifAddrStruct != NULL) freeifaddrs (ifAddrStruct);
+ /* I want IP address attached to "eth0" */
+ strncpy(ifr.ifr_name, interface.c_str(), IFNAMSIZ-1);
+
+ ioctl(fd, SIOCGIFADDR, &ifr);
+ inet_ntop (AF_INET, &((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr , if_ip, INET_ADDRSTRLEN);
+
+ close(fd);
 
   return string (if_ip);
 }

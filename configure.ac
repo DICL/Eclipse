@@ -27,7 +27,7 @@ AC_ARG_WITH([fs],
     [fs="$withval"], [fs="$default_fs"]) 
 
 AC_ARG_WITH([boost],
-    [AS_HELP_STRING([--with-boost], [specify boost path])],
+    [AS_HELP_STRING([--with-boost@<:@=PATH@:>@], [specify boost path])],
     [boost_path="$withval"], [boost_path=no]) 
 
     if test "$boost_path" != no ; then

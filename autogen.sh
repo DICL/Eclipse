@@ -1,9 +1,9 @@
 #!/bin/sh
 
-[ ! -e .autotools_aux ] && mkdir .autotools_aux
+test -e ./.autotools_aux || mkdir .autotools_aux
 
-libtoolize
-aclocal -I m4                     # Generate aclocal
+libtoolize -cq
+aclocal -I m4 --install           # Generate aclocal
 autoconf                          # Generate configure script 
 autoheader                        # Generate config.h
 automake --add-missing --copy     # Generate Makefile.in and other scripts 

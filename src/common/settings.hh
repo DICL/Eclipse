@@ -16,7 +16,6 @@ class Settings
 
     bool load ();
 
-    // Getters
     template <typename T> T get (std::string);
     std::string getip ();
 };

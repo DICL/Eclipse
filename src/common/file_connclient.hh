@@ -4,6 +4,8 @@
 #include <iostream>
 #include <fstream>
 #include <fcntl.h>
+#include "settings.hh"
+#include "ecfs.hh"
 
 using namespace std;
 class file_connclient
@@ -13,16 +15,16 @@ class file_connclient
         int writefilefd;
         fstream readfilestream;
         string filename;
-        file_client_role role;
+        file_role role;
         
     public:
         file_connclient (int fd);
-        file_connclient (int fd, file_client_role arole, string aname);
+        file_connclient (int fd, file_role, string aname);
         ~file_connclient();
         
         int get_fd();
-        void set_role (file_client_role arole);
-        file_client_role get_role();
+        void set_role (file_role);
+        file_role get_role();
         void set_filename (string name);
         string get_filename();
         void open_readfile (string fname);

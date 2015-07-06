@@ -45,7 +45,7 @@ module Ecfs
       end
 
       `#{BINDIR}/cacheserver &>/dev/null &`
-      `sleep 1`
+      `sleep 4`
       @nodelist.each do |node|
         system "ssh #{node} 'nohup #{BINDIR}/eclipse </dev/null &>/dev/null & exit'"
       end

@@ -14,7 +14,7 @@ int main (int argc, const char *argv[]) {
   try {
     Settings setted;
     setted.load();
-    dhtport        = setted.get<int> ("network.port_mapreduce");
+    dhtport        = setted.get<int> ("network.port_cache");
     master_address = strndup (setted.get<string>("network.master").c_str(), BUF_SIZE);
 
   } catch (exception& e) {

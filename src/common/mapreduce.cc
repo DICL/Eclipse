@@ -361,7 +361,7 @@ void summ_mapreduce()
 
             Settings setted;
             setted.load();
-            string apath = setted.get<string>("path.mr");
+            string apath = setted.get<string>("path.filesystem");
             char* token;
             char* next_token;
             strcpy (tmp, argvalues[0]);
@@ -671,7 +671,7 @@ void set_reducer (void (*red_func) (string key))
     reducefunction = red_func;
 }
 
-void add_inputpath (string path)     // the path is relative path to DHT_PATH
+void add_inputpath (string path)
 {
     if (role == JOB)
     {

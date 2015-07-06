@@ -38,16 +38,7 @@ class master_job
         set<int> peerids;
         vector<int> numiblocks; // the order is matched with peerids(set)
         
-        
-        
-        
         int scheduled;
-        
-        
-        
-        
-        
-        
         
         master_job();
         master_job (int id, int fd);

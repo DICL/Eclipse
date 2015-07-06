@@ -9,7 +9,7 @@ PORT     = "2222"
 
 class Eclipse_dbg
   def initialize(cmd)
-    @nodelist = File.open('/home/vicente/.eclipse.json') { |f| JSON.parse(f.read) }["nodes"]
+    @nodelist = File.open('/home/vicente/.eclipse.json') { |f| JSON.parse(f.read) }["network"]["nodes"]
 
     send(cmd.to_s)
 
