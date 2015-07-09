@@ -5,11 +5,11 @@
 #include <fstream>
 #include <fcntl.h>
 #include <common/dataentry.hh>
-#include <file_distributor/filepeer.hh>
+#include <common/ecfs.hh>
+#include "filepeer.hh"
 #include "messagebuffer.hh"
 #include "idistributor.hh"
 #include "writecount.hh"
-#include <common/ecfs.hh>
 
 using namespace std;
 
