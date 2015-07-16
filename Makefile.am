@@ -7,6 +7,7 @@ bin_PROGRAMS        = client slave master eclipse cacheserver
 
 # libs -----
 lib_LTLIBRARIES     = libecfs.la
+#libecfs_la_CXXFLAGS = -std=gnu++11 -Wall
 libecfs_la_SOURCES  = src/common/hash.cc src/common/settings.cc \
 											src/common/fileclient.cc src/common/msgaggregator.cc src/common/util.cc src/common/mapreduce.cc \
 											src/common/dataentry.cc src/common/datablock.cc src/common/messagebuffer.cc 

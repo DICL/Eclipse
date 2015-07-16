@@ -1,3 +1,8 @@
+//
+// @author     Vicente Adolfo Bolea Sanchez
+// @brief      Settings impl using boost library.
+// 
+// Includes {{{
 #include "settings.hh"
 #include <iostream>
 #include <vector>
@@ -23,7 +28,7 @@ using std::endl;
 using std::vector;
 using std::string;
 using namespace boost::property_tree;
-
+//}}}
 // class SettingsImpl {{{
 class Settings::SettingsImpl {
   protected:
@@ -37,7 +42,7 @@ class Settings::SettingsImpl {
     SettingsImpl(string in) : given_path (in), hardcoded_path (true) { }
     bool load ();
 
-    template <typename T> T get (string) ;
+    template <typename T> T get (string&) ;
     string getip () const ;
 };
 //}}}
@@ -102,23 +107,21 @@ string Settings::SettingsImpl::getip () const
 }
 // }}}
 // Get specializations {{{
-template<> vector<string> Settings::SettingsImpl::get<vector<string> > (string str) { 
+template<typename T> T Settings::SettingsImpl::get (string& str) { 
+   return pt.get<T> (str.c_str()); 
+}
+
+template string Settings::SettingsImpl::get (string& str);
+template int    Settings::SettingsImpl::get (string& str);
+
+template<> vector<string> Settings::SettingsImpl::get (string& str) { 
   vector<string> output;
-  BOOST_FOREACH(ptree::value_type& v, pt.get_child (str.c_str())) 
-  {
+  BOOST_FOREACH(ptree::value_type& v, pt.get_child (str.c_str())) {
     output.push_back (v.second.data());
   }
   return output;
 }
-
-template<> string Settings::SettingsImpl::get<string> (string str) { 
-   return pt.get<string> (str.c_str()); 
-}
-
-template<> int Settings::SettingsImpl::get<int> (string str) { 
-    return pt.get<int> (str.c_str()); 
-}
- //}}}
+//}}}
 // Settings method{{{
 //
 Settings::Settings() { impl = new SettingsImpl(); }
@@ -126,17 +129,13 @@ Settings::Settings(string in) { impl = new SettingsImpl(in); }
 Settings::~Settings() { delete impl; }
 
 bool Settings::load () { return impl->load (); }
-string Settings::getip () { return impl->getip(); }
+string Settings::getip () const { return impl->getip(); }
  
-template<> int Settings::get (string str) { 
-  return impl->get<int>(str); 
+template<typename T> T Settings::get (string str) const { 
+  return impl->get<T>(str); 
 }
 
-template<> string Settings::get (string str) {
-  return impl->get<string>(str); 
-}
-
-template<> vector<string> Settings::get (string str) { 
-  return impl->get<vector<string> >(str); 
-}
+template int            Settings::get (string) const;
+template string         Settings::get (string) const;
+template vector<string> Settings::get (string) const;
 // }}}
