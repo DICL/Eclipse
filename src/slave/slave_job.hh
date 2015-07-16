@@ -13,7 +13,6 @@
 #include <string>
 #include <set>
 #include <common/ecfs.hh>
-#include <common/msgaggregator.hh>
 #include "slave_task.hh"
 
 using namespace std;

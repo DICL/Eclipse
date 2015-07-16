@@ -13,7 +13,7 @@
 #include <common/ecfs.hh>
 #include "cacheclient.hh"
 #include "iwfrequest.hh"
-#include "histogram.hh"
+#include "../common/histogram.hh"
 
 using namespace std;
 

@@ -1,7 +1,7 @@
 #include "master.hh"
 
 #include "../common/ecfs.hh"
-#include "../cacheserver/histogram.hh"
+#include "../common/histogram.hh"
 #include "master_job.hh"
 #include "master_task.hh"
 #include "connslave.hh"

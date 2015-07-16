@@ -9,7 +9,7 @@ bin_PROGRAMS        = client slave master eclipse cacheserver
 lib_LTLIBRARIES     = libecfs.la
 libecfs_la_SOURCES  = src/common/hash.cc src/common/settings.cc \
 											src/common/fileclient.cc src/common/msgaggregator.cc src/common/util.cc src/common/mapreduce.cc \
-											src/common/dataentry.cc src/common/datablock.cc src/common/messagebuffer.cc src/common/file_connclient.cc
+											src/common/dataentry.cc src/common/datablock.cc src/common/messagebuffer.cc 
 libecfs_la_LDFLAGS  = -version-info 0:0:0
 
 # Binaries ----
@@ -19,10 +19,10 @@ LDADD               = libecfs.la
 client_SOURCES      = src/client/client.cc
 slave_SOURCES       = src/slave/slave.cc 
 master_SOURCES      = src/master/master.cc 
-eclipse_SOURCES     = src/file_distributor/launcher.cc
-cacheserver_SOURCES = src/cacheserver/cacheserver.cc 
+eclipse_SOURCES     = src/cache_slave/cache_slave.cc 
+cacheserver_SOURCES = src/cache_server/cacheserver.cc 
 
-pkginclude_HEADERS  = src/common/ecfs.hh src/common/file_connclient.hh src/common/fileclient.hh \
+pkginclude_HEADERS  = src/common/ecfs.hh src/common/fileclient.hh \
                       src/common/msgaggregator.hh src/common/settings.hh src/common/dataentry.hh \
 											src/common/messagebuffer.hh src/common/datablock.hh src/common/mapreduce.hh
 # Scripts -------

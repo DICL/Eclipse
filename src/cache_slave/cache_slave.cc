@@ -18,7 +18,9 @@ int main (int argc, const char *argv[]) {
     master_address = strndup (setted.get<string>("network.master").c_str(), BUF_SIZE);
 
   } catch (exception& e) {
-    cerr << e.what() << endl;
+    cerr << "Configuration file incomplete or absent. Check README file for requirements" << endl;
+    cerr << "Exception error: " << e.what() << endl;
+    return EXIT_FAILURE;
   }
 
   afileserver.run_server (dhtport, master_address); //! run the file server
