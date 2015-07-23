@@ -39,15 +39,12 @@ int fileclient::connect_to_server()
     
     Settings setted;
     setted.load();
+    string ipc_path = setted.get<string>("path.ipc");
 
     memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
     serveraddr.sun_family = AF_UNIX;
-    strcpy (serveraddr.sun_path, setted.get<string>("path.ipc").c_str());
+    strcpy (serveraddr.sun_path, ipc_path.c_str());
     
-//struct timeval time_start;
-//struct timeval time_end;
-//double elapsed = 0.0;
-//gettimeofday(&time_start, NULL);
     while (connect (fd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
     {
         // sleep for 1 miilisecond
@@ -58,14 +55,7 @@ int fileclient::connect_to_server()
     fcntl (fd, F_SETFL, O_NONBLOCK);
     setsockopt (fd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
     setsockopt (fd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
-//gettimeofday(&time_end, NULL);
-//elapsed = 1000000.0*(time_end.tv_sec - time_start.tv_sec);
-//elapsed += (time_end.tv_usec - time_start.tv_usec);
-//elapsed /= 1000.0;
-//if(elapsed > 10.0)
-//cout<<"\033[0;33m\tconnect() elapsed: "<<elapsed<<" milli seconds\033[0m"<<endl;
     serverfd = fd;
-    // buffer for Iwrite and Owrite
     Iwritebuffer.set_fd (fd);
     Owritebuffer.set_fd (fd);
     return fd;

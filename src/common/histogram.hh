@@ -77,10 +77,8 @@ void histogram::initialize()
     unsigned max = MAX_UINT;
     
     // initialize the boundary
-    for (int i = 0; i < numserver - 1; i++)
-    {
-        boundaries[i] = (int) ( ( (double) max / (double) numserver) * ( (double) (i + 1)));
-    }
+    for (int i = 0; i < numserver - 1; i++) //boundaries[i] = (inf/10) * i
+      boundaries[i] = (int) ( ( (double) max / (double) numserver) * ( (double) (i + 1)));
     
     boundaries[numserver - 1] = max;
     

@@ -121,6 +121,7 @@ filebridge* fileserver::find_Icachebridge (string inputname, int& bridgeindex)
 bool fileserver::write_file (string fname, string& record)
 {
     string fpath = dht_path;
+    fpath += "/"; // Vicente(solves critical error) 
     int writefilefd = -1;
     int ret;
     fpath.append (fname);

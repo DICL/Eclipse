@@ -151,6 +151,7 @@ entrywriter* filebridge::get_entrywriter()
 void filebridge::open_readfile (string fname)
 {
     string fpath = dht_path;
+    fpath += "/"; // Vicente (this solves critical error)
     fpath.append (fname);
     this->readfilestream.open (fpath.c_str());
     

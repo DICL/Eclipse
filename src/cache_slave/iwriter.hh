@@ -112,7 +112,7 @@ void iwriter::add_keyvalue (string key, string value)
             vectorindex = 0;
             pos = 0;
             // determine the path of file
-            filepath = dht_path;
+            filepath = dht_path + "/";
             stringstream ss;
             ss << ".job_";
             ss << jobid;
@@ -224,7 +224,7 @@ bool iwriter::write_to_disk()   // return true if write_to_disk should be stoppe
             vectorindex = 0;
             pos = 0;
             // determine the path of file
-            filepath = dht_path;
+            filepath = dht_path + "/";
             stringstream ss;
             ss << ".job_";
             ss << jobid;
@@ -260,7 +260,7 @@ void iwriter::flush()   // last call before iwriter is deleted. this is not an i
         vectorindex = 0;
         pos = 0;
         // determine the path of file
-        filepath = dht_path;
+        filepath = dht_path + "/";
         stringstream ss;
         ss << ".job_";
         ss << jobid;

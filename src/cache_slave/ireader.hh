@@ -75,7 +75,7 @@ ireader::ireader (int ajobid, int anumiblock, int anetworkidx, int abridgeid, br
     {
         string filename;
         stringstream ss;
-        ss << dht_path;
+        ss << dht_path + "/";
         ss << ".job_";
         ss << jobid;
         ss << "_";
