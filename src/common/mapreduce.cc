@@ -796,7 +796,7 @@ bool get_nextinput (string& inputpath)     // internal function to process next 
             // return false if inputpaths is empty
             if (inputpaths.size() == 0)
             {
-                return false;
+               break; // @bug
             }
             
             stringstream ss1;

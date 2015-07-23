@@ -83,7 +83,7 @@ module Ecfs
     module Eclipse  #{{{
       extend FFI::Library
       ffi_lib "#{LIBDIR}/libecfs.so"
-      attach_function :h, [ :string , :size_t ], :ushort
+      attach_function :hash_ruby, [ :string ], :uint32
     end
 
     #}}} 
@@ -99,7 +99,11 @@ module Ecfs
       super()
     end
 
-    def hash(input);         Eclipse.h(input, input.length) end
+    def hash(input);         
+     h_ =  Eclipse.hash_ruby(input) 
+     puts h_ if @verbose
+     h_
+    end
     def node_containing(fn); @nodelist[hash(fn) % @nodelist.length] end
 
     #}}}

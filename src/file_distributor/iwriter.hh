@@ -260,7 +260,7 @@ void iwriter::flush()   // last call before iwriter is deleted. this is not an i
         vectorindex = 0;
         pos = 0;
         // determine the path of file
-        filepath = dht_path;
+        filepath = dht_path + "/";
         stringstream ss;
         ss << ".job_";
         ss << jobid;

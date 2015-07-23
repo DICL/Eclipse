@@ -1,21 +1,22 @@
 #ifndef __FILESERVER__
 #define __FILESERVER__
+// vim : fm=marker 
 
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include <common/ecfs.hh>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/unistd.h>
 #include <sys/time.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include "file_connclient.hh"
-#include <cacheserver/histogram.hh>
-#include <cacheserver/cache.hh>
+#include <common/ecfs.hh>
+#include <common/histogram.hh>
 #include <common/dataentry.hh>
+#include "file_connclient.hh"
+#include "cache.hh"
 #include "messagebuffer.hh"
 #include "filepeer.hh"
 #include "filebridge.hh"
@@ -59,6 +60,7 @@ class fileserver   // each slave node has an object of fileserver
         filebridge* find_Icachebridge (string inputname, int& bridgeindex);
 };
 
+// Constructor {{{
 fileserver::fileserver()
 {
     networkidx = -1;
@@ -68,29 +70,98 @@ fileserver::fileserver()
     fbidclock = 0; // fb id starts from 0
 
     Settings setted;
-    setted.load_settings();
-    dht_path = setted.scratch_path();
+    setted.load();
+    dht_path = setted.get<string>("path.scratch");
 }
-
+//}}}
+// find_peer {{{
+filepeer* fileserver::find_peer (string& address)
+{
+    for (int i = 0; (unsigned) i < peers.size(); i++)
+    {
+        if (peers[i]->get_address() == address)
+        {
+            return peers[i];
+        }
+    }
+    
+    cout << "[fileserver:" << networkidx << "]Debugging: No such a peer. in find_peer()" << endl;
+    return NULL;
+} //}}}
+// find_bridge (int id) {{{
+filebridge* fileserver::find_bridge (int id)
+{
+    for (int i = 0; (unsigned) i < bridges.size(); i++)
+    {
+        if (bridges[i]->get_id() == id)
+        {
+            return bridges[i];
+        }
+    }
+    
+    cout << "[fileserver:" << networkidx << "]Debugging: No such a bridge. in find_bridge(), id: " << id << endl;
+    return NULL;
+} //}}}
+// find_Icachebridge (string inputname, int& bridgeindex) {{{
+filebridge* fileserver::find_Icachebridge (string inputname, int& bridgeindex)
+{
+    for (int i = 0; (unsigned) i < bridges.size(); i++)
+    {
+        if (bridges[i]->get_Icachekey() == inputname)
+        {
+            bridgeindex = i;
+            return bridges[i];
+        }
+    }
+    
+    bridgeindex = -1;
+    return NULL;
+} //}}}
+// write_file (string fname, string& record) {{{
+bool fileserver::write_file (string fname, string& record)
+{
+    string fpath = dht_path;
+    fpath += "/"; // Vicente(solves critical error) 
+    int writefilefd = -1;
+    int ret;
+    fpath.append (fname);
+    writefilefd = open (fpath.c_str(), O_APPEND | O_WRONLY | O_CREAT, 0644);
+    
+    if (writefilefd < 0)
+    {
+        cout << "[filebridge]Opening write file failed" << endl;
+    }
+    
+    record.append ("\n");
+    // memset(write_buf, 0, BUF_SIZE); <- memset may be not necessary
+    strcpy (write_buf, record.c_str());
+    ret = write (writefilefd, write_buf, record.length());
+    
+    if (ret < 0)
+    {
+        cout << "[fileserver:" << networkidx << "]Writing to write file failed" << endl;
+        close (writefilefd);
+        return false;
+    }
+    else
+    {
+        close (writefilefd);
+        return true;
+    }
+} //}}}
+// run_server (int port, string master_address) {{{
 int fileserver::run_server (int port, string master_address)
 {
+    // Initialize {{{
     int buffersize = 8388608; // 8 MB buffer size
-    // read hostname from hostname file
-    ifstream hostfile;
-    string word;
     
     Settings setted;
-    setted.load_settings();
-    string hostpath = setted.scratch_path();
-    hostpath.append ("/hostname");
-    hostfile.open (hostpath.c_str());
-    hostfile >> localhostname;
-    hostfile.close();
-
-    nodelist = setted.nodelist();
-    string ipc_path = setted.ipc_path();
+    setted.load();
+    nodelist        = setted.get<vector<string> > ("network.nodes");
+    string ipc_path = setted.get<string> ("path.ipc");
+    localhostname   = setted.getip();
     
-    if (access (ipc_path.c_str(), F_OK) == 0)
+    if (access (ipc_path.c_str(), F_OK) == EXIT_SUCCESS)
     {
         unlink (ipc_path.c_str());
     }
@@ -311,11 +382,11 @@ int fileserver::run_server (int port, string master_address)
     gettimeofday (&time_start, NULL);
     gettimeofday (&time_end, NULL);
     
-    // start main loop which listen to connections and signals from clients and peers
+    // }}}
+    // start main loop which listen to connections and signals from clients and peers {{{
     while (1)
     {
-//gettimeofday(&time_start2, NULL);
-        // local clients
+        // Accept local clients {{{
         tmpfd = accept (ipcfd, NULL, NULL);
         
         if (tmpfd > 0)     // new file client is connected
@@ -328,10 +399,8 @@ int fileserver::run_server (int port, string master_address)
             setsockopt (tmpfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
             setsockopt (tmpfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
         }
-        
-//gettimeofday(&time_end2, NULL);
-//timeslot1 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
-//gettimeofday(&time_start2, NULL);
+        // }}}
+        // For each connected client from IPC socket {{{
         for (int i = 0; (unsigned) i < clients.size(); i++)
         {
             int readbytes = -1;
@@ -1246,12 +1315,8 @@ int fileserver::run_server (int port, string master_address)
                 //i--;
                 //continue;
             }
-        }
-        
-//gettimeofday(&time_end2, NULL);
-//timeslot2 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
-//gettimeofday(&time_start2, NULL);
-        // receives read/write request or data stream
+        } //}}}
+        // Foreach peer, receives read/write request or data stream {{{
         for (int i = 0; (unsigned) i < peers.size(); i++)
         {
             // pass and continue when the conneciton to the peer have been closed
@@ -2250,12 +2315,8 @@ int fileserver::run_server (int port, string master_address)
                 close (peers[i]->get_fd());
                 peers[i]->set_fd (-1);
             }
-        }
-        
-//gettimeofday(&time_end2, NULL);
-//timeslot3 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
-//gettimeofday(&time_start2, NULL);
-        // process reading from the disk or cache and send the data to peer or client
+        } //}}}
+        // process reading from the disk or cache and send the data to peer or client {{{
         for (int i = 0; (unsigned) i < bridges.size(); i++)
         {
             //for(int accel = 0; accel < 1000; accel++) // accelerate the reading speed by 1000
@@ -2619,159 +2680,9 @@ int fileserver::run_server (int port, string master_address)
                         bridges.erase (bridges.begin() + i);
                     }
                 }
-                
-                /*
-                          if(is_success) // some remaining record
-                          {
-                            // write to cache if writing was ongoing
-                            entrywriter* thewriter = bridges[i]->get_entrywriter();
-                            if(thewriter != NULL)
-                            {
-                              thewriter->write_record(record);
-                            }
-                
-                            if(bridges[i]->get_dsttype() == CLIENT)
-                            {
-                              memset(write_buf, 0, BUF_SIZE);
-                              strcpy(write_buf, record.c_str());
-                
-                              file_connclient* theclient = bridges[i]->get_dstclient();
-                              if(theclient->msgbuf.size() > 1)
-                              {
-                                theclient->msgbuf.back()->set_buffer(write_buf, theclient->get_fd());
-                                theclient->msgbuf.push_back(new messagebuffer());
-                              }
-                              else
-                              {
-                                if(nbwritebuf(theclient->get_fd(),
-                                      write_buf, theclient->msgbuf.back()) <= 0)
-                                {
-                                  theclient->msgbuf.push_back(new messagebuffer());
-                                }
-                              }
-                
-                              //nbwrite(bridges[i]->get_dstclient()->get_fd(), write_buf);
-                            }
-                            else if(bridges[i]->get_dsttype() == PEER)
-                            {
-                              stringstream ss;
-                              string message;
-                              ss << bridges[i]->get_dstid();
-                              message = ss.str();
-                              message.append(" ");
-                              message.append(record);
-                
-                              memset(write_buf, 0, BUF_SIZE);
-                              strcpy(write_buf, message.c_str());
-                
-                              filepeer* thepeer = bridges[i]->get_dstpeer();
-                
-                              if(thepeer->msgbuf.size() > 1)
-                              {
-                                thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
-                                thepeer->msgbuf.push_back(new messagebuffer());
-                              }
-                              else
-                              {
-                                if(nbwritebuf(thepeer->get_fd(),
-                                      write_buf, thepeer->msgbuf.back()) <= 0)
-                                {
-                                  thepeer->msgbuf.push_back(new messagebuffer());
-                                }
-                              }
-                
-                              //nbwrite(bridges[i]->get_dstpeer()->get_fd(), write_buf);
-                            }
-                          }
-                          else // end of data(file)
-                          {
-                            // write to cache if writing was ongoing
-                            entrywriter* thewriter = bridges[i]->get_entrywriter();
-                
-                            if(thewriter != NULL)
-                            {
-                              thewriter->complete();
-                              delete thewriter;
-                              thewriter = NULL;
-                            }
-                
-                            if(bridges[i]->get_dsttype() == CLIENT)
-                            {
-                              file_connclient* theclient = bridges[i]->get_dstclient();
-                
-                              // send NULL packet to the client
-                              memset(write_buf, -1, BUF_CUT);
-                
-                              if(theclient->msgbuf.size() > 1)
-                              {
-                                theclient->msgbuf.back()->set_buffer(write_buf, theclient->get_fd());
-                                theclient->msgbuf.push_back(new messagebuffer());
-                              }
-                              else
-                              {
-                                if(nbwritebuf(theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0)
-                                {
-                                  theclient->msgbuf.push_back(new messagebuffer());
-                                }
-                              }
-                
-                              // clear the bridge
-                              delete bridges[i];
-                              bridges.erase(bridges.begin()+i);
-                            }
-                            else if(bridges[i]->get_dsttype() == PEER)
-                            {
-                              stringstream ss;
-                              string message;
-                              ss << "Eread ";
-                              ss << bridges[i]->get_dstid();
-                              message = ss.str();
-                              memset(write_buf, 0, BUF_SIZE);
-                              strcpy(write_buf, message.c_str());
-                
-                //cout<<endl;
-                //cout<<"write from: "<<localhostname<<endl;
-                //cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
-                //cout<<"message: "<<write_buf<<endl;
-                //cout<<endl;
-                
-                              filepeer* thepeer = bridges[i]->get_dstpeer();
-                
-                              if(thepeer->msgbuf.size() > 1)
-                              {
-                                thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
-                                thepeer->msgbuf.push_back(new messagebuffer());
-                              }
-                              else
-                              {
-                //cout<<endl;
-                //cout<<"from: "<<localhostname<<endl;
-                //cout<<"to: "<<thepeer->get_address()<<endl;
-                                if(nbwritebuf(thepeer->get_fd(),
-                                      write_buf, thepeer->msgbuf.back()) <= 0)
-                                {
-                                  thepeer->msgbuf.push_back(new messagebuffer());
-                                }
-                              }
-                              //nbwrite(bridges[i]->get_dstpeer()->get_fd(), write_buf);
-                
-                              delete bridges[i];
-                              bridges.erase(bridges.begin()+i);
-                            }
-                
-                            // break the accel loop
-                            //break;
-                          }
-                */
             }
-            
-            //}
-        }
-        
-//gettimeofday(&time_end2, NULL);
-//timeslot4 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
-//gettimeofday(&time_start2, NULL);
-        // process write of iwriters
+        } //}}}
+        // process write of iwriters {{{
         for (int i = 0; (unsigned) i < iwriters.size(); i++)
         {
             if (iwriters[i]->is_writing())
@@ -2798,8 +2709,8 @@ int fileserver::run_server (int port, string master_address)
                     i--;
                 }
             }
-        }
-        
+        } // }}}
+        // Read data from ireaders {{{
         for (int i = 0; (unsigned) i < ireaders.size(); i++)
         {
             bool end = ireaders[i]->read_idata();
@@ -2810,9 +2721,8 @@ int fileserver::run_server (int port, string master_address)
                 ireaders.erase (ireaders.begin() + i);
                 i--;
             }
-        }
-        
-        // process buffered stream through peers
+        } //}}}
+        // process buffered stream through peers {{{
         for (int i = 0; (unsigned) i < peers.size(); i++)
         {
             while (peers[i]->msgbuf.size() > 1)
@@ -2831,9 +2741,8 @@ int fileserver::run_server (int port, string master_address)
                     break;
                 }
             }
-        }
-        
-        // process buffered stream through clients
+        } // }}}
+        // process buffered stream through clients {{{
         for (int i = 0; (unsigned) i < clients.size(); i++)
         {
             while (clients[i]->msgbuf.size() > 1)
@@ -2890,62 +2799,8 @@ int fileserver::run_server (int port, string master_address)
                     }
                 }
             }
-        }
-        
-//gettimeofday(&time_end2, NULL);
-//timeslot6 += time_end2.tv_sec*1000000 + time_end2.tv_usec - time_start2.tv_sec*1000000 - time_start2.tv_usec;
-//gettimeofday(&time_start2, NULL);
-        /*
-            for(int i = 0; (unsigned)i < waitingclients.size(); i++)
-            {
-              int writeid;
-              int countindex = -1;
-              writeid = waitingclients[i]->get_writeid();
-        
-              writecount* thecount = NULL;
-        
-              for(int j = 0; (unsigned)j < writecounts.size(); j++)
-              {
-                if(writecounts[j]->get_id() == writeid)
-                {
-                  thecount = writecounts[j];
-                  countindex = j;
-                }
-              }
-        
-              if(thecount == NULL)
-              {
-                // close the client
-                close(waitingclients[i]->get_fd());
-                delete waitingclients[i];
-                waitingclients.erase(waitingclients.begin()+i);
-                i--;
-              }
-              else
-              {
-                if(thecount->get_count() == 0) // the writing is already cleared
-                {
-                  // close the client
-                  close(waitingclients[i]->get_fd());
-                  delete waitingclients[i];
-                  waitingclients.erase(waitingclients.begin()+i);
-                  i--;
-        
-                  delete thecount;
-                  writecounts.erase(writecounts.begin()+countindex);
-                }
-                else if(thecount->get_count() > 0)
-                {
-                  continue;
-                }
-                else
-                {
-                  cout<<"[fileserver]Debugging: An abnormal write count."<<endl;
-                }
-              }
-            }
-        */
-        // listen signal from cache server
+        } // }}}
+        // listen signal from cache server {{{
         {
             int readbytes;
             readbytes = nbread (cacheserverfd, read_buf);
@@ -3008,100 +2863,10 @@ int fileserver::run_server (int port, string master_address)
                 cout << "[fileserver:" << networkidx << "]Connection from cache server disconnected. exiting..." << endl;
                 return 0;
             }
-        }
+        } //}}}
         thecache->update_size();
-    }
-    
-    return 0;
-}
-
-filepeer* fileserver::find_peer (string& address)
-{
-    for (int i = 0; (unsigned) i < peers.size(); i++)
-    {
-        if (peers[i]->get_address() == address)
-        {
-            return peers[i];
-        }
-    }
-    
-    cout << "[fileserver:" << networkidx << "]Debugging: No such a peer. in find_peer()" << endl;
-    return NULL;
-}
-
-filebridge* fileserver::find_bridge (int id)
-{
-    for (int i = 0; (unsigned) i < bridges.size(); i++)
-    {
-        if (bridges[i]->get_id() == id)
-        {
-            return bridges[i];
-        }
-    }
-    
-    cout << "[fileserver:" << networkidx << "]Debugging: No such a bridge. in find_bridge(), id: " << id << endl;
-    return NULL;
-}
-
-filebridge* fileserver::find_Icachebridge (string inputname, int& bridgeindex)
-{
-    for (int i = 0; (unsigned) i < bridges.size(); i++)
-    {
-        if (bridges[i]->get_Icachekey() == inputname)
-        {
-            bridgeindex = i;
-            return bridges[i];
-        }
-    }
-    
-    bridgeindex = -1;
-    return NULL;
-}
-
-bool fileserver::write_file (string fname, string& record)
-{
-    string fpath = dht_path;
-    int writefilefd = -1;
-    int ret;
-    fpath.append (fname);
-    writefilefd = open (fpath.c_str(), O_APPEND | O_WRONLY | O_CREAT, 0644);
-    
-    if (writefilefd < 0)
-    {
-        cout << "[filebridge]Opening write file failed" << endl;
-    }
-    
-    record.append ("\n");
-    // memset(write_buf, 0, BUF_SIZE); <- memset may be not necessary
-    strcpy (write_buf, record.c_str());
-    ret = write (writefilefd, write_buf, record.length());
-    
-    if (ret < 0)
-    {
-        cout << "[fileserver:" << networkidx << "]Writing to write file failed" << endl;
-        close (writefilefd);
-        return false;
-    }
-    else
-    {
-        close (writefilefd);
-        return true;
-    }
-}
-
-//writecount* fileserver::find_writecount(int id, int* idx)
-//{
-//  for(int i = 0; (unsigned)i < writecounts.size(); i++)
-//  {
-//    if(writecounts[i]->get_id() == id)
-//    {
-//      if(idx != NULL)
-//        *idx = i;
-//      return writecounts[i];
-//    }
-//  }
-//
-//  return NULL;
-//}
+    } //}}}
+    return EXIT_SUCCESS;
+} // }}}
 
 #endif
