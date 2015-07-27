@@ -21,7 +21,7 @@ class master_job
 {
     private:
         int jobid;
-        int jobfd;
+        int rank;
         int argcount;
         int nummap;
         int numreduce;
@@ -37,26 +37,15 @@ class master_job
         enum mapstatus status;
         set<int> peerids;
         vector<int> numiblocks; // the order is matched with peerids(set)
-        
-        
-        
-        
         int scheduled;
-        
-        
-        
-        
-        
-        
-        
         master_job();
-        master_job (int id, int fd);
+        master_job (int id, int rank);
         ~master_job();
         
         void setjobid (int num);
         int getjobid();
-        void setjobfd (int num);
-        int getjobfd();
+        void setrank (int num);
+        int getrank();
         void setnummap (int num);
         int getnummap();
         void setnumreduce (int num);
@@ -88,7 +77,7 @@ class master_job
 master_job::master_job()
 {
     this->jobid = -1;
-    this->jobfd = -1;
+    this->rank = -1;
     this->nummap = 0;
     this->numreduce = 0;
     this->argcount = -1;
@@ -97,11 +86,11 @@ master_job::master_job()
     status = TASK_FINISHED;
 }
 
-master_job::master_job (int id, int fd)
+master_job::master_job (int id, int rank)
 {
     scheduled = 0;
     this->jobid = id;
-    this->jobfd = fd;
+    this->rank = rank;
     this->nummap = 0;
     this->numreduce = 0;
     this->argcount = -1;
@@ -127,8 +116,6 @@ master_job::~master_job()
     {
         delete tasks[i];
     }
-    
-    close (jobfd);
 }
 
 void master_job::setjobid (int num)
@@ -141,14 +128,14 @@ int master_job::getjobid()
     return this->jobid;
 }
 
-void master_job::setjobfd (int num)
+void master_job::setrank (int num)
 {
-    this->jobfd = num;
+    this->rank = num;
 }
 
-int master_job::getjobfd()
+int master_job::getrank()
 {
-    return this->jobfd;
+    return this->rank;
 }
 
 void master_job::setargcount (int num)

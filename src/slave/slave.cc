@@ -18,19 +18,16 @@
 #include <unistd.h>
 #include <common/ecfs.hh>
 
+// mpi
+#include <mpi.h>
+
 using namespace std;
 
 char read_buf[BUF_SIZE];
 char write_buf[BUF_SIZE];
 
-int port = -1;
-int dhtport = -1;
-int masterfd = -1;
-
-int buffersize = 8388608; // 8 MB buffer size
-
+int masterrank = 0;
 bool master_is_set = false;
-char master_address[BUF_SIZE];
 string localhostname;
 vector<slave_job*> running_jobs; // a vector of job, one or multiple tasks of which are running on this slave node
 vector<slave_task*> running_tasks; // a vector of running tasks
@@ -40,23 +37,16 @@ int main (int argc, char** argv)
     // initialize data structures from setup.conf
     Settings setted;
     setted.load_settings();
-    port = setted.port();
-    dhtport = setted.dhtport();
-    strcpy (master_address, setted.master_addr().c_str());
-    master_is_set = true;
 
-    // verify initialization
-    if (port == -1)
-    {
-        cout << "[slave]port should be specified in the setup.conf" << endl;
-        return 1;
-    }
-    
-    if (master_is_set == false)
-    {
-        cout << "[slave]master_address should be specified in the setup.conf" << endl;
-        return 1;
-    }
+	// initialize mpi variables
+	int myrank, numprocs;
+	MPI_Status status;
+	MPI_Request request;
+
+	MPI_Init(&argc, &argv);
+	MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
     
     // read hostname from hostname file
     ifstream hostfile;
@@ -64,58 +54,21 @@ int main (int argc, char** argv)
     hostpath.append ("hostname");
     hostfile.open (hostpath.c_str());
     hostfile >> localhostname;
-    // connect to master
-    masterfd = connect_to_server (master_address, port);
-    
-    if (masterfd < 0)
-    {
-        cout << "[slave]Connecting to master failed" << endl;
-        return 1;
-    }
+
+	// send message to master
+	memset (write_buf, 0, BUF_SIZE);
+	strcpy (write_buf, "slave");
+	MPI_Send(&write_buf, BUF_SIZE, MPI_CHAR, masterrank, 0, MPI_COMM_WORLD);
     
     // set master socket to be non-blocking socket to avoid deadlock
-    fcntl (masterfd, F_SETFL, O_NONBLOCK);
-    setsockopt (masterfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
-    setsockopt (masterfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
     signal_listener();
     return 0;
 }
 
-int connect_to_server (char* host, unsigned short port)
-{
-    int clientfd;
-    struct sockaddr_in serveraddr;
-    struct hostent* hp;
-    //SOCK_STREAM -> tcp
-    clientfd = socket (AF_INET, SOCK_STREAM, 0);
-    
-    if (clientfd < 0)
-    {
-        cout << "[slave]Openning socket failed" << endl;
-        exit (1);
-    }
-    
-    hp = gethostbyname (host);
-    
-    if (hp == NULL)
-    {
-        cout << "[slave]Cannot find host by host name" << endl;
-    }
-    
-    memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
-    serveraddr.sin_family = AF_INET;
-    memcpy (&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
-    serveraddr.sin_port = htons (port);
-    connect (clientfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr));
-    return clientfd;
-}
-
 void signal_listener()
 {
-    //ofstream logfile = new ofstream("slave" + id + ".log");
     // get signal from master, jobs and tasks
     int readbytes = 0;
-    //int writeidclock = 0;
     struct timeval time_start;
     struct timeval time_end;
     gettimeofday (&time_start, NULL);
@@ -123,20 +76,14 @@ void signal_listener()
     
     while (1)
     {
-        readbytes = nbread (masterfd, read_buf);
+		// non-blocking receive
+		MPI_Irecv(&read_buf, BUF_SIZE, MPI_CHAR, masterrank, 0, MPI_COMM_WORLD, request);
+		MPI_Wait(&request, &status);
+		MPI_Get_count(&status, MPI_CHAR, &readbytes);
         
         if (readbytes == 0)     //connection closed from master
         {
-//logfile << gettimeofday
             cout << "[slave]Connection from master is abnormally closed" << endl;
-            
-            while (close (masterfd) < 0)
-            {
-                cout << "[slave]Closing socket failed" << endl;
-                // sleeps for 1 milli second
-                usleep (1000);
-            }
-            
             cout << "[slave]Exiting slave..." << endl;
             exit (0);
         }
@@ -146,23 +93,9 @@ void signal_listener()
         }
         else     // signal arrived from master
         {
-            if (strncmp (read_buf, "whoareyou", 9) == 0)
-            {
-                memset (write_buf, 0, BUF_SIZE);
-                strcpy (write_buf, "slave");
-                nbwrite (masterfd, write_buf);
-            }
-            else if (strncmp (read_buf, "close", 5) == 0)
+            if (strncmp (read_buf, "close", 5) == 0)
             {
                 cout << "[slave]Close request from master" << endl;
-                
-                while (close (masterfd) < 0)
-                {
-                    cout << "[slave]Close failed" << endl;
-                    // sleeps for 1 milli seconds
-                    usleep (1000);
-                }
-                
                 cout << "[slave]Exiting slave..." << endl;
                 return;
             }
@@ -214,7 +147,9 @@ void signal_listener()
                     // read messages from master until getting Einput
                     while (1)
                     {
-                        readbytes = nbread (masterfd, read_buf);
+						MPI_Irecv(&read_buf, BUF_SIZE, MPI_CHAR, masterrank, 0, MPI_COMM_WORLD, request);
+						MPI_Wait(&request, &status);
+						MPI_Get_count(&status, MPI_CHAR, &readbytes);
                         
                         if (readbytes == 0)
                         {
@@ -273,7 +208,9 @@ void signal_listener()
                     // read messages from master
                     while (1)
                     {
-                        readbytes = nbread (masterfd, read_buf);
+						MPI_Irecv(&read_buf, BUF_SIZE, MPI_CHAR, masterrank, 0, MPI_COMM_WORLD, request);
+						MPI_Wait(&request, &status);
+						MPI_Get_count(&status, MPI_CHAR, &readbytes);
                         
                         if (readbytes == 0)
                         {
@@ -334,7 +271,9 @@ void signal_listener()
         // check message from tasks through pipe
         for (int i = 0; (unsigned) i < running_tasks.size(); i++)
         {
-            readbytes = nbread (running_tasks[i]->get_readfd(), read_buf);
+			MPI_Irecv(&read_buf, BUF_SIZE, MPI_CHAR, running_tasks[i]->getrank(), 0, MPI_COMM_WORLD, request);
+			MPI_Wait(&request, &status);
+			MPI_Get_count(&status, MPI_CHAR, &readbytes);
             
             if (readbytes == 0)
             {
@@ -369,7 +308,8 @@ void signal_listener()
                         message.append (ss.str());
                         memset (write_buf, 0, BUF_SIZE);
                         strcpy (write_buf, message.c_str());
-                        nbwrite (masterfd, write_buf);
+						MPI_Isend(&write_buf, BUF_SIZE, MPI_CHAR, masterrank, 0, MPI_COMM_WORLD, request);
+						MPI_Wait(&request, &status);
                     }
                     
                     //cout<<"[slave]Task with taskid "<<running_tasks[i]->get_taskid();
@@ -378,7 +318,8 @@ void signal_listener()
                     // send terminate message
                     memset (write_buf, 0, BUF_SIZE);
                     strcpy (write_buf, "terminate");
-                    nbwrite (running_tasks[i]->get_writefd(), write_buf);
+					MPI_Isend(&write_buf, BUF_SIZE, MPI_CHAR, running_tasks[i]->getrank(), 0, MPI_COMM_WORLD, request);
+					MPI_Wait(&request, &status);
                     // mark the task as completed
                     running_tasks[i]->set_status (COMPLETED);
                 }
@@ -397,7 +338,8 @@ void signal_listener()
                     // send message to the task
                     memset (write_buf, 0, BUF_SIZE);
                     strcpy (write_buf, message.c_str());
-                    nbwrite (running_tasks[i]->get_writefd(), write_buf);
+					MPI_Isend(&write_buf, BUF_SIZE, MPI_CHAR, running_tasks[i]->getrank(), 0, MPI_COMM_WORLD, request);
+					MPI_Wait(&request, &status);
                     
                     if (running_tasks[i]->get_taskrole() == MAP)
                     {
@@ -422,7 +364,8 @@ void signal_listener()
                                 // send message to slave
                                 memset (write_buf, 0, BUF_SIZE);
                                 strcpy (write_buf, message.c_str());
-                                nbwrite (running_tasks[i]->get_writefd(), write_buf);
+								MPI_Isend(&write_buf, BUF_SIZE, MPI_CHAR, running_tasks[i]->getrank(), 0, MPI_COMM_WORLD, request);
+								MPI_Wait(&request, &status);
                                 message = "inputpath ";
                                 message.append (running_tasks[i]->get_inputpath (iter));
                             }
@@ -435,28 +378,15 @@ void signal_listener()
                         {
                             memset (write_buf, 0, BUF_SIZE);
                             strcpy (write_buf, message.c_str());
-                            nbwrite (running_tasks[i]->get_writefd(), write_buf);
+							MPI_Isend(&write_buf, BUF_SIZE, MPI_CHAR, running_tasks[i]->getrank(), 0, MPI_COMM_WORLD, request);
+							MPI_Wait(&request, &status);
                         }
                         
                         // notify end of inputpaths
                         memset (write_buf, 0, BUF_SIZE);
                         strcpy (write_buf, "Einput");
-                        nbwrite (running_tasks[i]->get_writefd(), write_buf);
-                        /*
-                        // input paths
-                        message<<" inputpaths ";
-                        message<<running_tasks[i]->get_numinputpaths(); // number of inputpaths
-                        for(int j=0;j<running_tasks[i]->get_numinputpaths();j++)
-                        {
-                        message<<" ";
-                        message<<running_tasks[i]->get_inputpath(j);
-                        }
-                        
-                        // send message to the task
-                        memset(write_buf, 0, BUF_SIZE);
-                        strcpy(write_buf, message.str().c_str());
-                        nbwrite(running_tasks[i]->get_writefd(), write_buf);
-                        */
+						MPI_Isend(&write_buf, BUF_SIZE, MPI_CHAR, running_tasks[i]->getrank(), 0, MPI_COMM_WORLD, request);
+						MPI_Wait(&request, &status);
                     }
                     else
                     {
@@ -476,7 +406,8 @@ void signal_listener()
                         // notify end of inputpaths
                         memset (write_buf, 0, BUF_SIZE);
                         strcpy (write_buf, message.c_str());
-                        nbwrite (running_tasks[i]->get_writefd(), write_buf);
+						MPI_Isend(&write_buf, BUF_SIZE, MPI_CHAR, running_tasks[i]->getrank(), 0, MPI_COMM_WORLD, request);
+						MPI_Wait(&request, &status);
                     }
                 }
                 else
@@ -504,7 +435,8 @@ void signal_listener()
                     msg.append (ss.str());
                     memset (write_buf, 0, BUF_SIZE);
                     strcpy (write_buf, msg.c_str());
-                    nbwrite (masterfd, write_buf);
+					MPI_Isend(&write_buf, BUF_SIZE, MPI_CHAR, masterrank, 0, MPI_COMM_WORLD, request);
+					MPI_Wait(&request, &status);
                     // clear all to things related to this task
                     running_tasks[i]->get_job()->finish_task (running_tasks[i]);
                     delete running_tasks[i];
