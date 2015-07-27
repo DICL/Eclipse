@@ -6,6 +6,8 @@
 #include "master_task.hh"
 #include "connslave.hh"
 #include "connclient.hh"
+#include "cacheclient.hh"
+#include "iwfrequest.hh"
 
 #include <iostream>
 #include <fstream>
@@ -29,16 +31,17 @@ using namespace std;
 
 vector<connslave*> slaves;
 vector<connclient*> clients;
+vector<cacheclient*> cache_clients;
+vector<iwfrequest*> iwfrequests;
+int buffersize = 8388608; // 8 MB buffer
 
 vector<master_job*> jobs;
 
 histogram* thehistogram;
 
 int serverfd;
-//int cacheserverfd;
-int ipcfd; // fd of cacheserver
+int cacheserverfd;
 int port = -1;
-int dhtport = -1;
 int max_job = -1;
 int jobidclock = 0; // job id starts 0
 bool thread_continue;
@@ -50,6 +53,14 @@ char write_buf[BUF_SIZE]; // write buffer for signal_listener thread
 
 //DHTserver* dhtserver; // dht server object
 //DHTclient* dhtclient; // dht client object
+
+int setup_cache_server (int);
+void accept_cache_server (int);
+void handle_boundaries(char*);
+void handle_iwritefinish(char*);
+void check_iwriterequest(char *);
+void check_cache_slaves ();
+void handle_stop();
 
 // --------------------------master protocol---------------------------------
 // 1. whoareyou: send a message to identify the connected node
@@ -66,9 +77,8 @@ int main (int argc, char** argv)
     setted.load();
 
     port            = setted.get<int> ("network.port_mapreduce");
-    dhtport         = setted.get<int> ("network.port_cache");
+    int port_cache  = setted.get<int> ("network.port_cache");
     max_job         = setted.get<int> ("max_job");
-    string ipc_path = setted.get<string> ("path.ipc");
     nodelist        = setted.get<vector<string> > ("network.nodes");
     
     for (int i = 0; (unsigned) i < nodelist.size(); i++)
@@ -81,12 +91,6 @@ int main (int argc, char** argv)
     open_server (port);
     
     if (serverfd < 0)
-    {
-        cout << "[master]\033[0;31mOpenning server failed\033[0m" << endl;
-        return 1;
-    }
-    
-    if (ipcfd < 0)
     {
         cout << "[master]\033[0;31mOpenning server failed\033[0m" << endl;
         return 1;
@@ -184,31 +188,6 @@ int main (int argc, char** argv)
         }
     }
     
-    struct sockaddr_un serveraddr;
-    
-    // SOCK_STREAM -> tcp
-    ipcfd = socket (AF_UNIX, SOCK_STREAM, 0);
-    
-    if (ipcfd < 0)
-    {
-        cout << "[master]Openning unix socket error" << endl;
-        exit (1);
-    }
-    
-    memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
-    serveraddr.sun_family = AF_UNIX;
-    strcpy (serveraddr.sun_path, ipc_path.c_str());
-    
-    while (connect (ipcfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
-    {
-        usleep (1000);
-    }
-    
-    // set socket to be nonblocking
-    fcntl (ipcfd, F_SETFL, O_NONBLOCK);
-    setsockopt (ipcfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
-    setsockopt (ipcfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
-    //dhtclient = new DHTclient(RAVENLEADER, dhtport);
     // set sockets to be non-blocking socket to avoid deadlock
     fcntl (serverfd, F_SETFL, O_NONBLOCK);
     
@@ -217,16 +196,21 @@ int main (int argc, char** argv)
         fcntl (slaves[i]->getfd(), F_SETFL, O_NONBLOCK);
     }
     
+
+    cacheserverfd = setup_cache_server (port_cache);
+    accept_cache_server (cacheserverfd);
+
     // create listener thread and run
-    thread_continue = true;
-    pthread_t listener_thread;
-    pthread_create (&listener_thread, NULL, signal_listener, (void*) &serverfd);
+    //thread_continue = true;
+    //pthread_t listener_thread;
+    //pthread_create (&listener_thread, NULL, signal_listener, (void*) &serverfd);
     
     // sleeping loop which prevents process termination
-    while (thread_continue)
-    {
-        sleep (1);
-    }
+   // while (thread_continue)
+   // {
+    //    sleep (1);
+   // }
+    signal_listener(serverfd);
     
     //dhtserver->close();
     return 0;
@@ -265,9 +249,9 @@ void open_server (int port)
     }
 }
 
-void* signal_listener (void* args)
+void signal_listener (int args)
 {
-    int serverfd = * ( (int*) args);
+    int serverfd = args;
     int readbytes = 0;
     int tmpfd = -1; // store fd of new connected node temporarily
     char* haddrp;
@@ -284,7 +268,8 @@ void* signal_listener (void* args)
     {
         // check client (or job) connection
         tmpfd = accept (serverfd, (struct sockaddr *) &connaddr, (socklen_t *) &addrlen);
-        
+        handle_stop(); 
+
         if (tmpfd >= 0)
         {
             // send "whoareyou" message to connected node
@@ -790,7 +775,8 @@ void* signal_listener (void* args)
                         // send the message to the cache server
                         memset (write_buf, 0, BUF_SIZE);
                         strcpy (write_buf, message.c_str());
-                        nbwrite (ipcfd, write_buf);
+                        //nbwrite (ipcfd, write_buf);
+                        handle_iwritefinish (write_buf);
                         jobs[i]->status = REQUEST_SENT;
                     }
                     else if (jobs[i]->status == REQUEST_SENT)
@@ -859,139 +845,34 @@ void* signal_listener (void* args)
         }
         
         // receive message from cache server
-        readbytes = nbread (ipcfd, read_buf);
-        
-        if (readbytes > 0)
-        {
-            if (strncmp (read_buf, "numblocks", 9) == 0)
+        check_iwriterequest (read_buf);
+        check_cache_slaves ();
+
+        if (strncmp (read_buf, "numblocks", 9) == 0) {
+          char* token;
+          int jobid;
+          token = strtok (read_buf, " ");   // token: "numblocks"
+          token = strtok (NULL, " ");   // token: jobid
+          jobid = atoi (token);
+          token = strtok (NULL, " ");   // first number of block
+
+          for (int i = 0; jobs.size(); i++)
+          {
+            if (jobs[i]->getjobid() == jobid)
             {
-                char* token;
-                int jobid;
-                token = strtok (read_buf, " ");   // token: "numblocks"
-                token = strtok (NULL, " ");   // token: jobid
-                jobid = atoi (token);
-                token = strtok (NULL, " ");   // first number of block
-                
-                for (int i = 0; jobs.size(); i++)
-                {
-                    if (jobs[i]->getjobid() == jobid)
-                    {
-                        while (token != NULL)
-                        {
-                            jobs[i]->numiblocks.push_back (atoi (token));
-                            token = strtok (NULL, " ");
-                        }
-                        
-                        jobs[i]->status = RESPOND_RECEIVED;
-                        break;
-                    }
-                }
+              while (token != NULL)
+              {
+                jobs[i]->numiblocks.push_back (atoi (token));
+                token = strtok (NULL, " ");
+              }
+
+              jobs[i]->status = RESPOND_RECEIVED;
+              break;
             }
-        }
-        else if (readbytes == 0)
-        {
-            cout << "[master]Connection to cache server abnormally closed" << endl;
-            usleep (100000);
+          }
         }
         
         // process and schedule jobs and tasks
-#ifdef FCFS
-        
-        // default scheduler: FCFS-like scheduler
-        for (int i = 0; (unsigned) i < jobs.size(); i++)
-        {
-            for (int j = 0; (unsigned) j < slaves.size(); j++)
-            {
-                while ( (slaves[j]->getnumrunningtasks() < slaves[j]->getmaxtask())
-                        && (jobs[i]->get_lastwaitingtask() != NULL))      // schedule all the slot until none of the slot is avilable
-                {
-                    master_task* thetask = jobs[i]->get_lastwaitingtask();
-                    // write to the slave the task information
-                    stringstream ss;
-                    ss << "tasksubmit ";
-                    ss << jobs[i]->getjobid();
-                    ss << " ";
-                    ss << thetask->gettaskid();
-                    ss << " ";
-                    
-                    if (thetask->get_taskrole() == MAP)
-                    {
-                        ss << "MAP";
-                    }
-                    else if (thetask->get_taskrole() == REDUCE)
-                    {
-                        ss << "REDUCE";
-                    }
-                    else
-                    {
-                        cout << "[master]Debugging: the role of the task not defined in the initialization step";
-                    }
-                    
-                    ss << " ";
-                    ss << thetask->get_job()->getargcount();
-                    // NOTE: there should be at leat 1 arguments(program path name)
-                    ss << " ";
-                    
-                    for (int k = 0; k < thetask->get_job()->getargcount(); k++)
-                    {
-                        ss << " ";
-                        ss << thetask->get_job()->getargvalue (k);
-                    }
-                    
-                    string message = ss.str();
-                    memset (write_buf, 0, BUF_SIZE);
-                    strcpy (write_buf, message.c_str());
-                    nbwrite (slaves[j]->getfd(), write_buf);
-                    // prepare inputpath message
-                    int iter = 0;
-                    message = "inputpath";
-                    
-                    while (iter < thetask->get_numinputpaths())
-                    {
-                        if (message.length() + thetask->get_inputpath (iter).length() + 1 <= BUF_SIZE)
-                        {
-                            message.append (" ");
-                            message.append (thetask->get_inputpath (iter));
-                        }
-                        else
-                        {
-                            if (thetask->get_inputpath (iter).length() + 10 > BUF_SIZE)
-                            {
-                                cout << "[master]The length of inputpath exceeded the limit" << endl;
-                            }
-                            
-                            // send message to slave
-                            memset (write_buf, 0, BUF_SIZE);
-                            strcpy (write_buf, message.c_str());
-                            nbwrite (slaves[j]->getfd(), write_buf);
-                            message = "inputpath ";
-                            message.append (thetask->get_inputpath (iter));
-                        }
-                        
-                        iter++;
-                    }
-                    
-                    // send remaining paths
-                    if (message.length() > strlen ("inputpath "))
-                    {
-                        memset (write_buf, 0, BUF_SIZE);
-                        strcpy (write_buf, message.c_str());
-                        nbwrite (slaves[j]->getfd(), write_buf);
-                    }
-                    
-                    // notify end of inputpaths
-                    memset (write_buf, 0, BUF_SIZE);
-                    strcpy (write_buf, "Einput");
-                    nbwrite (slaves[j]->getfd(), write_buf);
-                    // forward waiting task to slave slot
-                    jobs[i]->schedule_task (thetask, slaves[j]);
-                    // sleeps for 0.0001 seconds. change this if necessary
-                    // usleep(100000);
-                }
-            }
-        }
-        
-#endif
 #ifdef EMKDE
         
         // EMKDE scheduler: schedule the task where the input is located
@@ -1188,7 +1069,9 @@ void* signal_listener (void* args)
             // send the boundary message to the cache server
             memset (write_buf, 0, BUF_SIZE);
             strcpy (write_buf, message.c_str());
-            nbwrite (ipcfd, write_buf);
+
+            //nbwrite (ipcfd, write_buf);
+            handle_boundaries(write_buf);
             gettimeofday (&time_start, NULL);
             elapsed = 0;
         }
@@ -1210,7 +1093,7 @@ void* signal_listener (void* args)
     cout << "[master]Master server closed" << endl;
     cout << "[master]Exiting master..." << endl;
     thread_continue = false;
-    return NULL;
+    exit(EXIT_SUCCESS);
 }
 
 master_job* find_jobfromid (int id)
@@ -1224,4 +1107,217 @@ master_job* find_jobfromid (int id)
     }
     
     return NULL;
+}
+
+
+int setup_cache_server (int port) {
+  struct sockaddr_in serveraddr;
+  // socket open
+  int serverfd = socket (AF_INET, SOCK_STREAM, 0);
+
+  if (serverfd < 0)
+  {
+    cout << "[cacheserver]Socket opening failed" << endl;
+  }
+
+  int valid = 1;
+  setsockopt (serverfd, SOL_SOCKET, SO_REUSEADDR, &valid, sizeof (valid));
+  // bind
+  memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
+  serveraddr.sin_family = AF_INET;
+  serveraddr.sin_addr.s_addr = htonl (INADDR_ANY);
+  serveraddr.sin_port = htons ( (unsigned short) port);
+
+  if (bind (serverfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
+  {
+    cout << "[cacheserver]\033[0;31mBinding failed\033[0m" << endl;
+  }
+
+  // listen
+  if (listen (serverfd, BACKLOG) < 0)
+  {
+    cout << "[cacheserver]Listening failed" << endl;
+  }
+  return serverfd;
+}
+
+void accept_cache_server (int server_fd) {
+  struct sockaddr_in connaddr;
+  int addrlen = sizeof (connaddr);
+  char* haddrp;
+
+  // pre-allocate the clients for order of clients vector
+  for (int i = 0; (unsigned) i < nodelist.size(); i++) {
+    cache_clients.push_back (new cacheclient (nodelist[i]));
+  }
+
+  int connectioncount = 0;
+
+  while ( (unsigned) connectioncount < nodelist.size())
+  {
+    int fd;
+    fd = accept (server_fd, (struct sockaddr *) &connaddr, (socklen_t *) &addrlen);
+
+    if (fd < 0)
+    {
+      cout << "[cacheserver]Accepting failed" << endl;
+      // sleep 1 milli second. change this if necessary
+      // usleep(1000);
+      continue;
+    }
+    else if (fd == 0)
+    {
+      cout << "[cacheserver]Accepting failed" << endl;
+      exit (1);
+    }
+    else
+    {
+      // get ip address of client
+      haddrp = inet_ntoa (connaddr.sin_addr);
+
+      // find the right index for connected client
+      for (int i = 0; cache_clients.size(); i++)
+      {
+        if (cache_clients[i]->get_address() == haddrp)
+        {
+          cache_clients[i]->set_fd (fd);
+          connectioncount++;
+          break;
+        }
+      }
+
+      // set socket to be non-blocking socket to avoid deadlock
+      fcntl (fd, F_SETFL, O_NONBLOCK);
+    }
+  }
+}
+
+void handle_boundaries(char * read_buf) {
+  for (int i = 0; (unsigned) i < cache_clients.size(); i++)
+    nbwrite (cache_clients[i]->get_fd(), read_buf);
+}
+
+void handle_iwritefinish(char * read_buf) {
+  char tmp_buf[BUF_SIZE];
+  string message;
+  stringstream ss;
+  char* token;
+  int jobid;
+  token = strtok (read_buf, " ");   // token <- "iwritefinish"
+  token = strtok (NULL, " ");   // jobid
+  jobid = atoi (token);
+  // add the request to the vector iwfrequests
+  iwfrequest* therequest = new iwfrequest (jobid);
+  iwfrequests.push_back (therequest);
+  // prepare message for each client
+  ss << "iwritefinish ";
+  ss << jobid;
+  message = ss.str();
+  memset (tmp_buf, 0, BUF_SIZE);
+  strcpy (tmp_buf, message.c_str());
+  token = strtok (NULL, " ");
+  int peerid;
+
+  // request to the each peer right after tokenize each peer id
+  while (token != NULL) {
+    peerid = atoi (token);
+    therequest->add_request (peerid);
+    // send message to target client
+    nbwrite (cache_clients[peerid]->get_fd(), tmp_buf);
+    // tokenize next peer id
+    token = strtok (NULL, " ");
+  }
+}
+
+void handle_stop() {
+  struct sockaddr_in connaddr;
+  int addrlen = sizeof (connaddr);
+  fcntl (cacheserverfd, F_SETFL, O_NONBLOCK);
+  int fd = accept (cacheserverfd, (struct sockaddr *) &connaddr, (socklen_t *) &addrlen);
+  int readbytes = -1;
+
+  if (fd > 0)     // a client is connected. which will send stop message
+  {
+    while (readbytes < 0)
+    {
+      readbytes = nbread (fd, read_buf);
+    }
+
+    if (readbytes == 0)
+    {
+      cout << "[cacheserver]Connection abnormally closed from client" << endl;
+    }
+    else     // a message
+    {
+      if (strncmp (read_buf, "stop", 4) == 0)
+      {
+        for (int i = 0; (unsigned) i < cache_clients.size(); i++)
+        {
+          close (cache_clients[i]->get_fd());
+        }
+
+        close (cacheserverfd);
+        exit(EXIT_SUCCESS);
+      }
+      else     // message other than "stop"
+      {
+        cout << "[cacheserver]Unexpected message from client" << read_buf << endl;
+      }
+    }
+  }
+}
+
+// check whether the request has received all responds
+void check_iwriterequest(char * tmp_buf) {
+  for (int i = 0; (unsigned) i < iwfrequests.size(); i++) {
+    if (iwfrequests[i]->is_finished()) /* send numblock information in order to the master */ {
+      bzero (tmp_buf, BUF_SIZE);
+      stringstream ss;
+
+      ss << "numblocks " << iwfrequests[i]->get_jobid();
+
+      for (int j = 0; (unsigned) j < iwfrequests[i]->peerids.size(); j++)
+        ss << " " << iwfrequests[i]->numblocks[j];
+
+      ss.str().copy(tmp_buf, BUF_SIZE);
+      // clear the iwfrequest
+      delete iwfrequests[i];
+      iwfrequests.erase (iwfrequests.begin() + i);
+      i--;
+    }
+  }
+}
+
+void check_cache_slaves () {
+  char tmp_buf [BUF_SIZE];
+  for (int i = 0; (unsigned) i < cache_clients.size(); i++) {
+    // do nothing currently
+    int readbytes = nbread (cache_clients[i]->get_fd(), tmp_buf);
+
+    if (readbytes > 0) {
+      if (strncmp (tmp_buf, "iwritefinish", 12) == 0) {
+        char* token;
+        int jobid;
+        int numblock;
+        token = strtok (tmp_buf, " ");   // token <- "iwritefinish"
+        token = strtok (NULL, " ");   // token <- jobid
+        jobid = atoi (token);
+        token = strtok (NULL, " ");   // token <- numblock
+        numblock = atoi (token);
+
+        for (int j = 0; (unsigned) j < iwfrequests.size(); j++)
+          if (iwfrequests[j]->get_jobid() == jobid) {
+            iwfrequests[j]->add_receive (i, numblock);
+            break;
+          }
+
+      } else {
+        cout << "[cacheserver]Abnormal message from clients" << endl;
+      }
+
+    } else if (readbytes == 0) {
+      cout << "[cacheserver]Connection to clients abnormally closed" << endl;
+      usleep (100000);
+    }
+  }
 }

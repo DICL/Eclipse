@@ -44,8 +44,8 @@ module Ecfs
         system "ssh #{node} 'nohup #{BINDIR}/slave </dev/null &>/dev/null & exit'"
       end
 
-      `#{BINDIR}/cacheserver &>/dev/null &`
-      `sleep 4`
+#      `#{BINDIR}/cacheserver &>/dev/null &`
+      #`sleep 4`
       @nodelist.each do |node|
         system "ssh #{node} 'nohup #{BINDIR}/eclipse </dev/null &>/dev/null & exit'"
       end
@@ -57,9 +57,9 @@ module Ecfs
       `pgrep -u #{`whoami`.chomp} master`
       status = $?.exitstatus == 0 ? "Running" : "Stopped"
 
-      `pgrep -u #{`whoami`.chomp} cacheserver`
-      status2 = $?.exitstatus == 0 ? "Running" : "Stopped"
-      puts "#{"Localhost".green} [Master: #{status.red}] [Cacheserver: #{status2.red}]"
+      #`pgrep -u #{`whoami`.chomp} cacheserver`
+      #status2 = $?.exitstatus == 0 ? "Running" : "Stopped"
+      puts "#{"Localhost".green} [Master: #{status.red}]" # [Cacheserver: #{status2.red}]"
 
       @nodelist.each do |node|                                    # Kill for each of the nodes
         `ssh #{node} pgrep -u #{`whoami`.chomp} slave`
@@ -75,7 +75,7 @@ module Ecfs
     # close {{{
     def close
       `pkill -u #{`whoami`.chomp} master`
-      `pkill -u #{`whoami`.chomp} cacheserver`
+      #`pkill -u #{`whoami`.chomp} cacheserver`
       @nodelist.each do |node|
         `ssh #{node} pkill -u #{`whoami`.chomp} slave`
         `ssh #{node} pkill -u #{`whoami`.chomp} eclipse`

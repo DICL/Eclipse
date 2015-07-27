@@ -3,7 +3,7 @@ SUBDIRS             = . tests
 AM_CPPFLAGS         = -I@srcdir@/src/common -I@srcdir@/src -include ./config.h
 AM_CXXFLAGS         = -Wall -std=gnu++98 -ggdb3
 
-bin_PROGRAMS        = client slave master eclipse cacheserver
+bin_PROGRAMS        = client slave master eclipse #cacheserver
 
 # libs -----
 lib_LTLIBRARIES     = libecfs.la
@@ -20,7 +20,7 @@ client_SOURCES      = src/client/client.cc
 slave_SOURCES       = src/slave/slave.cc 
 master_SOURCES      = src/master/master.cc 
 eclipse_SOURCES     = src/cache_slave/cache_slave.cc 
-cacheserver_SOURCES = src/cache_server/cacheserver.cc 
+#cacheserver_SOURCES = src/cache_server/cacheserver.cc 
 
 pkginclude_HEADERS  = src/common/ecfs.hh src/common/fileclient.hh \
                       src/common/msgaggregator.hh src/common/settings.hh src/common/dataentry.hh \

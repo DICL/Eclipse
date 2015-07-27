@@ -22,6 +22,7 @@ cscope.*
 *.aux
 *.pdf
 *.dvi
+.gdb_history
 
 #autotools files
 config.h
