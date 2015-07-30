@@ -55,14 +55,13 @@ uint32_t h (const char * data, size_t len)
     return hash;
 }
 // }}}
-//
+// hash_ruby {{{
 uint32_t hash_ruby (const char * data) {
  char tmp [HASHLENGTH];
+
  bzero ((char*)tmp, HASHLENGTH);
  strncpy (tmp, data, HASHLENGTH);
  uint32_t ret = h(tmp, HASHLENGTH);
 
- printf ("Hash %u -> %s\n",ret, tmp);
- printf ("Hash %u % 10 = %u\n",ret, ret % 10);
  return ret; 
-}
+} // }}}

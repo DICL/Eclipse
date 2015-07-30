@@ -2,6 +2,7 @@
 
 #include "../common/ecfs.hh"
 #include "../common/histogram.hh"
+#include "../common/logger.hh"
 #include "master_job.hh"
 #include "master_task.hh"
 #include "connslave.hh"
@@ -24,35 +25,25 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
-// Available scheduling: {FCFS, EMKDE}
-#define EMKDE // scheduler
-
 using namespace std;
 
 vector<connslave*> slaves;
 vector<connclient*> clients;
 vector<cacheclient*> cache_clients;
 vector<iwfrequest*> iwfrequests;
-int buffersize = 8388608; // 8 MB buffer
-
 vector<master_job*> jobs;
-
+vector<string> nodelist;
 histogram* thehistogram;
 
 int serverfd;
 int cacheserverfd;
-int port = -1;
 int max_job = -1;
 int jobidclock = 0; // job id starts 0
-bool thread_continue;
 
-vector<string> nodelist;
+Logger* log;
 
 char read_buf[BUF_SIZE]; // read buffer for signal_listener thread
 char write_buf[BUF_SIZE]; // write buffer for signal_listener thread
-
-//DHTserver* dhtserver; // dht server object
-//DHTclient* dhtclient; // dht client object
 
 int setup_cache_server (int);
 void accept_cache_server (int);
@@ -70,19 +61,21 @@ void handle_stop();
 // --------------------------------------------------------------------------
 // TODO: make protocols to integer or enum
 
-int main (int argc, char** argv)
-{
+int main (int argc, char** argv) {
     string token;
     Settings setted;
     setted.load();
 
-    port            = setted.get<int> ("network.port_mapreduce");
+    int port        = setted.get<int> ("network.port_mapreduce");
     int port_cache  = setted.get<int> ("network.port_cache");
     max_job         = setted.get<int> ("max_job");
     nodelist        = setted.get<vector<string> > ("network.nodes");
+    string logname  = setted.get<string> ("log.name");
+    string logtype  = setted.get<string> ("log.type");
+
+    log             = Logger::connect(logname, logtype);
     
-    for (int i = 0; (unsigned) i < nodelist.size(); i++)
-    {
+    for (int i = 0; (unsigned) i < nodelist.size(); i++) {
         slaves.push_back (new connslave (nodelist[i]));
     }
     
@@ -90,30 +83,25 @@ int main (int argc, char** argv)
     thehistogram = new histogram (nodelist.size(), NUMBIN);
     open_server (port);
     
-    if (serverfd < 0)
-    {
-        cout << "[master]\033[0;31mOpenning server failed\033[0m" << endl;
-        return 1;
+    if (serverfd < 0) {
+        log->error (" Openning server failed");
+        return EXIT_FAILURE;
     }
     
     struct sockaddr_in connaddr;
-    
     int addrlen = sizeof (connaddr);
-    
     char* haddrp;
-    
     int connectioncount = 0;
-    
     int buffersize = 8388608; // 8 MB buffer
     
-    while (1)     // receives connection from slaves
+    while (true)     // receives connection from slaves
     {
         int fd;
         fd = accept (serverfd, (struct sockaddr *) &connaddr, (socklen_t *) &addrlen);
         
         if (fd < 0)
         {
-            cout << "[master]Accepting failed" << endl;
+            log->warn ("Accepting failed");
             // sleep 0.0001 seconds. change this if necessary
             usleep (1000);
             continue;
@@ -149,7 +137,9 @@ int main (int argc, char** argv)
                     }
                 }
                 
-                printf ("slave node connected from %s \n", haddrp);
+                log->info  ("slave node connected from %s", haddrp);
+
+                //log->info  << "slave node connected from " << haddrp;
             }
             else if (strncmp (read_buf, "client", 6) == 0)         // client connected
             {
@@ -158,7 +148,7 @@ int main (int argc, char** argv)
                 fcntl (clients.back()->getfd(), F_SETFL, O_NONBLOCK);
                 // get ip address of client
                 haddrp = inet_ntoa (connaddr.sin_addr);
-                printf ("a client node connected from %s \n", haddrp);
+                log->error  ("a client node connected from %s \n", haddrp);
             }
             else if (strncmp (read_buf, "job", 3) == 0)
             {
@@ -168,19 +158,19 @@ int main (int argc, char** argv)
             else     // unknown connection
             {
                 // TODO: deal with this case
-                cout << "[master]Unknown connection" << endl;
+                log->warn ("Unknown connection");
             }
             
             // break if all slaves are connected
             if ( (unsigned) connectioncount == nodelist.size())
             {
-                cout << "[master]\033[0;32mAll slave nodes are connected successfully\033[0m" << endl;
+                log->info ("All slave nodes are connected successfully");
                 break;
             }
             else if (slaves.size() > nodelist.size())
             {
-                cout << "[master]Number of slave connection exceeded allowed limits" << endl;
-                cout << "[master]\tDebugging needed on this problem" << endl;
+                log->warn ("Number of slave connection exceeded allowed limits");
+                log->warn ("Debugging needed on this problem");
             }
             
             // sleeps for 0.0001 seconds. change this if necessary
@@ -191,8 +181,7 @@ int main (int argc, char** argv)
     // set sockets to be non-blocking socket to avoid deadlock
     fcntl (serverfd, F_SETFL, O_NONBLOCK);
     
-    for (int i = 0; (unsigned) i < slaves.size(); i++)
-    {
+    for (int i = 0; (unsigned) i < slaves.size(); i++) {
         fcntl (slaves[i]->getfd(), F_SETFL, O_NONBLOCK);
     }
     
@@ -200,20 +189,9 @@ int main (int argc, char** argv)
     cacheserverfd = setup_cache_server (port_cache);
     accept_cache_server (cacheserverfd);
 
-    // create listener thread and run
-    //thread_continue = true;
-    //pthread_t listener_thread;
-    //pthread_create (&listener_thread, NULL, signal_listener, (void*) &serverfd);
-    
-    // sleeping loop which prevents process termination
-   // while (thread_continue)
-   // {
-    //    sleep (1);
-   // }
     signal_listener(serverfd);
     
-    //dhtserver->close();
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 void open_server (int port)
@@ -224,7 +202,7 @@ void open_server (int port)
     
     if (serverfd < 0)
     {
-        cout << "[master]Socket opening failed" << endl;
+        log->info ("Socket opening failed");
     }
     
     // bind
@@ -237,14 +215,14 @@ void open_server (int port)
     
     if (bind (serverfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
     {
-        cout << "[master]\033[0;31mBinding failed\033[0m" << endl;
+        log->info ("Binding failed");
         exit (1);
     }
     
     // listen
     if (listen (serverfd, BACKLOG) < 0)
     {
-        cout << "[master]Listening failed" << endl;
+        log->info ("Listening failed");
         exit (1);
     }
 }
@@ -254,12 +232,12 @@ void signal_listener (int args)
     int serverfd = args;
     int readbytes = 0;
     int tmpfd = -1; // store fd of new connected node temporarily
+    int elapsed = 0; // time elapsed im msec
     char* haddrp;
     struct sockaddr_in connaddr;
     int addrlen = sizeof (connaddr);
-    int elapsed = 0; // time elapsed im msec
-    struct timeval time_start;
-    struct timeval time_end;
+    struct timeval time_start, time_end;
+
     gettimeofday (&time_start, NULL);
     gettimeofday (&time_end, NULL);
     
@@ -282,7 +260,7 @@ void signal_listener (int args)
             
             if (readbytes == 0)
             {
-                cout << "[master]Connection closed from client before getting request" << endl;
+                log->info ("Connection closed from client before getting request");
                 close (tmpfd);
                 tmpfd = -1;
                 continue;
@@ -294,13 +272,13 @@ void signal_listener (int args)
             {
                 // get ip address of client
                 haddrp = inet_ntoa (connaddr.sin_addr);
-                printf ("[master]Client node connected from %s \n", haddrp);
+                log->info  ("Client node connected from %s \n", haddrp);
                 clients.push_back (new connclient (tmpfd));
             }
             else if (strncmp (read_buf, "slave", 5) == 0)
             {
-                cout << "[master]Unexpected connection from slave: " << endl;
-                cout << "[master]Closing connection to the slave..." << endl;
+                log->info ("Unexpected connection from slave: ");
+                log->info ("Closing connection to the slave...");
                 // check this code
                 memset (write_buf, 0, BUF_SIZE);
                 strcpy (write_buf, "close");
@@ -312,8 +290,8 @@ void signal_listener (int args)
                 // limit the maximum available job connection
                 if (jobs.size() == (unsigned) max_job)
                 {
-                    cout << "[master]Cannot accept any more job request due to maximum job connection limit" << endl;
-                    cout << "[master]\tClosing connection from the job..." << endl;
+                    log->info ("Cannot accept any more job request due to maximum job connection limit");
+                    log->info ("\tClosing connection from the job...");
                     memset (write_buf, 0, BUF_SIZE);
                     strcpy (write_buf, "nospace");
                     nbwrite (tmpfd, write_buf);
@@ -328,14 +306,14 @@ void signal_listener (int args)
                 memset (write_buf, 0, BUF_SIZE);
                 strcpy (write_buf, jobidss.str().c_str());
                 nbwrite (tmpfd, write_buf);
-                cout << "[master]Job " << jobidclock << " arrived" << endl;
+                log->info ("Job %i arrived", jobidclock);
                 jobs.push_back (new master_job (jobidclock, tmpfd));
                 jobidclock++;
             }
             else
             {
-                cout << "[master]Unidentified connected node: " << endl;
-                cout << "[master]Closing connection to the node..." << endl;
+                log->info ("Unidentified connected node: ");
+                log->info ("Closing connection to the node...");
                 close (tmpfd);
             }
         }
@@ -347,7 +325,7 @@ void signal_listener (int args)
             
             if (readbytes == 0)     // connection closed from slave
             {
-                cout << "[master]Connection from a slave closed" << endl;
+                log->info ("Connection from a slave closed");
                 delete slaves[i];
                 slaves.erase (slaves.begin() + i);
                 i--;
@@ -413,13 +391,13 @@ void signal_listener (int args)
                     thejob = find_jobfromid (ajobid);
                     thetask = thejob->find_taskfromid (ataskid);
                     thejob->finish_task (thetask, slaves[i]);
-                    cout << "[master]A task completed(jobid: " << ajobid << ", " << thejob->get_numcompleted_tasks();
-                    cout << "/" << thejob->get_numtasks() << ")" << endl;
+                    log->info ("A task completed [jobid: %d][CompletedTasks: %d] [NumTasks: %d ]", 
+                        ajobid, thejob->get_numcompleted_tasks(), thejob->get_numtasks());
                 }
                 else
                 {
-                    cout << "[master]Undefined message from slave node: " << read_buf << endl;
-                    cout << "[master]Undefined message size:" << readbytes << endl;
+                    log->info ("Undefined message from slave node: %s ", read_buf);
+                    log->info ("Undefined message size: %s", readbytes);
                 }
             }
         }
@@ -431,7 +409,7 @@ void signal_listener (int args)
             
             if (readbytes == 0)     // connection closed from client
             {
-                cout << "[master]Connection from a client closed" << endl;
+                log->info ("Connection from a client closed");
                 delete clients[i];
                 clients.erase (clients.begin() + i);
                 i--;
@@ -443,7 +421,7 @@ void signal_listener (int args)
             }
             else     // signal from the client
             {
-                cout << "[master]Message accepted from client: " << read_buf << endl;
+                log->info ("Message accepted from client: %s ", read_buf);
                 
                 if (strncmp (read_buf, "stop", 4) == 0)       // "stop" signal arrived
                 {
@@ -474,10 +452,10 @@ void signal_listener (int args)
                             continue;
                         }
                         
-                        cout << "[master]Connection from a slave closed" << endl;
+                        log->info ("Connection from a slave closed");
                     }
                     
-                    cout << "[master]All slaves closed" << endl;
+                    log->info ("All slaves closed");
                     
                     // stop all client except the one requested stop
                     for (int j = 0; (unsigned) j < clients.size(); j++)
@@ -509,10 +487,10 @@ void signal_listener (int args)
                             continue;
                         }
                         
-                        cout << "[master]Connection from a client closed" << endl;
+                        log->info ("Connection from a client closed");
                     }
                     
-                    cout << "[master]All clients closed" << endl;
+                    log->info ("All clients closed");
                     memset (write_buf, 0, BUF_SIZE);
                     strcpy (write_buf, "result: stopping successful");
                     nbwrite (clients[i]->getfd(), write_buf);
@@ -566,7 +544,7 @@ void signal_listener (int args)
                 }
                 else     // undefined signal
                 {
-                    cout << "[master]Undefined signal from client: " << read_buf << endl;
+                    log->info ("Undefined signal from client: %s ", read_buf);
                     memset (write_buf, 0, BUF_SIZE);
                     strcpy (write_buf, "result: error. the request is unknown");
                     nbwrite (clients[i]->getfd(), write_buf);
@@ -584,7 +562,7 @@ void signal_listener (int args)
                 delete jobs[i];
                 jobs.erase (jobs.begin() + i);
                 i--;
-                cout << "[master]Job terminated abnormally" << endl;
+                log->info ("Job terminated abnormally");
                 continue;
             }
             else if (readbytes < 0)
@@ -595,7 +573,7 @@ void signal_listener (int args)
             {
                 if (strncmp (read_buf, "complete", 8) == 0)       // "succompletion" signal arrived
                 {
-                    cout << "[master]Job " << jobs[i]->getjobid() << " successfully completed" << endl;
+                    log->info ("Job %d successfully completed", jobs[i]->getjobid());
                     // clear up the completed job
                     memset (write_buf, 0, BUF_SIZE);
                     strcpy (write_buf, "terminate");
@@ -625,7 +603,7 @@ void signal_listener (int args)
                             // check the protocol
                             if (strncmp (token, "argvalues", 9) != 0)     // if the token is not 'argvalues'
                             {
-                                cout << "Debugging: the 'jobconf' protocol conflicts." << endl;
+                                log->info ("Debugging: the 'jobconf' protocol conflicts.");
                             }
                             
                             char** arguments = new char*[jobs[i]->getargcount()];
@@ -708,7 +686,7 @@ void signal_listener (int args)
                         }
                         else
                         {
-                            cout << "[master]Unknown job configure message from job: " << token << endl;
+                            log->info ("Unknown job configure message from job: %s", token);
                         }
                         
                         // process next configure
@@ -743,7 +721,7 @@ void signal_listener (int args)
                 }
                 else     // undefined signal
                 {
-                    cout << "[master]Undefined signal from job: " << read_buf << endl;
+                    log->info ("Undefined signal from job: %s", read_buf);
                 }
             }
             
@@ -829,7 +807,7 @@ void signal_listener (int args)
                     memset (write_buf, 0, BUF_SIZE);
                     strcpy (write_buf, "complete");
                     nbwrite (jobs[i]->getjobfd(), write_buf);
-                    cout << "[master]Job " << jobs[i]->getjobid() << " completed successfully" << endl;
+                    log->info ("Job %d completed successfully", jobs[i]->getjobid());
                     jobs[i]->set_stage (COMPLETED_STAGE);
                     // clear the job from the vector and finish
                     delete jobs[i];
@@ -873,8 +851,6 @@ void signal_listener (int args)
         }
         
         // process and schedule jobs and tasks
-#ifdef EMKDE
-        
         // EMKDE scheduler: schedule the task where the input is located
         for (int i = 0; (unsigned) i < jobs.size(); i++)
         {
@@ -964,7 +940,7 @@ void signal_listener (int args)
                         {
                             if (thetask->get_inputpath (iter).length() + 10 > BUF_SIZE)
                             {
-                                cout << "[master]The length of inputpath exceeded the limit" << endl;
+                                log->info ("The length of inputpath exceeded the limit");
                             }
                             
                             // send message to slave
@@ -1076,8 +1052,6 @@ void signal_listener (int args)
             elapsed = 0;
         }
         
-#endif
-        
         // break if all slaves and clients are closed
         if (slaves.size() == 0 && clients.size() == 0)
         {
@@ -1090,9 +1064,9 @@ void signal_listener (int args)
     
     // close master socket
     close (serverfd);
-    cout << "[master]Master server closed" << endl;
-    cout << "[master]Exiting master..." << endl;
-    thread_continue = false;
+    log->info ("Master server closed");
+    log->info ("Exiting master...");
+    Logger::disconnect (log);
     exit(EXIT_SUCCESS);
 }
 
@@ -1117,7 +1091,7 @@ int setup_cache_server (int port) {
 
   if (serverfd < 0)
   {
-    cout << "[cacheserver]Socket opening failed" << endl;
+    log->info ("[cacheserver]Socket opening failed");
   }
 
   int valid = 1;
@@ -1130,13 +1104,13 @@ int setup_cache_server (int port) {
 
   if (bind (serverfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
   {
-    cout << "[cacheserver]\033[0;31mBinding failed\033[0m" << endl;
+    log->info ("[cacheserver]Binding failed");
   }
 
   // listen
   if (listen (serverfd, BACKLOG) < 0)
   {
-    cout << "[cacheserver]Listening failed" << endl;
+    log->info ("[cacheserver]Listening failed");
   }
   return serverfd;
 }
@@ -1160,14 +1134,14 @@ void accept_cache_server (int server_fd) {
 
     if (fd < 0)
     {
-      cout << "[cacheserver]Accepting failed" << endl;
+      log->info ("[cacheserver]Accepting failed");
       // sleep 1 milli second. change this if necessary
       // usleep(1000);
       continue;
     }
     else if (fd == 0)
     {
-      cout << "[cacheserver]Accepting failed" << endl;
+      log->info ("[cacheserver]Accepting failed");
       exit (1);
     }
     else
@@ -1245,7 +1219,7 @@ void handle_stop() {
 
     if (readbytes == 0)
     {
-      cout << "[cacheserver]Connection abnormally closed from client" << endl;
+      log->info ("[cacheserver]Connection abnormally closed from client");
     }
     else     // a message
     {
@@ -1261,7 +1235,7 @@ void handle_stop() {
       }
       else     // message other than "stop"
       {
-        cout << "[cacheserver]Unexpected message from client" << read_buf << endl;
+        log->info ("[cacheserver]Unexpected message from client %s", read_buf);
       }
     }
   }
@@ -1312,11 +1286,11 @@ void check_cache_slaves () {
           }
 
       } else {
-        cout << "[cacheserver]Abnormal message from clients" << endl;
+        log->info ("[cacheserver]Abnormal message from clients");
       }
 
     } else if (readbytes == 0) {
-      cout << "[cacheserver]Connection to clients abnormally closed" << endl;
+      log->info ("[cacheserver]Connection to clients abnormally closed");
       usleep (100000);
     }
   }
