@@ -8,7 +8,7 @@ require 'awesome_print'     #
 require 'json'              # 
 
 # This module act as a namespace for the script
-module Ecfs
+module EclipseDaemon
   CONFPATH = "@sysconfdirfull@/eclipse.json"
   BINDIR   = "@bindirfull@"
   LIBDIR   = "@libdirfull@"
@@ -47,7 +47,7 @@ module Ecfs
 #      `#{BINDIR}/cacheserver &>/dev/null &`
       #`sleep 4`
       @nodelist.each do |node|
-        system "ssh #{node} 'nohup #{BINDIR}/eclipse </dev/null &>/dev/null & exit'"
+        system "ssh #{node} 'nohup #{BINDIR}/cache_slave </dev/null &>/dev/null & exit'"
       end
     end 
 
@@ -65,9 +65,9 @@ module Ecfs
         `ssh #{node} pgrep -u #{`whoami`.chomp} slave`
         status = $?.exitstatus == 0 ? "Running" : "Stopped"
 
-        `ssh #{node} pgrep -u #{`whoami`.chomp} eclipse`
+        `ssh #{node} pgrep -u #{`whoami`.chomp} cache_slave`
         status2 = $?.exitstatus == 0 ? "Running" : "Stopped"
-        puts "#{`ssh #{node} hostname`.chomp.green} [Slave: #{status.red}] [Eclipse: #{status2.red}]"
+        puts "#{`ssh #{node} hostname`.chomp.green} [Slave: #{status.red}] [Cache_slave: #{status2.red}]"
       end
     end 
 
@@ -78,7 +78,7 @@ module Ecfs
       #`pkill -u #{`whoami`.chomp} cacheserver`
       @nodelist.each do |node|
         `ssh #{node} pkill -u #{`whoami`.chomp} slave`
-        `ssh #{node} pkill -u #{`whoami`.chomp} eclipse`
+        `ssh #{node} pkill -u #{`whoami`.chomp} cache_slave`
       end 
     end #}}}
   end
@@ -188,6 +188,7 @@ module Ecfs
         opts.separator "    launch       Create new Eclipse network"
         opts.separator "    close        Close the network"
         opts.separator "    status       Check the status of the network"
+        opts.separator "    submit       Submit job"
         opts.separator ""
         opts.separator "Filesystem actions"
         opts.separator "    put FILE...  insert FILE..."
@@ -223,4 +224,4 @@ module Ecfs
   end
 end
 
-Ecfs::CLI_driver.new input: ARGV
+EclipseDaemon::CLI_driver.new input: ARGV

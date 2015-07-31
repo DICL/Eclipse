@@ -7,7 +7,7 @@ LT_INIT([dlopen])
 AC_CONFIG_MACRO_DIRS([./m4/])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile tests/Makefile])
-AC_CONFIG_FILES([src/fs/ecfs],        [chmod +x src/fs/ecfs])
+AC_CONFIG_FILES([src/fs/eclipsed],        [chmod +x src/fs/eclipsed])
 AC_CONFIG_FILES([src/fs/eclipse-debug],        [chmod +x src/fs/eclipse-debug])
 AC_CONFIG_FILES([tests/integration],  [chmod +x tests/integration])
 

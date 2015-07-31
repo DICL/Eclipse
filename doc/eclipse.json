@@ -2,6 +2,11 @@
  "name"    : "Raven cluster eclipseMR file",
  "max_job" : 1024,
 
+ "log" : {
+   "type" : "LOG_LOCAL5",
+   "name" : "ECLIPSE"
+ },
+
  "path" : {
    "filesystem" : "/home/vicente/mr_storage",
    "scratch"    : "/scratch/vicente/mr_storage",
