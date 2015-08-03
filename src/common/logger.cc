@@ -10,7 +10,7 @@
 
 using std::string;
 
-std::unordered_map<string, int> syslog_types {
+std::unordered_map<string, int> syslog_facilities {
   {"LOG_LOCAL1" , LOG_LOCAL1},
   {"LOG_LOCAL2" , LOG_LOCAL2},
   {"LOG_LOCAL3" , LOG_LOCAL3},
@@ -20,6 +20,12 @@ std::unordered_map<string, int> syslog_types {
   {"LOG_LOCAL7" , LOG_LOCAL7},
   {"LOG_DAEMON" , LOG_DAEMON},
   {"LOG_USER" , LOG_USER}
+};
+
+std::unordered_map<int, string> syslog_priorities {
+  {LOG_INFO    , "LOG_INFO"},
+  {LOG_ERR     , "LOG_ERR"},
+  {LOG_WARNING , "LOG_WARNING"}
 };
 
 Logger* Logger::singleton = nullptr;
@@ -40,7 +46,7 @@ void Logger::disconnect (Logger* in) {
 }
 
 Logger::Logger (string title, string type) { 
-  int type_ = syslog_types[type];
+  int type_ = syslog_facilities[type];
   openlog (title.c_str() , LOG_CONS, type_); 
 }
 
@@ -71,8 +77,5 @@ void Logger::error (const char* fmt, ...) {
 }
 
 void Logger::log (int type, const char* fmt, va_list ap) { 
-  char* output;
-  vasprintf (&output, fmt, ap);
-  syslog (type, output);
-  free (output);
+  vsyslog (type, fmt, ap);
 }

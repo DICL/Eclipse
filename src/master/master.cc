@@ -1148,6 +1148,7 @@ void accept_cache_server (int server_fd) {
     {
       // get ip address of client
       haddrp = inet_ntoa (connaddr.sin_addr);
+      log->info ("[cacheserver]Accepted cache_slave %s", haddrp);
 
       // find the right index for connected client
       for (int i = 0; cache_clients.size(); i++)

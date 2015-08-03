@@ -1,9 +1,11 @@
 #include "slave.hh"
 #include "slave_job.hh"
 #include "slave_task.hh"
+#include "../cache_slave/cache_slave.hh"
+//#include "../common/ecfs.hh"
 
 #include <iostream>
-#include <pthread.h>
+#include <thread>
 #include <errno.h>
 #include <fstream>
 #include <sstream>
@@ -16,7 +18,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
-#include <common/ecfs.hh>
 
 using namespace std;
 
@@ -24,7 +25,6 @@ char read_buf[BUF_SIZE];
 char write_buf[BUF_SIZE];
 
 int port = -1;
-int dhtport = -1;
 int masterfd = -1;
 
 int buffersize = 8388608; // 8 MB buffer size
@@ -36,11 +36,9 @@ vector<slave_task*> running_tasks; // a vector of running tasks
 
 int main (int argc, char** argv)
 {
-    // initialize data structures from setup.conf
     Settings setted;
     setted.load();
     port = setted.get<int>("network.port_mapreduce");
-    dhtport = setted.get<int>("network.port_cache");
     strcpy (master_address, setted.get<string>("network.master").c_str());
     localhostname = setted.getip();
 
@@ -56,8 +54,19 @@ int main (int argc, char** argv)
     fcntl (masterfd, F_SETFL, O_NONBLOCK);
     setsockopt (masterfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
     setsockopt (masterfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
+   
+    auto cache_thread = std::thread ([&] () {
+        sleep (5);
+        Cache_slave cache_slave;
+        cache_slave.connect ();
+        cache_slave.run_server (); 
+    });
+
     signal_listener();
-    return 0;
+
+    cache_thread.join();
+
+    return EXIT_SUCCESS;
 }
 
 int connect_to_server (char* host, unsigned short port)

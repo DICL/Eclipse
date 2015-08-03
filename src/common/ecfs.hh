@@ -115,7 +115,7 @@ int nbread (int, char*);
 #include "messagebuffer.hh"
 #include "settings.hh"
 #include "mapreduce.hh"
-#include "fileclient.hh"
 #include "msgaggregator.hh"
+#include "fileclient.hh"
 
 #endif

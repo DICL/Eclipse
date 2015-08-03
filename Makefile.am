@@ -3,14 +3,14 @@ SUBDIRS             = . tests
 AM_CPPFLAGS         = -I@srcdir@/src/common -I@srcdir@/src -include ./config.h
 AM_CXXFLAGS         = -Wall -std=gnu++11 -ggdb3
 
-bin_PROGRAMS        = client slave master cache_slave
+bin_PROGRAMS        = client slave master #cache_slave
 
 # libs -----
 lib_LTLIBRARIES     = libecfs.la
 libecfs_la_SOURCES  = src/common/hash.cc src/common/settings.cc \
 											src/common/fileclient.cc src/common/msgaggregator.cc src/common/util.cc src/common/mapreduce.cc \
 											src/common/dataentry.cc src/common/datablock.cc src/common/messagebuffer.cc \
- 											src/common/logger.cc
+ 											src/common/logger.cc src/common/histogram.cc
 libecfs_la_LDFLAGS  = -version-info 0:0:0
 
 # Binaries ----
@@ -18,13 +18,16 @@ AM_LDFLAGS          = -static
 LDADD               = libecfs.la
 
 client_SOURCES      = src/client/client.cc
-slave_SOURCES       = src/slave/slave.cc 
+slave_SOURCES       = src/slave/slave.cc  src/cache_slave/cache_slave.cc src/cache_slave/filepeer.cc \
+											src/cache_slave/writecount.cc src/cache_slave/iwriter.cc src/cache_slave/ireader.cc \
+											src/cache_slave/filebridge.cc src/cache_slave/idistributor.cc \
+											src/cache_slave/cache.cc src/cache_slave/file_connclient.cc
 master_SOURCES      = src/master/master.cc 
-cache_slave_SOURCES = src/cache_slave/cache_slave.cc 
+#cache_slave_SOURCES = src/cache_slave/cache_slave.cc 
 
 pkginclude_HEADERS  = src/common/ecfs.hh src/common/fileclient.hh \
                       src/common/msgaggregator.hh src/common/settings.hh src/common/dataentry.hh \
-											src/common/messagebuffer.hh src/common/datablock.hh src/common/mapreduce.hh
+											src/common/messagebuffer.hh src/common/datablock.hh src/common/mapreduce.hh 
 # Scripts -------
 bin_SCRIPTS         = src/fs/eclipsed src/fs/eclipse-debug
 # ------

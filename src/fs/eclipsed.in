@@ -3,9 +3,10 @@
 # Author:: Vicente Adolfo Bolea Sanchez <vicente.bolea@gmail.com>
 #
 require 'optparse'          # For parsing the options
-require 'ffi'               # For loading C functions, in this case the hash functions
-require 'awesome_print'     #
 require 'json'              # 
+require 'ffi'               # For loading C functions, in this case the hash functions
+require 'awesome_print'     # Pretty-printer
+require 'table_print'       # Pretty-printer
 
 # This module act as a namespace for the script
 module EclipseDaemon
@@ -22,6 +23,21 @@ module EclipseDaemon
     end
 
     # }}}
+    # wait_message {{{
+    def wait_message(msg) 
+      Thread.new(msg) { |m|
+        print "#{m} "
+        loop do
+          print "\b\\"
+          sleep 0.3
+          print "\b-"
+          sleep 0.3
+          print "\b/"
+          sleep 0.3
+        end
+      }
+    end
+    #}}}
     # find_confpath {{{
     def find_confpath
       home = "#{ENV['HOME']}/.eclipse.json"
@@ -38,48 +54,45 @@ module EclipseDaemon
     # }}}
     # launch {{{
     def launch
+      thr = wait_message "Initializing framework..."
       `#{BINDIR}/master &>/dev/null &`
       `sleep 1`
       @nodelist.each do |node|
         system "ssh #{node} 'nohup #{BINDIR}/slave </dev/null &>/dev/null & exit'"
       end
-
-#      `#{BINDIR}/cacheserver &>/dev/null &`
-      #`sleep 4`
-      @nodelist.each do |node|
-        system "ssh #{node} 'nohup #{BINDIR}/cache_slave </dev/null &>/dev/null & exit'"
-      end
+      thr.exit
     end 
 
     #}}}
     # show {{{
     def show 
-      `pgrep -u #{`whoami`.chomp} master`
-      status = $?.exitstatus == 0 ? "Running" : "Stopped"
+      msg_handler = wait_message "Collecting information..."
 
-      #`pgrep -u #{`whoami`.chomp} cacheserver`
-      #status2 = $?.exitstatus == 0 ? "Running" : "Stopped"
-      puts "#{"Localhost".green} [Master: #{status.red}]" # [Cacheserver: #{status2.red}]"
+      instance = [ ]
+      in_english = { true => "Running", false => "Stopped" }
 
-      @nodelist.each do |node|                                    # Kill for each of the nodes
-        `ssh #{node} pgrep -u #{`whoami`.chomp} slave`
-        status = $?.exitstatus == 0 ? "Running" : "Stopped"
+      status = in_english[system "pgrep -u #{`whoami`.chomp} master &>/dev/null"]
+      instance << { :host => "localhost", :status => status, :role => "master" }
 
-        `ssh #{node} pgrep -u #{`whoami`.chomp} cache_slave`
-        status2 = $?.exitstatus == 0 ? "Running" : "Stopped"
-        puts "#{`ssh #{node} hostname`.chomp.green} [Slave: #{status.red}] [Cache_slave: #{status2.red}]"
+      @nodelist.each do |node|
+        mr_status    = in_english[system "ssh #{node} pgrep -u #{`whoami`.chomp} -x slave &>/dev/null"]
+        instance << { :host => node, :status => mr_status, :role => "worker" }
       end
+
+      msg_handler.exit
+      print "\r"
+      tp instance, "host", "role", "status"
     end 
 
     #}}}
     # close {{{
     def close
+      thr = wait_message "Stopping framework..."
       `pkill -u #{`whoami`.chomp} master`
-      #`pkill -u #{`whoami`.chomp} cacheserver`
       @nodelist.each do |node|
         `ssh #{node} pkill -u #{`whoami`.chomp} slave`
-        `ssh #{node} pkill -u #{`whoami`.chomp} cache_slave`
       end 
+      thr.exit
     end #}}}
   end
 
@@ -101,11 +114,7 @@ module EclipseDaemon
       super()
     end
 
-    def hash(input);         
-     h_ =  Eclipse.hash_ruby(input) 
-     puts h_ if @verbose
-     h_
-    end
+    def hash(input);         Eclipse.hash_ruby(input) end
     def node_containing(fn); @nodelist[hash(fn) % @nodelist.length] end
 
     #}}}
@@ -126,7 +135,7 @@ module EclipseDaemon
     # get {{{
     def get(input)
       input.each do |fn|
-        raise "\'#{fn}\' not found in Eclipse FS" unless @files[fn]
+        #raise "\'#{fn}\' not found in Eclipse FS" unless @files[fn]
         system "ssh #{node_containing(fn)} cat #{@fs_scratch_path}/#{fn}"
       end
     end
@@ -151,7 +160,9 @@ module EclipseDaemon
 
     #}}}
     def list #{{{
-      ap @files
+      output = [ ] 
+      @files.each{|k, v| output << { :filename => k, :location => v} }
+      tp output, :filename, :location
     end
 
     #}}}
@@ -171,6 +182,11 @@ module EclipseDaemon
     #}}}
     def clear #{{{
       rm @files.keys
+      @nodelist.each do |node|
+        cmd = "ssh #{node} rm -rf #{@fs_scratch_path}/.job* #{@fs_scratch_path}/*"
+        puts cmd if @verbose
+        system cmd
+      end
     end
     #}}}
   end
