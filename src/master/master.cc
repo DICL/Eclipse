@@ -174,12 +174,16 @@ void launch_slave (int rank)
 	}
 	
 	// initialize pthread variables
-	pthread_t cache_thread;
-	void *tret;
-	pthread_create(&cache_thread, NULL, cache_client, NULL);
+	auto cache_thread = std::thread ([&] () {
+			sleep (5);
+			Cache_slave cache_slave;
+			cache_slave.connect ();
+			cache_slave.run_server ();
+			});
+
 	mpi_slave_listener(rank);
 
-	pthread_join(cache_thread, &tret);
+	cache_thread.join();
 }
 
 void mpi_master_listener (int rank)

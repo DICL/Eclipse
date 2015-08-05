@@ -1,20 +1,13 @@
+// vim : fm=marker 
 #ifndef __CACHE_SLAVE_HH_
 #define __CACHE_SLAVE_HH_
-// vim : fm=marker 
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
 #include <vector>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/unistd.h>
-#include <sys/time.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <common/ecfs.hh>
-#include <common/histogram.hh>
-#include <common/dataentry.hh>
+
+#include "../common/ecfs.hh"
+#include "../common/histogram.hh"
+#include "../common/dataentry.hh"
+#include "../common/logger.hh"
 #include "file_connclient.hh"
 #include "cache.hh"
 #include "messagebuffer.hh"
@@ -24,40 +17,45 @@
 #include "ireader.hh"
 #include "iwriter.hh"
 #include "writecount.hh"
-#include <sys/fcntl.h>
 
 using namespace std;
 
-class Cache_slave   // each slave node has an object of Cache_slave
-{
+class Cache_slave {
     private:
-        int serverfd;
-        int cacheserverfd;
-        int ipcfd;
+        int serverfd, cacheserverfd, ipcfd;
         int fbidclock;
         int networkidx;
-        string localhostname;
+        int dhtport;
+        Logger* log;
+
+        Settings setted;
+        string localhostname, master_address;
+        string scratch_path, ipc_path;
+        vector<string> nodelist;
+
         histogram* thehistogram;
         cache* thecache;
-        vector<string> nodelist;
         vector<file_connclient*> clients;
         vector<filebridge*> bridges;
         vector<iwriter*> iwriters;
         vector<ireader*> ireaders;
+        vector<filepeer*> peers;
         
         char read_buf[BUF_SIZE];
         char write_buf[BUF_SIZE];
-        string dht_path;
+
+        const int buffersize = 8388608; // 8 MB buffer size
+
+        filepeer* find_peer (string&);
+        filebridge* find_bridge (int);
+        filebridge* find_Icachebridge (string, int&);
+        bool write_file (string, string&);
         
     public:
-        vector<filepeer*> peers;
-        
         Cache_slave();
-        filepeer* find_peer (string& address);
-        filebridge* find_bridge (int id);
-        int run_server (int port, string master_address);
-        bool write_file (string fname, string& record);
-        filebridge* find_Icachebridge (string inputname, int& bridgeindex);
+        ~Cache_slave() {}
+        int run_server ();
+        int connect ();
 };
 
 #endif

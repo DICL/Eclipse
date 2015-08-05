@@ -1,52 +1,67 @@
-#include "../common/ecfs.hh"
 #include "cache_slave.hh"
 
 #include <iostream>
 #include <exception>
+#include <algorithm>
+#include <fstream>
+#include <sstream>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/unistd.h>
+#include <sys/time.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <sys/fcntl.h>
+#include <iostream>
+
+using std::find;
 
 // Constructor {{{
 Cache_slave::Cache_slave()
 {
-    networkidx = -1;
-    serverfd = -1;
-    cacheserverfd = -1;
-    ipcfd = -1;
-    fbidclock = 0; // fb id starts from 0
+  setted.load();
+  networkidx      = -1;
+  serverfd        = -1;
+  cacheserverfd   = -1;
+  ipcfd           = -1;
+  fbidclock       = 0; // fb id starts from 0
 
-    Settings setted;
-    setted.load();
-    dht_path = setted.get<string>("path.scratch");
+  scratch_path    = setted.get<string>("path.scratch");
+  nodelist        = setted.get<vector<string> > ("network.nodes");
+  ipc_path        = setted.get<string> ("path.ipc");
+  dhtport         = setted.get<int> ("network.port_cache");
+  master_address  = setted.get<string>("network.master");
+  localhostname   = setted.getip();
+  string logname  = setted.get<string> ("log.name");
+  string logtype  = setted.get<string> ("log.type");
+
+  log             = Logger::connect(logname, logtype);
+
+  thehistogram = new histogram (nodelist.size(), NUMBIN);
+  thecache = new cache (CACHESIZE);
+
+  networkidx = find (nodelist.begin(), nodelist.end(), localhostname) - nodelist.begin();
 }
 //}}}
 // find_peer {{{
-filepeer* Cache_slave::find_peer (string& address)
-{
-    for (int i = 0; (unsigned) i < peers.size(); i++)
-    {
-        if (peers[i]->get_address() == address)
-        {
-            return peers[i];
-        }
+filepeer* Cache_slave::find_peer (string& address) {
+    for (auto p : peers) {
+      if (p->get_address() == address) return p;
     }
-    
-    cout << "[Cache_slave:" << networkidx << "]Debugging: No such a peer. in find_peer()" << endl;
+
+    log->warn ("[Cache_slave:%d] No such a peer. in find_peer()", networkidx);
     return NULL;
 } //}}}
-// find_bridge (int id) {{{
-filebridge* Cache_slave::find_bridge (int id)
-{
-    for (int i = 0; (unsigned) i < bridges.size(); i++)
-    {
-        if (bridges[i]->get_id() == id)
-        {
-            return bridges[i];
-        }
-    }
-    
-    cout << "[Cache_slave:" << networkidx << "]Debugging: No such a bridge. in find_bridge(), id: " << id << endl;
-    return NULL;
+// find_bridge {{{
+filebridge* Cache_slave::find_bridge (int id) {
+   for (auto b : bridges) {
+     if (b->get_id() == id) return b;
+   }
+
+   log->warn ("[Cache_slave:%d] No such a bridge. in find_peer, id = %d", networkidx, id);
+   return NULL;
 } //}}}
-// find_Icachebridge (string inputname, int& bridgeindex) {{{
+// find_Icachebridge {{{
 filebridge* Cache_slave::find_Icachebridge (string inputname, int& bridgeindex)
 {
     for (int i = 0; (unsigned) i < bridges.size(); i++)
@@ -61,11 +76,10 @@ filebridge* Cache_slave::find_Icachebridge (string inputname, int& bridgeindex)
     bridgeindex = -1;
     return NULL;
 } //}}}
-// write_file (string fname, string& record) {{{
+// write_file {{{
 bool Cache_slave::write_file (string fname, string& record)
 {
-    string fpath = dht_path;
-    fpath += "/"; // Vicente(solves critical error) 
+    string fpath = scratch_path + "/"; // Vicente(solves critical error) 
     int writefilefd = -1;
     int ret;
     fpath.append (fname);
@@ -73,7 +87,7 @@ bool Cache_slave::write_file (string fname, string& record)
     
     if (writefilefd < 0)
     {
-        cout << "[filebridge]Opening write file failed" << endl;
+        log->info ("[filebridge]Opening write file failed");
     }
     
     record.append ("\n");
@@ -83,7 +97,7 @@ bool Cache_slave::write_file (string fname, string& record)
     
     if (ret < 0)
     {
-        cout << "[Cache_slave:" << networkidx << "]Writing to write file failed" << endl;
+        log->info ("[Cache_slave:%d]Writing to write file failed", networkidx);
         close (writefilefd);
         return false;
     }
@@ -93,242 +107,217 @@ bool Cache_slave::write_file (string fname, string& record)
         return true;
     }
 } //}}}
-// run_server (int port, string master_address) {{{
-int Cache_slave::run_server (int port, string master_address)
-{
-    // Initialize {{{
-    int buffersize = 8388608; // 8 MB buffer size
-    
-    Settings setted;
-    setted.load();
-    nodelist        = setted.get<vector<string> > ("network.nodes");
-    string ipc_path = setted.get<string> ("path.ipc");
-    localhostname   = setted.getip();
-    
-    if (access (ipc_path.c_str(), F_OK) == EXIT_SUCCESS)
-    {
-        unlink (ipc_path.c_str());
-    }
-    
-    // determine the network topology by reading node list information
-    for (int i = 0; (unsigned) i < nodelist.size(); i++)
-    {
-        if (nodelist[i] == localhostname)
-        {
-            networkidx = i;
-            break;
-        }
-    }
-    
-    // connect to cacheserver
-    {
-        cacheserverfd = -1;
-        struct sockaddr_in serveraddr;
-        struct hostent *hp;
-        // SOCK_STREAM -> tcp
-        cacheserverfd = socket (AF_INET, SOCK_STREAM, 0);
-        
-        if (cacheserverfd < 0)
-        {
-            cout << "[Cache_slave:" << networkidx << "]Openning socket failed" << endl;
-            exit (1);
-        }
-        
-        hp = gethostbyname (master_address.c_str());
-        memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
-        serveraddr.sin_family = AF_INET;
-        memcpy (&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
-        serveraddr.sin_port = htons (port);
-        
-        while (connect (cacheserverfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
-        {
-            cout << "[Cache_slave:" << networkidx << "]Cannot connect to the cache server. Retrying..." << endl;
-            //cout<<"\thost name: "<<nodelist[i]<<endl;
-            usleep (100000);
-            continue;
-        }
-        
-        fcntl (cacheserverfd, F_SETFL, O_NONBLOCK);
-        setsockopt (cacheserverfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
-        setsockopt (cacheserverfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
-    }
-    
-    // connect to other peer eclipse nodes
-    for (int i = 0; i < networkidx; i++)
-    {
-        int clientfd = -1;
-        struct sockaddr_in serveraddr;
-        struct hostent *hp = NULL;
-        // SOCK_STREAM -> tcp
-        clientfd = socket (AF_INET, SOCK_STREAM, 0);
-        
-        if (clientfd < 0)
-        {
-            cout << "[Cache_slave:" << networkidx << "]Openning socket failed" << endl;
-            exit (1);
-        }
-        
-        hp = gethostbyname (nodelist[i].c_str());
-        
-        if (hp == NULL)
-        {
-            cout << "[Cache_slave:" << networkidx << "]Cannot find host by host name" << endl;
-            return -1;
-        }
-        
-        memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
-        serveraddr.sin_family = AF_INET;
-        memcpy (&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
-        serveraddr.sin_port = htons (port);
-        
-        while (connect (clientfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
-        {
-            cout << "[Cache_slave:" << networkidx << "]Cannot connect to: " << nodelist[i] << endl;
-            cout << "Retrying..." << endl;
-            usleep (100000);
-            //cout<<"\thost name: "<<nodelist[i]<<endl;
-            continue;
-        }
-        
-        // register the file peer
-        peers.push_back (new filepeer (clientfd, nodelist[i]));
-        // set the peer fd as nonblocking mode
-        fcntl (clientfd, F_SETFL, O_NONBLOCK);
-        setsockopt (clientfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
-        setsockopt (clientfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
-    }
-    
-    // socket open for listen
-    int fd;
-    int tmpfd = -1;
+// connect {{{ 
+int Cache_slave::connect() {
+  if (access (ipc_path.c_str(), F_OK) == EXIT_SUCCESS)
+  {
+    unlink (ipc_path.c_str());
+  }
+
+  // connect to cacheserver
+  {
+    cacheserverfd = -1;
     struct sockaddr_in serveraddr;
-    fd = socket (AF_INET, SOCK_STREAM, 0);
-    
-    if (fd < 0)
+    struct hostent *hp;
+
+    cacheserverfd = socket (AF_INET, SOCK_STREAM, 0); // SOCK_STREAM -> tcp
+
+    if (cacheserverfd < 0)
     {
-        cout << "[Cache_slave:" << networkidx << "]Socket opening failed" << endl;
-        exit (-1);
+      log->info ("[Cache_slave:%d]Openning socket failed", networkidx);
+      exit (1);
     }
-    
-    int valid = 1;
-    setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, &valid, sizeof (valid));
-    // bind
+
+    hp = gethostbyname (master_address.c_str());
     memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
     serveraddr.sin_family = AF_INET;
-    serveraddr.sin_addr.s_addr = htonl (INADDR_ANY);
-    serveraddr.sin_port = htons ( (unsigned short) port);
-    
-    if (bind (fd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
+    memcpy (&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
+    serveraddr.sin_port = htons (dhtport);
+
+    while (::connect (cacheserverfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
     {
-        cout << "[Cache_slave:" << networkidx << "]\033[0;31mBinding failed\033[0m" << endl;
-        exit (-1);
+      log->info ("[Cache_slave:%d]Cannot connect to the cache server. Retrying...", networkidx);
+      //cout<<"\thost name: "<<nodelist[i]<<endl;
+      usleep (100000);
+      continue;
     }
+
+    fcntl (cacheserverfd, F_SETFL, O_NONBLOCK);
+    setsockopt (cacheserverfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
+    setsockopt (cacheserverfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
+  }
+
+  // connect to other peer eclipse nodes
+  for (int i = 0; i < networkidx; i++)
+  {
+    int clientfd = -1;
+    struct sockaddr_in serveraddr;
+    struct hostent *hp = NULL;
     
-    // listen
-    if (listen (fd, BACKLOG) < 0)
+    clientfd = socket (AF_INET, SOCK_STREAM, 0);
+
+    if (clientfd < 0)
     {
-        cout << "[master]Listening failed" << endl;
-        exit (-1);
-        return -1;
+      log->info ("[Cache_slave:%d]Openning socket failed", networkidx);
+      exit (1);
     }
-    
-    // register the current node itself to the peer list
-    peers.push_back (new filepeer (-1, localhostname));
-    
-    // register the other peers in order
-    for (int i = networkidx + 1; (unsigned) i < nodelist.size(); i++)
+
+    hp = gethostbyname (nodelist[i].c_str());
+
+    if (hp == NULL)
     {
-        peers.push_back (new filepeer (-1, nodelist[i]));
+      log->info ("[Cache_slave:%d]Cannot find host by host name", networkidx);
+      return -1;
     }
-    
-    // listen connections from peers and complete the eclipse network
-    for (int i = networkidx + 1; (unsigned) i < nodelist.size(); i++)
+
+    memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
+    serveraddr.sin_family = AF_INET;
+    memcpy (&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
+    serveraddr.sin_port = htons (dhtport);
+
+    while (::connect (clientfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
     {
-        struct sockaddr_in connaddr;
-        int addrlen = sizeof (connaddr);
-        tmpfd = accept (fd, (struct sockaddr *) &connaddr, (socklen_t *) &addrlen);
-        
-        if (tmpfd > 0)
+      log->info ("[Cache_slave:%d]Cannot connect to: %s", networkidx, nodelist[i].c_str());
+      log->info ("Retrying...");
+      usleep (100000);
+      //cout<<"\thost name: "<<nodelist[i]<<endl;
+      continue;
+    }
+
+    // register the file peer
+    peers.push_back (new filepeer (clientfd, nodelist[i]));
+    // set the peer fd as nonblocking mode
+    fcntl (clientfd, F_SETFL, O_NONBLOCK);
+    setsockopt (clientfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
+    setsockopt (clientfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
+  }
+
+  // socket open for listen
+  int fd;
+  int tmpfd = -1;
+  struct sockaddr_in serveraddr;
+  fd = socket (AF_INET, SOCK_STREAM, 0);
+
+  if (fd < 0)
+  {
+    log->info ("[Cache_slave:%d]Socket opening failed", networkidx);
+    exit (-1);
+  }
+
+  int valid = 1;
+  setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, &valid, sizeof (valid));
+  // bind
+  memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
+  serveraddr.sin_family = AF_INET;
+  serveraddr.sin_addr.s_addr = htonl (INADDR_ANY);
+  serveraddr.sin_port = htons ( (unsigned short) dhtport);
+
+  if (bind (fd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
+  {
+    log->info ("[Cache_slave:%d]\033[0;31mBinding failed\033[0m", networkidx);
+    exit (-1);
+  }
+
+  // listen
+  if (listen (fd, BACKLOG) < 0)
+  {
+    log->info ("[master]Listening failed");
+    exit (-1);
+    return -1;
+  }
+
+  // register the current node itself to the peer list
+  peers.push_back (new filepeer (-1, localhostname));
+
+  // register the other peers in order
+  for (int i = networkidx + 1; (unsigned) i < nodelist.size(); i++)
+  {
+    peers.push_back (new filepeer (-1, nodelist[i]));
+  }
+
+  // listen connections from peers and complete the eclipse network
+  for (int i = networkidx + 1; (unsigned) i < nodelist.size(); i++)
+  {
+    struct sockaddr_in connaddr;
+    int addrlen = sizeof (connaddr);
+    tmpfd = accept (fd, (struct sockaddr *) &connaddr, (socklen_t *) &addrlen);
+
+    if (tmpfd > 0)
+    {
+      char* haddrp = inet_ntoa (connaddr.sin_addr);
+      string address = haddrp;
+
+      for (int j = networkidx + 1; (unsigned) j < nodelist.size(); j++)
+      {
+        if (peers[j]->get_address() == address)
         {
-            char* haddrp = inet_ntoa (connaddr.sin_addr);
-            string address = haddrp;
-            
-            for (int j = networkidx + 1; (unsigned) j < nodelist.size(); j++)
-            {
-                if (peers[j]->get_address() == address)
-                {
-                    peers[j]->set_fd (tmpfd);
-                }
-            }
-            
-            // set the peer fd as nonblocking mode
-            fcntl (tmpfd, F_SETFL, O_NONBLOCK);
-            setsockopt (tmpfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
-            setsockopt (tmpfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
+          peers[j]->set_fd (tmpfd);
         }
-        else if (tmpfd < 0)       // connection failed
-        {
-            // retry with same index
-            i--;
-            continue;
-        }
-        else
-        {
-            cout << "connection closed......................." << endl;
-        }
+      }
+
+      // set the peer fd as nonblocking mode
+      fcntl (tmpfd, F_SETFL, O_NONBLOCK);
+      setsockopt (tmpfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
+      setsockopt (tmpfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
     }
-    
-    // register the server fd
-    serverfd = fd;
-    cout << "[Cache_slave:" << networkidx << "]Eclipse network successfully established(id=" << networkidx << ")" << endl;
-    // prepare AF_UNIX socket for the ipc with tasks
-    struct sockaddr_un serveraddr2;
-    ipcfd = socket (AF_UNIX, SOCK_STREAM, 0);
-    
-    if (ipcfd < 0)
+    else if (tmpfd < 0)       // connection failed
     {
-        cout << "[Cache_slave:" << networkidx << "]AF_UNIX socket openning failed" << endl;
-        exit (-1);
+      // retry with same index
+      i--;
+      continue;
     }
-    
-    // bind
-    memset ( (void*) &serveraddr2, 0, sizeof (serveraddr2));
-    serveraddr2.sun_family = AF_UNIX;
-    strcpy (serveraddr2.sun_path, ipc_path.c_str());
-    
-    if (bind (ipcfd, (struct sockaddr *) &serveraddr2, SUN_LEN (&serveraddr2)) < 0)
+    else
     {
-        cout << "[Cache_slave:" << networkidx << "]\033[0;31mIPC Binding failed\033[0m" << endl;
-        exit (-1);
+      log->info ("connection closed.......................");
     }
-    
-    // listen
-    if (listen (ipcfd, BACKLOG) < 0)
-    {
-        cout << "[master]Listening failed" << endl;
-        exit (-1);
-    }
-    
-    // set the server fd and ipc fd as nonblocking mode
-    fcntl (ipcfd, F_SETFL, O_NONBLOCK);
-    fcntl (serverfd, F_SETFL, O_NONBLOCK);
-    setsockopt (ipcfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
-    setsockopt (ipcfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
-    setsockopt (serverfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
-    setsockopt (serverfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
-    tmpfd = -1;
-    // initialize the histogram
-    thehistogram = new histogram (nodelist.size(), NUMBIN);
-    // initialize the local cache
-    thecache = new cache (CACHESIZE);
-    struct timeval time_start;
-    struct timeval time_end;
-    gettimeofday (&time_start, NULL);
-    gettimeofday (&time_end, NULL);
-    
-    // }}}
-    // start main loop which listen to connections and signals from clients and peers {{{
-    while (1)
+  }
+
+  // register the server fd
+  serverfd = fd;
+  log->info ("[Cache_slave:%d]Eclipse network successfully established", networkidx);
+  // prepare AF_UNIX socket for the ipc with tasks
+  struct sockaddr_un serveraddr2;
+  ipcfd = socket (AF_UNIX, SOCK_STREAM, 0);
+
+  if (ipcfd < 0)
+  {
+    log->info ("[Cache_slave:%d]AF_UNIX socket openning failed", networkidx);
+    exit (-1);
+  }
+
+  // bind
+  memset ( (void*) &serveraddr2, 0, sizeof (serveraddr2));
+  serveraddr2.sun_family = AF_UNIX;
+  strcpy (serveraddr2.sun_path, ipc_path.c_str());
+
+  if (bind (ipcfd, (struct sockaddr *) &serveraddr2, SUN_LEN (&serveraddr2)) < 0)
+  {
+    log->info ("[Cache_slave:%d]\033[0;31mIPC Binding failed\033[0m", networkidx);
+    exit (-1);
+  }
+
+  // listen
+  if (listen (ipcfd, BACKLOG) < 0)
+  {
+    log->info ("[master]Listening failed");
+    exit (-1);
+  }
+
+  // set the server fd and ipc fd as nonblocking mode
+  fcntl (ipcfd, F_SETFL, O_NONBLOCK);
+  fcntl (serverfd, F_SETFL, O_NONBLOCK);
+  setsockopt (ipcfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
+  setsockopt (ipcfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
+  setsockopt (serverfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
+  setsockopt (serverfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
+  return EXIT_SUCCESS;
+}
+// }}}
+// run_server {{{
+int Cache_slave::run_server ()
+{
+    int tmpfd = -1;
+    while (true)
     {
         // Accept local clients {{{
         tmpfd = accept (ipcfd, NULL, NULL);
@@ -392,7 +381,7 @@ int Cache_slave::run_server (int port, string master_address)
                         
                         if (theentry == NULL)     // when the intermediate result is not hit
                         {
-                            cout << "\033[0;31mLocal Icache miss\033[0m" << endl;
+                            log->info ("\033[0;31mLocal Icache miss\033[0m");
                             // send 0 packet to the client to notify that Icache is not hit
                             memset (write_buf, 0, BUF_CUT);
                             
@@ -413,7 +402,7 @@ int Cache_slave::run_server (int port, string master_address)
                             
                             if (theentry == NULL)     // when data is not in cache
                             {
-                                cout << "\033[0;31mLocal Cache miss\033[0m" << endl;
+                                log->info ("\033[0;31mLocal Cache miss\033[0m");
                                 // set an entry writer
                                 dataentry* newentry = new dataentry (filename, hashvalue);
                                 thecache->new_entry (newentry);
@@ -559,7 +548,7 @@ int Cache_slave::run_server (int port, string master_address)
                                     // 2. and send it to client
                                     // set a entry reader
                                     entryreader* thereader = new entryreader (theentry);
-                                    cout << "\033[0;32m[" << networkidx << "]Local Cache hit\033[0m" << endl;
+                                    log->info ("\033[0;32m[%d]Local Cache hit\033[0m", networkidx);
                                     thebridge->set_srctype (CACHE);
                                     thebridge->set_dsttype (CLIENT);
                                     thebridge->set_entryreader (thereader);
@@ -572,7 +561,7 @@ int Cache_slave::run_server (int port, string master_address)
                         }
                         else     // intermediate result hit
                         {
-                            cout << "\033[0;32m[" << networkidx << "]Local Icache hit\033[0m" << endl;
+                            log->info ("\033[0;32m[%d]Local Icache hit\033[0m", networkidx);
 //cout<<"[Cache_slave:"<<networkidx<<"]Cachekey hit: "<<cachekey<<endl;
                             // send 1 packet to the client to notify that Icache is hit
                             memset (write_buf, 0, BUF_CUT);
@@ -1068,7 +1057,7 @@ int Cache_slave::run_server (int port, string master_address)
                         
                         if (clients[i]->thecount == NULL)
                         {
-                            cout << "[Cache_slave:" << networkidx << "]The write id is not set before the write request" << endl;
+                            log->info ("[Cache_slave:%d]The write id is not set before the write request", networkidx);
                         }
                         
                         // write to the peer
@@ -1252,7 +1241,7 @@ int Cache_slave::run_server (int port, string master_address)
                 }
                 else
                 {
-                    cout << "[Cache_slave:" << networkidx << "]Debugging: Unknown message";
+                    cout << "[Cache_slave:%d]Debugging: Unknown message";
                 }
                 
                 // enable loop acceleration
@@ -1330,7 +1319,7 @@ int Cache_slave::run_server (int port, string master_address)
                         
                         if (theentry == NULL)     // raw input data is not hit
                         {
-                            cout << "\033[0;31mRemote Cache miss\033[0m" << endl;
+                            log->info ("\033[0;31mRemote Cache miss\033[0m");
                             // determine the hash value
                             memset (write_buf, 0, HASHLENGTH);
                             strcpy (write_buf, filename.c_str());
@@ -1402,7 +1391,7 @@ int Cache_slave::run_server (int port, string master_address)
                         {
                             if (theentry->is_being_written())
                             {
-                                cout << "\033[0;31mRemote Cache miss\033[0m" << endl;
+                                log->info ("\033[0;31mRemote Cache miss\033[0m");
                                 // determine the hash value
                                 memset (write_buf, 0, HASHLENGTH);
                                 strcpy (write_buf, filename.c_str());
@@ -1465,7 +1454,7 @@ int Cache_slave::run_server (int port, string master_address)
                             }
                             else
                             {
-                                cout << "\033[0;32m[" << networkidx << "]Remote Cache hit\033[0m" << endl;
+                                log->info ("\033[0;32m[%d]Remote Cache hit\033[0m", networkidx );
                                 // prepare the read stream from cache
                                 entryreader* thereader = new entryreader (theentry);
                                 filebridge* thebridge = new filebridge (fbidclock++);
@@ -1634,7 +1623,7 @@ int Cache_slave::run_server (int port, string master_address)
                     
                     if (bridgeindex == -1)
                     {
-                        cout << "bridge not found with that index" << endl;
+                        log->info ("bridge not found with that index");
                     }
                     
                     dsttype = bridges[bridgeindex]->get_dsttype();
@@ -1816,7 +1805,7 @@ int Cache_slave::run_server (int port, string master_address)
                     
                     if (thecount == NULL)
                     {
-                        cout << "[Cache_slave:" << networkidx << "]Unexpected NULL pointer..." << endl;
+                        log->info ("[Cache_slave:%d]Unexpected NULL pointer...", networkidx );
                     }
                     
                     thecount->clear_peer (i);
@@ -2004,7 +1993,7 @@ int Cache_slave::run_server (int port, string master_address)
                 }
                 else if (strncmp (read_buf, "Ihit", 4) == 0)
                 {
-                    cout << "\033[0;32m[" << networkidx << "]Remote Icache hit\033[0m" << endl;
+                    log->info ("\033[0;32m[%d]Remote Icache hit\033[0m", networkidx);
                     char* token;
                     int dstid;
                     token = strtok (read_buf, " ");   // <- "Ihit"
@@ -2065,7 +2054,7 @@ int Cache_slave::run_server (int port, string master_address)
                     
                     if (thebridge == NULL)
                     {
-                        cout << "[Cache_slave:" << networkidx << "]Unexpected NULL pointer after receiving \"EIcache\" message" << endl;
+                        log->info ("[Cache_slave:%d]Unexpected NULL pointer after receiving \"EIcache\" message", networkidx);
                     }
                     else
                     {
@@ -2099,7 +2088,7 @@ int Cache_slave::run_server (int port, string master_address)
                     
                     if (thebridge == NULL)
                     {
-                        cout << "[Cache_slave:" << networkidx << "]Unexpected filebridge NULL pointer(2)" << endl;
+                        log->info ("[Cache_slave:%d]Unexpected filebridge NULL pointer(2)", networkidx);
                     }
                     
                     // notify the end of DISTRIBUTE to dstclient
@@ -2254,7 +2243,7 @@ int Cache_slave::run_server (int port, string master_address)
             }
             else if (readbytes == 0)
             {
-                cout << "[Cache_slave:" << networkidx << "]Debugging: Connection from a peer disconnected: " << peers[i]->get_address() << endl;
+                log->info ("[Cache_slave:%d]Debugging: Connection from a peer disconnected: %s",networkidx, peers[i]->get_address().c_str());
                 // clear the peer
                 close (peers[i]->get_fd());
                 peers[i]->set_fd (-1);
@@ -2358,7 +2347,7 @@ int Cache_slave::run_server (int port, string master_address)
                             
                             if (clientidx == -1)
                             {
-                                cout << "[Cache_slave:" << networkidx << "]Cannot find such client" << endl;
+                                log->info ("[Cache_slave:%d]Cannot find such client", networkidx);
                             }
                             
                             if (clients[clientidx]->msgbuf.size() > 1)
@@ -2376,7 +2365,7 @@ int Cache_slave::run_server (int port, string master_address)
                         }
                         else
                         {
-                            cout << "Neither dstclient nor dstpeer are set" << endl;
+                            log->info ("Neither dstclient nor dstpeer are set");
                         }
                         
                         // clear the bridge
@@ -2785,14 +2774,14 @@ int Cache_slave::run_server (int port, string master_address)
                 }
                 else     // unknown message
                 {
-                    cout << "[cacheserver]Unknown message from master node" << endl;
+                    log->info ("[cacheserver]Unknown message from master node");
                 }
             }
             else if (readbytes == 0)
             {
                 for (int i = 0; (unsigned) i < clients.size(); i++)
                 {
-                    cout << "[Cache_slave:" << networkidx << "]Closing connection to a client..." << endl;
+                    log->info ("[Cache_slave:%d]Closing connection to a client...", networkidx);
                     close (clients[i]->get_fd());
                 }
                 
@@ -2804,34 +2793,11 @@ int Cache_slave::run_server (int port, string master_address)
                 close (ipcfd);
                 close (serverfd);
                 close (cacheserverfd);
-                cout << "[Cache_slave:" << networkidx << "]Connection from cache server disconnected. exiting..." << endl;
+                log->info ("[Cache_slave:%d]Connection from cache server disconnected. exiting...", networkidx);
                 return 0;
             }
         } //}}}
         thecache->update_size();
-    } //}}}
+    } 
     return EXIT_SUCCESS;
 } // }}}
-
-int main (int argc, const char *argv[]) {
-  using namespace std;
-
-  char* master_address;
-  int dhtport;
-  Cache_slave cache_slave;
-
-  try {
-    Settings setted;
-    setted.load();
-    dhtport        = setted.get<int> ("network.port_cache");
-    master_address = strndup (setted.get<string>("network.master").c_str(), BUF_SIZE);
-
-  } catch (exception& e) {
-    cerr << "Configuration file incomplete or absent. Check README file for requirements" << endl;
-    cerr << "Exception error: " << e.what() << endl;
-    return EXIT_FAILURE;
-  }
-
-  cache_slave.run_server (dhtport, master_address); //! run the file server
-  return EXIT_SUCCESS;
-}
