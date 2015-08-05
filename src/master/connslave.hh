@@ -8,19 +8,16 @@
 class connslave   // connection to the slave
 {
     private:
-        int fd;
+		int rank
         int maxmaptask;
         int maxreducetask;
-        string address;
         vector<master_task*> running_tasks;
         
     public:
-        connslave (int fd);
-        connslave (int maxtask, int fd);
-        connslave (int maxtask, int fd, string anaddress);
-        connslave (string anaddress);
+        connslave (int rank);
+        connslave (int maxtask, int rank);
         ~connslave();
-        int getfd();
+        int getrank();
         int getmaxmaptask();
         int getmaxreducetask();
         void setmaxmaptask (int num);
@@ -29,53 +26,29 @@ class connslave   // connection to the slave
         master_task* getrunningtask (int index);
         void add_runningtask (master_task* atask);
         void remove_runningtask (master_task* atask);
-        void set_address (string anaddress);
-        void setfd (int number);
-        string get_address();
 };
 
-connslave::connslave (int fd)
+connslave::connslave (int rank)
 {
     this->maxmaptask = 0;
     this->maxreducetask = 0;
-    this->fd = fd;
+    this->rank = rank;
 }
 
-connslave::connslave (string anaddress)
-{
-    this->maxmaptask = 0;
-    this->maxreducetask = 0;
-    this->address = anaddress;
-}
-
-connslave::connslave (int maxtask, int fd)
+connslave::connslave (int maxtask, int rank)
 {
     this->maxmaptask = maxtask;
     this->maxreducetask = maxtask;
-    this->fd = fd;
-}
-
-connslave::connslave (int maxtask, int fd, string anaddress)
-{
-    this->maxmaptask = maxtask;
-    this->maxreducetask = maxtask;
-    this->fd = fd;
-    this->address = anaddress;
+    this->rank = rank;
 }
 
 connslave::~connslave()
 {
-    close (fd);
 }
 
-int connslave::getfd()
+int connslave::getrank()
 {
-    return this->fd;
-}
-
-void connslave::setfd (int number)
-{
-    this->fd = number;
+    return this->rank;
 }
 
 int connslave::getmaxmaptask()
@@ -138,16 +111,6 @@ void connslave::remove_runningtask (master_task* atask)
             break;
         }
     }
-}
-
-void connslave::set_address (string anaddress)
-{
-    this->address = anaddress;
-}
-
-string connslave::get_address()
-{
-    return this->address;
 }
 
 #endif
