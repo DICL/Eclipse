@@ -14,8 +14,44 @@ module EclipseDaemon
   BINDIR   = "@bindirfull@"
   LIBDIR   = "@libdirfull@"
   CXX      = "@CXX@"
+  module EclipseAPI  #{{{
+    extend FFI::Library
+    ffi_lib "#{LIBDIR}/libecfs.so"
+    attach_function :hash_ruby, [ :string ], :uint32
+  end
+  #}}} 
+  # wait_message {{{
+  def wait_message(msg) 
+    Thread.new(msg) do |m|
+      print "#{m} "
+      loop do
+        print "\b\\"
+        sleep 0.3
+        print "\b-"
+        sleep 0.3
+        print "\b/"
+        sleep 0.3
+      end
+    end
+  end
+  #}}}
+  # find_confpath {{{
+  def find_confpath
+    home = "#{ENV['HOME']}/.eclipse.json"
+    etc  = "/etc/.eclipse.json"
+
+    if File.exists? home
+      return home
+    elsif File.exists? etc
+      return etc
+    else
+      return CONFPATH
+    end 
+  end
+  # }}}
 
   class Core 
+    include EclipseDaemon
     # Initialize {{{
     def initialize 
       @nodelist = File.open(find_confpath) { |f| JSON.parse(f.read) }['network']['nodes']
@@ -23,44 +59,16 @@ module EclipseDaemon
     end
 
     # }}}
-    # wait_message {{{
-    def wait_message(msg) 
-      Thread.new(msg) { |m|
-        print "#{m} "
-        loop do
-          print "\b\\"
-          sleep 0.3
-          print "\b-"
-          sleep 0.3
-          print "\b/"
-          sleep 0.3
-        end
-      }
-    end
-    #}}}
-    # find_confpath {{{
-    def find_confpath
-      home = "#{ENV['HOME']}/.eclipse.json"
-      etc  = "/etc/.eclipse.json"
-
-      if File.exists? home
-        return home
-      elsif File.exists? etc
-        return etc
-      else
-        return CONFPATH
-      end 
-    end
-    # }}}
     # launch {{{
     def launch
       thr = wait_message "Initializing framework..."
       `#{BINDIR}/master &>/dev/null &`
-      `sleep 1`
+      sleep 1
       @nodelist.each do |node|
         system "ssh #{node} 'nohup #{BINDIR}/slave </dev/null &>/dev/null & exit'"
       end
       thr.exit
+      print "\r"
     end 
 
     #}}}
@@ -93,17 +101,22 @@ module EclipseDaemon
         `ssh #{node} pkill -u #{`whoami`.chomp} slave`
       end 
       thr.exit
+      print "\r"
     end #}}}
+    # submit {{{
+    #def submit(input)
+    #  @instance[:app]= input
+    #  File.open(@fs_tmpfile, 'w') { |f| f.write(JSON.generate(@instance)) }
+
+    #  system input 
+
+    #  if 
+
+    #end #}}}
   end
 
   class Fs < Core
-    module Eclipse  #{{{
-      extend FFI::Library
-      ffi_lib "#{LIBDIR}/libecfs.so"
-      attach_function :hash_ruby, [ :string ], :uint32
-    end
-
-    #}}} 
+    include EclipseAPI
     def initialize #{{{
       @files           = {}
       @config          = File.open(find_confpath) { |f| JSON.parse(f.read) }
@@ -111,10 +124,10 @@ module EclipseDaemon
       @fs_scratch_path = @config['path']['scratch']
       @fs_tmpfile      = @fs_path + "/.list"
       @files           = File.open(@fs_tmpfile) { |f| JSON.parse(f.read) } if File.exist? @fs_tmpfile
+      alias :hash :hash_ruby
       super()
     end
 
-    def hash(input);         Eclipse.hash_ruby(input) end
     def node_containing(fn); @nodelist[hash(fn) % @nodelist.length] end
 
     #}}}
@@ -132,11 +145,21 @@ module EclipseDaemon
     end
 
     #}}}
-    # get {{{
-    def get(input)
+    # cat {{{
+    def cat(input)
       input.each do |fn|
         #raise "\'#{fn}\' not found in Eclipse FS" unless @files[fn]
         system "ssh #{node_containing(fn)} cat #{@fs_scratch_path}/#{fn}"
+      end
+    end
+
+    #}}}
+    # get {{{
+    def get(input)
+      input.each do |fn|
+        cmd = "scp #{node_containing(fn)}:#{@fs_scratch_path}/#{fn} ."
+        puts cmd if @verbose
+        system cmd
       end
     end
 
@@ -160,8 +183,19 @@ module EclipseDaemon
 
     #}}}
     def list #{{{
+      thr = wait_message "Collecting information..."
       output = [ ] 
       @files.each{|k, v| output << { :filename => k, :location => v} }
+
+      @nodelist.each do |node| 
+        `ssh #{node} ls #{@fs_scratch_path}`.each_line do |l| 
+          l.chomp!
+          output << { :filename => l, :location => node} unless @files.has_key?(l)
+        end
+      end
+
+      thr.exit
+      print "\r"
       tp output, :filename, :location
     end
 
@@ -169,8 +203,8 @@ module EclipseDaemon
     def config #{{{
       ap self.instance_variables.map{|var|  [var, self.instance_variable_get(var)]}.to_h
     end  #}}}
-    # mcc {{{
-    def mcc(input)
+    # compile {{{
+    def compile(input)
       sources = input.join(' ')
       raise 'Need to specify output file (-o File)' unless @outputfile 
 
@@ -208,12 +242,13 @@ module EclipseDaemon
         opts.separator ""
         opts.separator "Filesystem actions"
         opts.separator "    put FILE...  insert FILE..."
-        opts.separator "    get FILE...  \'cat\' the FILE..."
+        opts.separator "    get FILE...  copy the FILES to the current directory"
         opts.separator "    rm FILE...   remove FILE..."
+        opts.separator "    cat FILE...  \'cat\' the FILE..."
         opts.separator "    clear        remove all the files in the FS"
         opts.separator "    ls           list all the files in the FS"
         opts.separator "    config       list all the internal variables"
-        opts.separator "    mcc -o OUTPUT INPUT...  Compile file with EclipseFS API using OUTPUT name"
+        opts.separator "    cc -o OUTPUT INPUT...  Compile file with EclipseFS API using OUTPUT name"
         opts.separator ""
         opts.separator "Options"
         opts.on_tail("-h", "--help"   , "recursive this")         { puts opts; exit}
@@ -229,11 +264,12 @@ module EclipseDaemon
       when 'status' then show
       when 'put' then    put input
       when 'get' then    get input
+      when 'cat' then    cat input
       when 'rm' then     rm input
       when 'clear' then  clear
       when 'ls' then     list
       when 'config' then config 
-      when 'mcc' then    mcc input
+      when 'cc' then     compile(input)
       else               raise "Not action given"
       end
     end #}}}

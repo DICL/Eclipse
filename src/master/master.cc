@@ -39,6 +39,7 @@ int serverfd;
 int cacheserverfd;
 int max_job = -1;
 int jobidclock = 0; // job id starts 0
+bool boundary_changed = true;
 
 Logger* log;
 
@@ -904,6 +905,7 @@ void signal_listener (int args)
                     }
                     
                     thehistogram->count_query (hashvalue);
+                    boundary_changed = true;
                     // write to the slave the task information
                     stringstream ss;
                     ss << "tasksubmit ";
@@ -1026,7 +1028,8 @@ void signal_listener (int args)
         elapsed += 1000 * (time_end.tv_sec - time_start.tv_sec);
         elapsed += (time_end.tv_usec - time_start.tv_usec) / 1000;
         
-        if (elapsed > UPDATEINTERVAL)     // UPDATE INTERVAL from EM-KDE
+        //if (elapsed > UPDATEINTERVAL)     // UPDATE INTERVAL from EM-KDE
+        if (boundary_changed == true)
         {
             // EM-KDE: calculate the new boundary according to the query counts
             thehistogram->updateboundary();
@@ -1050,6 +1053,7 @@ void signal_listener (int args)
             handle_boundaries(write_buf);
             gettimeofday (&time_start, NULL);
             elapsed = 0;
+            boundary_changed = false;
         }
         
         // break if all slaves and clients are closed

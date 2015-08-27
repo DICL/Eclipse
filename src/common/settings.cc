@@ -1,7 +1,7 @@
 //
 // @author     Vicente Adolfo Bolea Sanchez
 // @brief      Settings impl using boost library.
-// 
+//
 // Includes {{{
 #include "settings.hh"
 #include <iostream>
@@ -47,7 +47,7 @@ class Settings::SettingsImpl {
 };
 //}}}
 // get_project_path {{{
-bool Settings::SettingsImpl::get_project_path () 
+bool Settings::SettingsImpl::get_project_path ()
 {
   string home_location   = string(getenv("HOME")) + "/.eclipse.json";
   string system_location = "/etc/eclipse.json";
@@ -61,7 +61,7 @@ bool Settings::SettingsImpl::get_project_path ()
   } else if (access(system_location.c_str(), F_OK) == EXIT_SUCCESS) {   // Then at /etc
     config_path = system_location;
 
-  } else {                               
+  } else {
 #ifdef ECLIPSE_CONF_PATH
     config_path = string(ECLIPSE_CONF_PATH) + FINAL_PATH;               // Then configure one
 #else
@@ -85,40 +85,42 @@ bool Settings::SettingsImpl::load ()
 // getip {{{
 string Settings::SettingsImpl::getip () const
 {
- int fd;
- struct ifreq ifr;
- char if_ip [INET_ADDRSTRLEN];
- string interface = pt.get<string> ("network.iface");
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+  struct ifreq ifr = {{0}}; //GCC bug
+#pragma GCC diagnostic pop 
 
- fd = socket(AF_INET, SOCK_DGRAM, 0);
+  string interface = pt.get<string> ("network.iface");
 
- /* I want to get an IPv4 IP address */
- ifr.ifr_addr.sa_family = AF_INET;
+  ifr.ifr_addr.sa_family = AF_INET;        // I want to get an IPv4 IP address
+  interface.copy (ifr.ifr_name, IFNAMSIZ); // I want IP address attached to "eth0"
 
- /* I want IP address attached to "eth0" */
- strncpy(ifr.ifr_name, interface.c_str(), IFNAMSIZ-1);
+  int fd = socket (AF_INET, SOCK_DGRAM, 0);
+  ioctl (fd, SIOCGIFADDR, &ifr);
+  close (fd);
 
- ioctl(fd, SIOCGIFADDR, &ifr);
- inet_ntop (AF_INET, &((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr , if_ip, INET_ADDRSTRLEN);
-
- close(fd);
-
-  return string (if_ip);
+  auto addr = reinterpret_cast<struct sockaddr_in*> (&ifr.ifr_addr);
+  return inet_ntoa (addr->sin_addr);
 }
 // }}}
 // Get specializations {{{
-template<typename T> T Settings::SettingsImpl::get (string& str) { 
-   return pt.get<T> (str.c_str()); 
+template<typename T> T Settings::SettingsImpl::get (string& str) {
+   return pt.get<T> (str.c_str());
 }
 
 template string Settings::SettingsImpl::get (string& str);
 template int    Settings::SettingsImpl::get (string& str);
 
-template<> vector<string> Settings::SettingsImpl::get (string& str) { 
+template<> vector<string> Settings::SettingsImpl::get (string& str) {
   vector<string> output;
-  BOOST_FOREACH(ptree::value_type& v, pt.get_child (str.c_str())) {
+  auto& subtree = pt.get_child (str.c_str());
+
+  for (auto& v : subtree)
     output.push_back (v.second.data());
-  }
+
+  //transform (subtree.begin(), subtree.end(), back_inserter(output), [](ptree::value_type &in) {
+  //            return in.second.data(); 
+  //          });
   return output;
 }
 //}}}
@@ -130,9 +132,9 @@ Settings::~Settings() { delete impl; }
 
 bool Settings::load () { return impl->load (); }
 string Settings::getip () const { return impl->getip(); }
- 
-template<typename T> T Settings::get (string str) const { 
-  return impl->get<T>(str); 
+
+template<typename T> T Settings::get (string str) const {
+  return impl->get<T>(str);
 }
 
 template int            Settings::get (string) const;

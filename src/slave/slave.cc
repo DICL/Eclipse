@@ -28,8 +28,8 @@ int port = -1;
 int masterfd = -1;
 
 int buffersize = 8388608; // 8 MB buffer size
+Logger* log;
 
-char master_address[BUF_SIZE];
 string localhostname;
 vector<slave_job*> running_jobs; // a vector of job, one or multiple tasks of which are running on this slave node
 vector<slave_task*> running_tasks; // a vector of running tasks
@@ -39,21 +39,13 @@ int main (int argc, char** argv)
     Settings setted;
     setted.load();
     port = setted.get<int>("network.port_mapreduce");
-    strcpy (master_address, setted.get<string>("network.master").c_str());
-    localhostname = setted.getip();
+    string master_addr = setted.get<string>("network.master");
+    localhostname      = setted.getip();
+    string logname     = setted.get<string> ("log.name");
+    string logtype     = setted.get<string> ("log.type");
+    log                = Logger::connect(logname, logtype);
 
-    // connect to master
-    masterfd = connect_to_server (master_address, port);
-    if (masterfd < 0)
-    {
-        cout << "[slave]Connecting to master failed" << endl;
-        return 1;
-    }
-    
-    // set master socket to be non-blocking socket to avoid deadlock
-    fcntl (masterfd, F_SETFL, O_NONBLOCK);
-    setsockopt (masterfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
-    setsockopt (masterfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
+    connect_to_server (master_addr.c_str(), port); // connect to master
    
     auto cache_thread = std::thread ([&] () {
         sleep (5);
@@ -65,37 +57,43 @@ int main (int argc, char** argv)
     signal_listener();
 
     cache_thread.join();
+    Logger::disconnect(log);
 
     return EXIT_SUCCESS;
 }
 
-int connect_to_server (char* host, unsigned short port)
+void connect_to_server (const char* host, unsigned short port)
 {
-    int clientfd;
-    struct sockaddr_in serveraddr;
+    struct sockaddr_in serveraddr = {0};
     struct hostent* hp;
-    //SOCK_STREAM -> tcp
-    clientfd = socket (AF_INET, SOCK_STREAM, 0);
     
-    if (clientfd < 0)
-    {
-        cout << "[slave]Openning socket failed" << endl;
-        exit (1);
+    masterfd = socket (AF_INET, SOCK_STREAM, 0); //SOCK_STREAM -> tcp
+    
+    if (masterfd < 0) {
+        log->info ("[slave]Openning socket failed");
+        exit (EXIT_FAILURE);
     }
     
     hp = gethostbyname (host);
     
-    if (hp == NULL)
-    {
-        cout << "[slave]Cannot find host by host name" << endl;
+    if (hp == NULL) {
+        log->info ("[slave]Cannot find host by host name");
     }
     
-    memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
     serveraddr.sin_family = AF_INET;
     memcpy (&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
     serveraddr.sin_port = htons (port);
-    connect (clientfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr));
-    return clientfd;
+    connect (masterfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr));
+
+    if (masterfd < 0) {
+        log->info ("[slave]Connecting to master failed");
+        exit (EXIT_FAILURE);
+    }
+    
+    // set master socket to be non-blocking socket to avoid deadlock
+    fcntl (masterfd, F_SETFL, O_NONBLOCK);
+    setsockopt (masterfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
+    setsockopt (masterfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
 }
 
 void signal_listener()
@@ -116,16 +114,16 @@ void signal_listener()
         if (readbytes == 0)     //connection closed from master
         {
 //logfile << gettimeofday
-            cout << "[slave]Connection from master is abnormally closed" << endl;
+            log->info ("[slave]Connection from master is abnormally closed");
             
             while (close (masterfd) < 0)
             {
-                cout << "[slave]Closing socket failed" << endl;
+                log->info ("[slave]Closing socket failed");
                 // sleeps for 1 milli second
                 usleep (1000);
             }
             
-            cout << "[slave]Exiting slave..." << endl;
+            log->info ("[slave]Exiting slave...");
             exit (0);
         }
         else if (readbytes < 0)
@@ -142,16 +140,16 @@ void signal_listener()
             }
             else if (strncmp (read_buf, "close", 5) == 0)
             {
-                cout << "[slave]Close request from master" << endl;
+                log->info ("[slave]Close request from master");
                 
                 while (close (masterfd) < 0)
                 {
-                    cout << "[slave]Close failed" << endl;
+                    log->info ("[slave]Close failed");
                     // sleeps for 1 milli seconds
                     usleep (1000);
                 }
                 
-                cout << "[slave]Exiting slave..." << endl;
+                log->info ("[slave]Exiting slave...");
                 return;
             }
             else if (strncmp (read_buf, "tasksubmit", 10) == 0)
@@ -206,7 +204,7 @@ void signal_listener()
                         
                         if (readbytes == 0)
                         {
-                            cout << "[slave]Connection from master is abnormally closed" << endl;
+                            log->info ("[slave]Connection from master is abnormally closed");
                         }
                         else if (readbytes < 0)
                         {
@@ -233,7 +231,7 @@ void signal_listener()
                             }
                             else
                             {
-                                cout << "[slave]Unexpected message order from master" << endl;
+                                log->info ("[slave]Unexpected message order from master");
                             }
                         }
                     }
@@ -265,7 +263,7 @@ void signal_listener()
                         
                         if (readbytes == 0)
                         {
-                            cout << "[slave]Connection from master is abnormally closed" << endl;
+                            log->info ("[slave]Connection from master is abnormally closed");
                         }
                         else if (readbytes < 0)
                         {
@@ -293,14 +291,14 @@ void signal_listener()
                 }
                 else
                 {
-                    cout << "Debugging: the task role is undefined well." << endl;
+                    log->info ("Debugging: the task role is undefined well.");
                     thetask->set_taskrole (JOB);
                 }
             }
             else
             {
-                cout << "[slave]Undefined signal from master: " << read_buf << endl;
-                cout << "[slave]Undefined signal size: " << readbytes << endl;
+                log->info ("[slave]Undefined signal from master: %s", read_buf);
+                log->info ("[slave]Undefined signal size: %d", readbytes);
             }
         }
         
@@ -404,7 +402,7 @@ void signal_listener()
                             {
                                 if (running_tasks[i]->get_inputpath (iter).length() + 10 > BUF_SIZE)
                                 {
-                                    cout << "[master]The length of inputpath excceded the limit" << endl;
+                                    log->info ("[master]The length of inputpath excceded the limit");
                                 }
                                 
                                 // send message to slave
@@ -469,8 +467,7 @@ void signal_listener()
                 }
                 else
                 {
-                    cout << "[slave]Undefined message protocol from task" << endl;
-                    cout << "       Message: " << read_buf << endl;
+                    log->info ("[slave]Undefined message protocol from task [Message: %s]", read_buf);
                 }
             }
         }
@@ -512,10 +509,10 @@ void signal_listener()
                         cout << "reduce ";
                     }
                     
-                    cout << "task with taskid " << running_tasks[i]->get_taskid();
-                    cout << " and jobid " << running_tasks[i]->get_job()->get_jobid();
-                    cout << " terminated abnormally" << endl;
-                    cout << "pid: " << running_tasks[i]->get_pid() << endl;
+                    log->info ("task with taskid %d ", running_tasks[i]->get_taskid());
+                    log->info ("and jobid %d ", running_tasks[i]->get_job()->get_jobid());
+                    log->info (" terminated abnormally");
+                    log->info ("pid: %d", running_tasks[i]->get_pid());
                     sleep (1);
                     // TODO: clear data structures for the task
                     // TODO: launch the failed task again
@@ -536,12 +533,12 @@ void signal_listener()
     
     while (close (masterfd) < 0)
     {
-        cout << "[slave]Close failed" << endl;
+        log->info ("[slave]Close failed");
         // sleeps for 1 milliseconds
         usleep (1000);
     }
     
-    cout << "[slave]Exiting slave..." << endl;
+    log->info ("[slave]Exiting slave...");
     exit (0);
 }
 
@@ -609,7 +606,7 @@ void launch_task (slave_task* atask)
         }
         else
         {
-            cout << "[slave]Debugging: the role of the task is not defined in launch_task() function" << endl;
+            log->info ("[slave]Debugging: the role of the task is not defined in launch_task() function");
             args[count + 2] = new char[4];
             strcpy (args[count + 2], "JOB");
             args[count + 2][3] = 0;
@@ -622,7 +619,7 @@ void launch_task (slave_task* atask)
         // launch the task with the passed arguments
         while (execv (args[0], args) == -1)
         {
-            cout << "Debugging: execv failed" << endl;
+            log->info ("Debugging: execv failed");
             cout << "Arguments:";
             
             for (int i = 0; i < count + 3; i++)
@@ -637,7 +634,7 @@ void launch_task (slave_task* atask)
     }
     else if (pid < 0)
     {
-        cout << "[slave]Task could not have been started due to child process forking failure" << endl;
+        log->info ("[slave]Task could not have been started due to child process forking failure");
     }
     else     // parent side
     {

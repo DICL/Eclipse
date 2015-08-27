@@ -54,6 +54,12 @@ filepeer* Cache_slave::find_peer (string& address) {
 } //}}}
 // find_bridge {{{
 filebridge* Cache_slave::find_bridge (int id) {
+//  auto it = find_if (bridges.begin(), bridges.end(), [&id](filebridge* i) { return  i->get_i() == id});
+//
+//  if (it != bridges.end())
+//    return *it;
+//
+//  else
    for (auto b : bridges) {
      if (b->get_id() == id) return b;
    }
@@ -110,36 +116,29 @@ bool Cache_slave::write_file (string fname, string& record)
 // connect {{{ 
 int Cache_slave::connect() {
   if (access (ipc_path.c_str(), F_OK) == EXIT_SUCCESS)
-  {
     unlink (ipc_path.c_str());
-  }
 
   // connect to cacheserver
   {
     cacheserverfd = -1;
-    struct sockaddr_in serveraddr;
-    struct hostent *hp;
+    struct sockaddr_in sa;
+    socklen_t sl = sizeof sa; 
 
     cacheserverfd = socket (AF_INET, SOCK_STREAM, 0); // SOCK_STREAM -> tcp
 
-    if (cacheserverfd < 0)
-    {
+    if (cacheserverfd < 0) {
       log->info ("[Cache_slave:%d]Openning socket failed", networkidx);
-      exit (1);
+      exit (EXIT_FAILURE);
     }
 
-    hp = gethostbyname (master_address.c_str());
-    memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
-    serveraddr.sin_family = AF_INET;
-    memcpy (&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
-    serveraddr.sin_port = htons (dhtport);
+    bzero((void*) &sa, sl);
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons (dhtport);
+    inet_pton (AF_INET, master_address.c_str(), &sa.sin_addr);
 
-    while (::connect (cacheserverfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
-    {
+    while (EXIT_FAILURE == ::connect (cacheserverfd, reinterpret_cast<sockaddr*> (&sa), sl)) {
       log->info ("[Cache_slave:%d]Cannot connect to the cache server. Retrying...", networkidx);
-      //cout<<"\thost name: "<<nodelist[i]<<endl;
       usleep (100000);
-      continue;
     }
 
     fcntl (cacheserverfd, F_SETFL, O_NONBLOCK);
