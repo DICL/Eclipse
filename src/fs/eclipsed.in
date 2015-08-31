@@ -20,8 +20,8 @@ module EclipseDaemon
     attach_function :hash_ruby, [ :string ], :uint32
   end
   #}}} 
-  # wait_message {{{
-  def wait_message(msg) 
+  # print_async {{{
+  def print_async(msg) 
     Thread.new(msg) do |m|
       print "#{m} "
       loop do
@@ -61,7 +61,7 @@ module EclipseDaemon
     # }}}
     # launch {{{
     def launch
-      thr = wait_message "Initializing framework..."
+      thr = print_async "Initializing framework..."
       `#{BINDIR}/master &>/dev/null &`
       sleep 1
       @nodelist.each do |node|
@@ -74,7 +74,7 @@ module EclipseDaemon
     #}}}
     # show {{{
     def show 
-      msg_handler = wait_message "Collecting information..."
+      msg_handler = print_async "Collecting information..."
 
       instance = [ ]
       in_english = { true => "Running", false => "Stopped" }
@@ -95,7 +95,7 @@ module EclipseDaemon
     #}}}
     # close {{{
     def close
-      thr = wait_message "Stopping framework..."
+      thr = print_async "Stopping framework..."
       `pkill -u #{`whoami`.chomp} master`
       @nodelist.each do |node|
         `ssh #{node} pkill -u #{`whoami`.chomp} slave`
@@ -104,15 +104,20 @@ module EclipseDaemon
       print "\r"
     end #}}}
     # submit {{{
-    #def submit(input)
+    def submit(input)
     #  @instance[:app]= input
     #  File.open(@fs_tmpfile, 'w') { |f| f.write(JSON.generate(@instance)) }
 
-    #  system input 
-
-    #  if 
-
-    #end #}}}
+      system input.join(' ')
+    end #}}}
+    # kill {{{
+    def kill(input)
+      @nodelist.each do |node|
+        cmd = "ssh #{node} \'pkill -u #{`whoami`.chomp} #{input.join}\'"
+        puts cmd if @verbose
+        system cmd
+      end
+    end #}}}
   end
 
   class Fs < Core
@@ -148,7 +153,6 @@ module EclipseDaemon
     # cat {{{
     def cat(input)
       input.each do |fn|
-        #raise "\'#{fn}\' not found in Eclipse FS" unless @files[fn]
         system "ssh #{node_containing(fn)} cat #{@fs_scratch_path}/#{fn}"
       end
     end
@@ -169,7 +173,7 @@ module EclipseDaemon
       input = @files.keys.grep(%r[#{@regex}]) if @regex
 
       input.each do |fn|
-        raise "\'#{fn}\' not found in Eclipse FS" unless @files[fn]
+#        raise "\'#{fn}\' not found in Eclipse FS" unless @files[fn]
 
         node = node_containing(fn)
         pathtofile = @fs_scratch_path + "/" + fn
@@ -183,7 +187,7 @@ module EclipseDaemon
 
     #}}}
     def list #{{{
-      thr = wait_message "Collecting information..."
+      thr = print_async "Collecting information..."
       output = [ ] 
       @files.each{|k, v| output << { :filename => k, :location => v} }
 
@@ -195,7 +199,7 @@ module EclipseDaemon
       end
 
       thr.exit
-      print "\r"
+      print "\r\e[K" 
       tp output, :filename, :location
     end
 
@@ -238,7 +242,8 @@ module EclipseDaemon
         opts.separator "    launch       Create new Eclipse network"
         opts.separator "    close        Close the network"
         opts.separator "    status       Check the status of the network"
-        opts.separator "    submit       Submit job"
+        opts.separator "    submit       Submit application"
+        opts.separator "    kill         kill application in each node"
         opts.separator ""
         opts.separator "Filesystem actions"
         opts.separator "    put FILE...  insert FILE..."
@@ -262,6 +267,8 @@ module EclipseDaemon
       when 'launch' then launch
       when 'close' then  close
       when 'status' then show
+      when 'submit' then submit input
+      when 'kill' then   kill input
       when 'put' then    put input
       when 'get' then    get input
       when 'cat' then    cat input
