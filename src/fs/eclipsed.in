@@ -118,6 +118,11 @@ module EclipseDaemon
         system cmd
       end
     end #}}}
+    # pry {{{
+    def pry 
+      require 'pry'
+      binding.pry
+    end #}}}
   end
 
   class Fs < Core
@@ -277,6 +282,7 @@ module EclipseDaemon
       when 'ls' then     list
       when 'config' then config 
       when 'cc' then     compile(input)
+      when 'pry' then    pry
       else               raise "Not action given"
       end
     end #}}}

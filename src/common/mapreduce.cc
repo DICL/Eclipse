@@ -6,6 +6,20 @@
 #include <sys/wait.h>
 #include <sys/unistd.h>
 #include <arpa/inet.h>
+#include <iostream>
+#include <errno.h>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <set>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+
+bool get_nextinput (string& inputpath);   // process to next input for map role
+char** get_argv (void);   // get user argv excepting passed pipe fd
+int get_argc (void);   // get user argc excepting passed pipe fd
+int connect_to_server (char *host, unsigned short port);
 
 mr_role role = JOB;
 char read_buf[BUF_SIZE]; // read buffer for pipe

@@ -366,9 +366,11 @@ int Cache_slave::run_server ()
                     // determine the cache location of data
                     memset (read_buf, 0, HASHLENGTH);
                     strcpy (read_buf, filename.c_str());
+
                     int index;
                     uint32_t hashvalue = h (read_buf, HASHLENGTH);
                     index = thehistogram->get_index (hashvalue);
+                    log->info ("Rread=%s hashvalue=%i index=%i", read_buf, hashvalue, index); 
                     address = nodelist[index];
                     filebridge* thebridge = new filebridge (fbidclock++);
                     bridges.push_back (thebridge);

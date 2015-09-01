@@ -876,6 +876,8 @@ void signal_listener (int args)
                     // determine the hash value and count the query
                     uint32_t hashvalue = h (write_buf, HASHLENGTH);
                     nodeindex = thehistogram->get_index (hashvalue);
+
+                    log->info ("Submiting [node size=%i] %s %i -> %i \n", nodelist.size(), write_buf, hashvalue, nodeindex);
                     
                     /*
                     if(slaves[nodeindex]->getnumrunningtasks() >= slaves[nodeindex]->getmaxmaptask()) // choose alternative slot
