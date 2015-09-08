@@ -34,6 +34,8 @@ string localhostname;
 vector<slave_job*> running_jobs; // a vector of job, one or multiple tasks of which are running on this slave node
 vector<slave_task*> running_tasks; // a vector of running tasks
 
+void block_until_event();
+
 int main (int argc, char** argv)
 {
     Settings setted;
@@ -75,7 +77,6 @@ void connect_to_server (const char* host, unsigned short port)
     }
     
     hp = gethostbyname (host);
-    
     if (hp == NULL) {
         log->info ("[slave]Cannot find host by host name");
     }
@@ -83,8 +84,8 @@ void connect_to_server (const char* host, unsigned short port)
     serveraddr.sin_family = AF_INET;
     memcpy (&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
     serveraddr.sin_port = htons (port);
-    connect (masterfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr));
 
+    connect (masterfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr));
     if (masterfd < 0) {
         log->info ("[slave]Connecting to master failed");
         exit (EXIT_FAILURE);
@@ -96,12 +97,10 @@ void connect_to_server (const char* host, unsigned short port)
     setsockopt (masterfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
 }
 
+// get signal from master, jobs and tasks
 void signal_listener()
 {
-    //ofstream logfile = new ofstream("slave" + id + ".log");
-    // get signal from master, jobs and tasks
     int readbytes = 0;
-    //int writeidclock = 0;
     struct timeval time_start;
     struct timeval time_end;
     gettimeofday (&time_start, NULL);
@@ -109,18 +108,17 @@ void signal_listener()
     
     while (1)
     {
+        block_until_event();
         readbytes = nbread (masterfd, read_buf);
         
         if (readbytes == 0)     //connection closed from master
         {
-//logfile << gettimeofday
             log->info ("[slave]Connection from master is abnormally closed");
             
             while (close (masterfd) < 0)
             {
                 log->info ("[slave]Closing socket failed");
-                // sleeps for 1 milli second
-                usleep (1000);
+                usleep (1000);  // sleeps for 1 milli second
             }
             
             log->info ("[slave]Exiting slave...");
@@ -145,8 +143,7 @@ void signal_listener()
                 while (close (masterfd) < 0)
                 {
                     log->info ("[slave]Close failed");
-                    // sleeps for 1 milli seconds
-                    usleep (1000);
+                    usleep (1000); // sleeps for 1 milli seconds
                 }
                 
                 log->info ("[slave]Exiting slave...");
@@ -358,9 +355,6 @@ void signal_listener()
                         nbwrite (masterfd, write_buf);
                     }
                     
-                    //cout<<"[slave]Task with taskid "<<running_tasks[i]->get_taskid();
-                    //cout<<" and job id "<<running_tasks[i]->get_job()->get_jobid();
-                    //cout<<" completed successfully"<<endl;
                     // send terminate message
                     memset (write_buf, 0, BUF_SIZE);
                     strcpy (write_buf, "terminate");
@@ -428,21 +422,6 @@ void signal_listener()
                         memset (write_buf, 0, BUF_SIZE);
                         strcpy (write_buf, "Einput");
                         nbwrite (running_tasks[i]->get_writefd(), write_buf);
-                        /*
-                        // input paths
-                        message<<" inputpaths ";
-                        message<<running_tasks[i]->get_numinputpaths(); // number of inputpaths
-                        for(int j=0;j<running_tasks[i]->get_numinputpaths();j++)
-                        {
-                        message<<" ";
-                        message<<running_tasks[i]->get_inputpath(j);
-                        }
-                        
-                        // send message to the task
-                        memset(write_buf, 0, BUF_SIZE);
-                        strcpy(write_buf, message.str().c_str());
-                        nbwrite(running_tasks[i]->get_writefd(), write_buf);
-                        */
                     }
                     else
                     {
@@ -479,22 +458,28 @@ void signal_listener()
             {
                 if (running_tasks[i]->get_status() == COMPLETED)     // successful termination
                 {
-                    // send 'taskcomplete' message to the master
-                    stringstream ss;
-                    string msg = "taskcomplete";
-                    ss << " jobid ";
-                    ss << running_tasks[i]->get_job()->get_jobid();
-                    ss << " taskid ";
-                    ss << running_tasks[i]->get_taskid();
-                    msg.append (ss.str());
-                    memset (write_buf, 0, BUF_SIZE);
-                    strcpy (write_buf, msg.c_str());
+                    snprintf (write_buf, BUF_SIZE, "taskcomplete jobid %i taskid %i", 
+                      running_tasks[i]->get_job()->get_jobid(),
+                      running_tasks[i]->get_taskid());
+
                     nbwrite (masterfd, write_buf);
+
                     // clear all to things related to this task
                     running_tasks[i]->get_job()->finish_task (running_tasks[i]);
                     delete running_tasks[i];
                     running_tasks.erase (running_tasks.begin() + i);
                     i--;
+                    
+//                    stringstream ss;
+//                    string msg = "taskcomplete";
+//                    ss << " jobid ";
+//                    ss << running_tasks[i]->get_job()->get_jobid();
+//                    ss << " taskid ";
+//                    ss << running_tasks[i]->get_taskid();
+//                    msg.append (ss.str());
+//                    memset (write_buf, 0, BUF_SIZE);
+//                    strcpy (write_buf, msg.c_str());
+//                    nbwrite (masterfd, write_buf);
                 }
                 else
                 {
@@ -519,139 +504,63 @@ void signal_listener()
                 }
             }
         }
-        
         gettimeofday (&time_end, NULL);
-        
-        if (time_end.tv_sec - time_start.tv_sec > 20.0)
-        {
-            //cout<<"[Slave Heartbeat]";
-            //cout<<"numjob: "<<running_jobs.size()<<", ";
-            //cout<<"numtask: "<<running_tasks.size()<<"("<<localhostname<<")"<<endl;
-            //gettimeofday(&time_start, NULL);
-        }
     }
     
-    while (close (masterfd) < 0)
+    while (close (masterfd) == EXIT_FAILURE)
     {
         log->info ("[slave]Close failed");
-        // sleeps for 1 milliseconds
-        usleep (1000);
+        usleep (1000); // sleeps for 1 milliseconds
     }
-    
     log->info ("[slave]Exiting slave...");
-    exit (0);
 }
 
 void launch_task (slave_task* atask)
 {
-    int pid;
-    int fd1[2]; // two set of fds between slave and task(1)
-    int fd2[2]; // two set of fds between slave and task(2)
-    pipe (fd1);   // fd1[0]: slave read, fd1[1]: task write
-    pipe (fd2);   // fd2[0]: task read, fd2[1]: slave write
-    // set pipe fds to be non-blocking to avoid deadlock
-    fcntl (fd1[0], F_SETFL, O_NONBLOCK);
+    pid_t pid;
+    int fd1[2], fd2[2];                  // two set of fds between slave and task(1)
+    pipe (fd1);                          // fd1[0]: slave read, fd1[1]: task write
+    pipe (fd2);                          // fd2[0]: task read, fd2[1]: slave write
+
+    fcntl (fd1[0], F_SETFL, O_NONBLOCK); // set pipe fds to be non-blocking to avoid deadlock
     fcntl (fd1[1], F_SETFL, O_NONBLOCK);
     fcntl (fd2[0], F_SETFL, O_NONBLOCK);
     fcntl (fd2[1], F_SETFL, O_NONBLOCK);
-    // set pipe fds
-    atask->set_readfd (fd1[0]);
+
+    atask->set_readfd (fd1[0]);          // set pipe fds
     atask->set_writefd (fd2[1]);
+
     pid = fork();
-    
-    if (pid == 0)     // child side
-    {
-        // pass all arguments
-        char** args;
-        int count;
-        stringstream ss;
-        stringstream ss1;
-        stringstream ss2;
-        // origianl arguments + write id + pipe fds + task type
-        count = atask->get_argcount();
-        args = new char*[count + 4];
+    switch (pid) {
+      case 0: {
+        int count = atask->get_argcount();
+        char** args = new char*[count + 4];
         
-        // pass original arguments
-        for (int i = 0; i < count; i++)
-        {
-            args[i] = new char[strlen (atask->get_argvalues() [i]) + 1];
-            strcpy (args[i], atask->get_argvalues() [i]);
-            args[i][strlen (atask->get_argvalues() [i])] = 0;
-        }
+        for (int i = 0; i < count; i++)                        // pass original arguments
+            args[i] = strdup (atask->get_argvalues()[i]);
         
-        // pass pipe fds
-        ss1 << fd2[0];
-        ss2 << fd1[1];
-        args[count] = new char[ss1.str().length() + 1];
-        args[count + 1] = new char[ss2.str().length() + 1];
-        strcpy (args[count], ss1.str().c_str());
-        strcpy (args[count + 1], ss2.str().c_str());
-        args[count][ss1.str().length()] = 0;
-        args[count + 1][ss2.str().length()] = 0;
+        args[count]     = strdup (to_string (fd2[0]).c_str()); // pass pipe fds
+        args[count + 1] = strdup (to_string (fd1[1]).c_str()); //
+        args[count + 3] = NULL;                                // pass null to last parameter
         
-        // pass task type
-        if (atask->get_taskrole() == MAP)
-        {
-            args[count + 2] = new char[4];
-            strcpy (args[count + 2], "MAP");
-            args[count + 2][3] = 0;
-            //args[count+2] = "MAP";
+        switch (atask->get_taskrole()) {
+          case MAP:    args[count + 2] = strdup("MAP"); break;
+          case REDUCE: args[count + 2] = strdup("REDUCE"); break;
+          default:     log->panic ("The role of the task is not defined in %s", __func__);
         }
-        else if (atask->get_taskrole() == REDUCE)
-        {
-            args[count + 2] = new char[7];
-            strcpy (args[count + 2], "REDUCE");
-            args[count + 2][6] = 0;
-            //args[count+2] = "REDUCE";
-        }
-        else
-        {
-            log->info ("[slave]Debugging: the role of the task is not defined in launch_task() function");
-            args[count + 2] = new char[4];
-            strcpy (args[count + 2], "JOB");
-            args[count + 2][3] = 0;
-            //args[count+2] = "JOB";
-        }
-        
-        // pass null to last parameter
-        args[count + 3] = NULL;
-        
-        // launch the task with the passed arguments
-        while (execv (args[0], args) == -1)
-        {
-            log->info ("Debugging: execv failed");
-            cout << "Arguments:";
-            
-            for (int i = 0; i < count + 3; i++)
-            {
-                cout << " " << args[i];
-            }
-            
-            cout << endl;
-            // sleeps for 1 seconds and retry execv. change this if necessary
-            sleep (1);
-        }
-    }
-    else if (pid < 0)
-    {
-        log->info ("[slave]Task could not have been started due to child process forking failure");
-    }
-    else     // parent side
-    {
-        // close pipe fds for task side
-        close (fd2[0]);
+
+        if (execv (args[0], args) == EXIT_FAILURE) // launch the task with the passed arguments
+            log->panic ("execv failed");
+
+      } break;
+      case EXIT_FAILURE:
+        log->info ("Task could not have been started due to child process forking failure");
+        break;
+
+      default:
+        close (fd2[0]); // close pipe fds for task side
         close (fd1[1]);
-        // register the pid of the task process
-        atask->set_pid (pid);
-        // print the launch message
-        //cout<<"[slave]A ";
-        //if(atask->get_taskrole() == MAP)
-        //  cout<<"map ";
-        //else if(atask->get_taskrole() == REDUCE)
-        //  cout<<"reduce ";
-        //cout<<"task launched with taskid "<<atask->get_taskid()<<" and jobid "<<atask->get_job()->get_jobid();
-        //cout<<endl;
-        return;
+        atask->set_pid (pid); // register the pid of the task process
     }
 }
 
@@ -666,4 +575,23 @@ slave_job* find_jobfromid (int id)
     }
     
     return NULL;
+}
+
+void block_until_event() {
+  struct timespec ts;
+  ts.tv_sec  = 0;
+  ts.tv_nsec = 10000000;
+
+  sigset_t mask;
+  sigemptyset (&mask);
+  sigaddset (&mask, SIGCHLD);
+
+  fd_set fds;
+  FD_ZERO(&fds);
+  FD_SET(masterfd, &fds); /* adds sock to the file descriptor set */
+
+  for (auto& ijob : running_tasks)
+    FD_SET(ijob->get_readfd(), &fds);
+
+  pselect (masterfd+running_tasks.size(), &fds, NULL, NULL, &ts, &mask);
 }

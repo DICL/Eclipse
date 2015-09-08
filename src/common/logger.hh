@@ -30,9 +30,12 @@ class Logger {
     static Logger* connect(std::string, std::string);
     static void disconnect(Logger*);
 
+    void debug (const char* fmt, ...);
     void info (const char* fmt, ...);
+    void notice (const char* fmt, ...);
     void warn (const char* fmt, ...);
     void error (const char* fmt, ...);
+    void panic (const char* fmt, ...);
 };
 
 #endif
