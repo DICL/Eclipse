@@ -7,6 +7,8 @@
 #include <stdarg.h>
 #include <syslog.h>
 #include <unordered_map>
+#include <stdlib.h>
+#include <string.h>
 
 using std::string;
 
@@ -20,12 +22,6 @@ std::unordered_map<string, int> syslog_facilities {
   {"LOG_LOCAL7" , LOG_LOCAL7},
   {"LOG_DAEMON" , LOG_DAEMON},
   {"LOG_USER" , LOG_USER}
-};
-
-std::unordered_map<int, string> syslog_priorities {
-  {LOG_INFO    , "LOG_INFO"},
-  {LOG_ERR     , "LOG_ERR"},
-  {LOG_WARNING , "LOG_WARNING"}
 };
 
 Logger* Logger::singleton = nullptr;
@@ -52,11 +48,27 @@ Logger::Logger (string title, string type) {
 
 Logger::~Logger () { closelog (); }
 
-void Logger::info (const char* fmt, ...) { 
+void Logger::debug (const char* fmt, ...) { 
+  va_list ap;
+
+  va_start(ap, fmt);
+  log(LOG_DEBUG, fmt, ap);
+  va_end(ap);
+}
+
+void Logger::info (const char* fmt, ...) {
   va_list ap;
 
   va_start(ap, fmt);
   log(LOG_INFO, fmt, ap);
+  va_end(ap);
+}
+
+void Logger::notice (const char* fmt, ...) { 
+  va_list ap;
+
+  va_start(ap, fmt);
+  log(LOG_NOTICE, fmt, ap);
   va_end(ap);
 }
 
@@ -70,10 +82,22 @@ void Logger::warn (const char* fmt, ...) {
 
 void Logger::error (const char* fmt, ...) { 
   va_list ap;
+  char msg [256];
+
+  strncpy(msg, fmt, 256 );
+  strncat(msg," [ERR:%m]", 256);
+  va_start(ap, fmt);
+  log(LOG_ERR, msg, ap);
+  va_end(ap);
+}
+
+void Logger::panic (const char* fmt, ...) { 
+  va_list ap;
 
   va_start(ap, fmt);
-  log(LOG_ERR, fmt, ap);
+  log(LOG_EMERG, fmt, ap);
   va_end(ap);
+  exit (EXIT_FAILURE);
 }
 
 void Logger::log (int type, const char* fmt, va_list ap) { 

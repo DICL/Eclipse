@@ -993,6 +993,7 @@ void signal_listener (int args)
                     ss << " ";
                     ss << thetask->get_job()->getargcount();
                     
+                    log->info ("Submiting REDUCE work to %i", nodeindex);
                     for (int j = 0; j < thetask->get_job()->getargcount(); j++)
                     {
                         ss << " ";

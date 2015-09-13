@@ -230,8 +230,22 @@ module EclipseDaemon
         puts cmd if @verbose
         system cmd
       end
-    end
-    #}}}
+    end #}}}
+    def iclear #{{{
+      @nodelist.each do |node|
+        cmd = "ssh #{node} rm -rf #{@fs_scratch_path}/.job*"
+        puts cmd if @verbose
+        system cmd
+      end
+    end #}}}
+    def icat #{{{
+      @nodelist.each do |node|
+        cmd = "ssh #{node} cat #{@fs_scratch_path}/.job*"
+        puts cmd if @verbose
+        puts "Files for node #{node}:"
+        system cmd
+      end
+    end #}}}
   end
 
   class CLI_driver < Fs 
@@ -283,6 +297,8 @@ module EclipseDaemon
       when 'config' then config 
       when 'cc' then     compile(input)
       when 'pry' then    pry
+      when 'icat' then   icat
+      when 'iclear' then iclear
       else               raise "Not action given"
       end
     end #}}}

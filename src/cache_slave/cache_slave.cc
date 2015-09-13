@@ -49,22 +49,16 @@ filepeer* Cache_slave::find_peer (string& address) {
       if (p->get_address() == address) return p;
     }
 
-    log->warn ("[Cache_slave:%d] No such a peer. in find_peer()", networkidx);
+    log->warn ("No such a peer. in find_peer(%s)", address.c_str());
     return NULL;
 } //}}}
 // find_bridge {{{
 filebridge* Cache_slave::find_bridge (int id) {
-//  auto it = find_if (bridges.begin(), bridges.end(), [&id](filebridge* i) { return  i->get_i() == id});
-//
-//  if (it != bridges.end())
-//    return *it;
-//
-//  else
    for (auto b : bridges) {
      if (b->get_id() == id) return b;
    }
 
-   log->warn ("[Cache_slave:%d] No such a bridge. in find_peer, id = %d", networkidx, id);
+   log->warn ("No such a bridge. in find_peer, id = %d", id);
    return NULL;
 } //}}}
 // find_Icachebridge {{{
@@ -97,7 +91,6 @@ bool Cache_slave::write_file (string fname, string& record)
     }
     
     record.append ("\n");
-    // memset(write_buf, 0, BUF_SIZE); <- memset may be not necessary
     strcpy (write_buf, record.c_str());
     ret = write (writefilefd, write_buf, record.length());
     
@@ -115,19 +108,16 @@ bool Cache_slave::write_file (string fname, string& record)
 } //}}}
 // connect {{{ 
 int Cache_slave::connect() {
-  if (access (ipc_path.c_str(), F_OK) == EXIT_SUCCESS)
-    unlink (ipc_path.c_str());
+  if (access (ipc_path.c_str(), F_OK) == EXIT_SUCCESS) unlink (ipc_path.c_str());
 
-  // connect to cacheserver
-  {
+  { // connect to cacheserver
     cacheserverfd = -1;
     struct sockaddr_in sa;
     socklen_t sl = sizeof sa; 
 
     cacheserverfd = socket (AF_INET, SOCK_STREAM, 0); // SOCK_STREAM -> tcp
-
     if (cacheserverfd < 0) {
-      log->info ("[Cache_slave:%d]Openning socket failed", networkidx);
+      log->info ("Openning socket failed");
       exit (EXIT_FAILURE);
     }
 
@@ -137,7 +127,7 @@ int Cache_slave::connect() {
     inet_pton (AF_INET, master_address.c_str(), &sa.sin_addr);
 
     while (EXIT_FAILURE == ::connect (cacheserverfd, reinterpret_cast<sockaddr*> (&sa), sl)) {
-      log->info ("[Cache_slave:%d]Cannot connect to the cache server. Retrying...", networkidx);
+      log->info ("Cannot connect to the cache server. Retrying...");
       usleep (100000);
     }
 
@@ -146,27 +136,22 @@ int Cache_slave::connect() {
     setsockopt (cacheserverfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
   }
 
-  // connect to other peer eclipse nodes
-  for (int i = 0; i < networkidx; i++)
+  for (int i = 0; i < networkidx; i++) // connect to other peer eclipse nodes
   {
     int clientfd = -1;
     struct sockaddr_in serveraddr;
     struct hostent *hp = NULL;
     
     clientfd = socket (AF_INET, SOCK_STREAM, 0);
-
-    if (clientfd < 0)
-    {
-      log->info ("[Cache_slave:%d]Openning socket failed", networkidx);
-      exit (1);
+    if (clientfd < 0) {
+      log->error ("Openning socket failed");
+      exit (EXIT_FAILURE);
     }
 
     hp = gethostbyname (nodelist[i].c_str());
-
-    if (hp == NULL)
-    {
-      log->info ("[Cache_slave:%d]Cannot find host by host name", networkidx);
-      return -1;
+    if (hp == NULL) {
+      log->error ("Cannot find host by host name");
+      return EXIT_FAILURE;
     }
 
     memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
@@ -174,12 +159,10 @@ int Cache_slave::connect() {
     memcpy (&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
     serveraddr.sin_port = htons (dhtport);
 
-    while (::connect (clientfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
-    {
-      log->info ("[Cache_slave:%d]Cannot connect to: %s", networkidx, nodelist[i].c_str());
+    while (::connect (clientfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0) {
+      log->info ("Cannot connect to: %s", nodelist[i].c_str());
       log->info ("Retrying...");
       usleep (100000);
-      //cout<<"\thost name: "<<nodelist[i]<<endl;
       continue;
     }
 
@@ -197,32 +180,27 @@ int Cache_slave::connect() {
   struct sockaddr_in serveraddr;
   fd = socket (AF_INET, SOCK_STREAM, 0);
 
-  if (fd < 0)
-  {
-    log->info ("[Cache_slave:%d]Socket opening failed", networkidx);
-    exit (-1);
+  if (fd < 0) {
+    log->error ("Socket opening failed");
+    exit (EXIT_FAILURE);
   }
 
   int valid = 1;
   setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, &valid, sizeof (valid));
-  // bind
+
   memset ( (void*) &serveraddr, 0, sizeof (struct sockaddr));
   serveraddr.sin_family = AF_INET;
   serveraddr.sin_addr.s_addr = htonl (INADDR_ANY);
   serveraddr.sin_port = htons ( (unsigned short) dhtport);
 
-  if (bind (fd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0)
-  {
-    log->info ("[Cache_slave:%d]\033[0;31mBinding failed\033[0m", networkidx);
-    exit (-1);
+  if (bind (fd, (struct sockaddr *) &serveraddr, sizeof (serveraddr)) < 0) {
+    log->error ("Binding failed");
+    exit (EXIT_FAILURE);
   }
 
-  // listen
-  if (listen (fd, BACKLOG) < 0)
-  {
-    log->info ("[master]Listening failed");
-    exit (-1);
-    return -1;
+  if (listen (fd, BACKLOG) < 0) {
+    log->error ("Listening failed");
+    exit (EXIT_FAILURE);
   }
 
   // register the current node itself to the peer list
@@ -230,26 +208,20 @@ int Cache_slave::connect() {
 
   // register the other peers in order
   for (int i = networkidx + 1; (unsigned) i < nodelist.size(); i++)
-  {
     peers.push_back (new filepeer (-1, nodelist[i]));
-  }
 
   // listen connections from peers and complete the eclipse network
-  for (int i = networkidx + 1; (unsigned) i < nodelist.size(); i++)
-  {
+  for (int i = networkidx + 1; (unsigned) i < nodelist.size(); i++) {
     struct sockaddr_in connaddr;
     int addrlen = sizeof (connaddr);
     tmpfd = accept (fd, (struct sockaddr *) &connaddr, (socklen_t *) &addrlen);
 
-    if (tmpfd > 0)
-    {
+    if (tmpfd > 0) {
       char* haddrp = inet_ntoa (connaddr.sin_addr);
       string address = haddrp;
 
-      for (int j = networkidx + 1; (unsigned) j < nodelist.size(); j++)
-      {
-        if (peers[j]->get_address() == address)
-        {
+      for (int j = networkidx + 1; (unsigned) j < nodelist.size(); j++) {
+        if (peers[j]->get_address() == address) {
           peers[j]->set_fd (tmpfd);
         }
       }
@@ -258,48 +230,41 @@ int Cache_slave::connect() {
       fcntl (tmpfd, F_SETFL, O_NONBLOCK);
       setsockopt (tmpfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
       setsockopt (tmpfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
-    }
-    else if (tmpfd < 0)       // connection failed
-    {
-      // retry with same index
+
+    } else if (tmpfd < 0) { // retry with same index
       i--;
       continue;
-    }
-    else
-    {
+
+    } else {
       log->info ("connection closed.......................");
     }
   }
 
   // register the server fd
   serverfd = fd;
-  log->info ("[Cache_slave:%d]Eclipse network successfully established", networkidx);
-  // prepare AF_UNIX socket for the ipc with tasks
+  log->info ("Eclipse network successfully established");
+
   struct sockaddr_un serveraddr2;
   ipcfd = socket (AF_UNIX, SOCK_STREAM, 0);
-
-  if (ipcfd < 0)
-  {
-    log->info ("[Cache_slave:%d]AF_UNIX socket openning failed", networkidx);
-    exit (-1);
+  if (ipcfd < 0) {
+    log->error ("AF_UNIX socket openning failed");
+    exit (EXIT_FAILURE);
   }
 
-  // bind
   memset ( (void*) &serveraddr2, 0, sizeof (serveraddr2));
   serveraddr2.sun_family = AF_UNIX;
   strcpy (serveraddr2.sun_path, ipc_path.c_str());
 
   if (bind (ipcfd, (struct sockaddr *) &serveraddr2, SUN_LEN (&serveraddr2)) < 0)
   {
-    log->info ("[Cache_slave:%d]\033[0;31mIPC Binding failed\033[0m", networkidx);
-    exit (-1);
+    log->error ("IPC Binding failed");
+    exit (EXIT_FAILURE);
   }
 
-  // listen
   if (listen (ipcfd, BACKLOG) < 0)
   {
-    log->info ("[master]Listening failed");
-    exit (-1);
+    log->error ("Listening failed");
+    exit (EXIT_FAILURE);
   }
 
   // set the server fd and ipc fd as nonblocking mode
@@ -321,12 +286,11 @@ int Cache_slave::run_server ()
         // Accept local clients {{{
         tmpfd = accept (ipcfd, NULL, NULL);
         
-        if (tmpfd > 0)     // new file client is connected
+        if (tmpfd > 0)                                       // new file client is connected
         {
-            // create new clients
-            clients.push_back (new file_connclient (tmpfd));
-            clients.back()->thecount = new writecount();
-            // set socket to be non-blocking socket to avoid deadlock
+            clients.push_back (new file_connclient (tmpfd)); // create new clients
+            clients.back()->thecount = new writecount();     // set socket to be non-blocking socket to avoid deadlock
+
             fcntl (tmpfd, F_SETFL, O_NONBLOCK);
             setsockopt (tmpfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
             setsockopt (tmpfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
@@ -343,48 +307,45 @@ int Cache_slave::run_server ()
                 char* token;
                 string filename;
                 
-//        memset(write_buf, 0, BUF_SIZE);
-//        strcpy(write_buf, read_buf);
                 // The message is either: Rread(raw), Iread(intermediate), Iwrite(intermediate), Owrite(output)
-                if (strncmp (read_buf, "Rread", 5) == 0)
+                if (strncmp (read_buf, "Rread", 5) == 0) //{{{
                 {
                     string cachekey;
                     string appname;
                     int jobid;
-                    token = strtok (read_buf, " ");   // <- "Rread"
-                    // determine the candidate eclipse node which will have the data
+                    token = strtok (read_buf, " ");  // <- "Rread"
+                                                     // determine the candidate eclipse node which will have the data
                     string address;
-                    token = strtok (NULL, " ");   // <- [app name]
-                    appname = token; // [app name]
-                    cachekey = token; // [app name]
+                    token = strtok (NULL, " ");      // <- [app name]
+                    appname = token;                 // [app name]
+                    cachekey = token;                // [app name]
                     cachekey.append ("_");
-                    token = strtok (NULL, " ");   // <- job id
+                    token = strtok (NULL, " ");      // <- job id
                     jobid = atoi (token);
-                    token = strtok (NULL, " ");   // <- file name
-                    cachekey.append (token);   // <- cachekey: [app name]_[file name]
+                    token = strtok (NULL, " ");      // <- file name
+                    cachekey.append (token);         // <- cachekey: [app name]_[file name]
                     filename = token;
-                    // determine the cache location of data
+                                                     // determine the cache location of data
                     memset (read_buf, 0, HASHLENGTH);
                     strcpy (read_buf, filename.c_str());
 
                     int index;
                     uint32_t hashvalue = h (read_buf, HASHLENGTH);
                     index = thehistogram->get_index (hashvalue);
-                    log->info ("Rread=%s hashvalue=%i index=%i", read_buf, hashvalue, index); 
+                    log->debug ("Rread=%s hashvalue=%i index=%i", read_buf, hashvalue, index); 
                     address = nodelist[index];
                     filebridge* thebridge = new filebridge (fbidclock++);
                     bridges.push_back (thebridge);
                     
-                    if (index == networkidx)     // local input data
+                    if (index == networkidx)                               // local input data
                     {
-                        // check whether the intermediate result is hit
-                        dataentry* theentry = thecache->lookup (cachekey);
-                        
-                        if (theentry == NULL)     // when the intermediate result is not hit
+                        dataentry* theentry = thecache->lookup (cachekey); // check whether the intermediate result is hit
+
+                        if (theentry == NULL)                              // when the intermediate result is not hit
                         {
-                            log->info ("\033[0;31mLocal Icache miss\033[0m");
-                            // send 0 packet to the client to notify that Icache is not hit
-                            memset (write_buf, 0, BUF_CUT);
+                            log->info ("Local Icache miss");
+                                                                          
+                            memset (write_buf, 0, BUF_CUT);  // send 0 packet to the client to notify that Icache is not hit
                             
                             if (clients[i]->msgbuf.size() > 1)
                             {
@@ -403,13 +364,13 @@ int Cache_slave::run_server ()
                             
                             if (theentry == NULL)     // when data is not in cache
                             {
-                                log->info ("\033[0;31mLocal Cache miss\033[0m");
-                                // set an entry writer
-                                dataentry* newentry = new dataentry (filename, hashvalue);
+                                log->info ("Local Cache miss");
+                                
+                                dataentry* newentry = new dataentry (filename, hashvalue); // set an entry writer
                                 thecache->new_entry (newentry);
                                 entrywriter* thewriter = new entrywriter (newentry);
-                                // determine the DHT file location
-                                hashvalue = hashvalue % nodelist.size();
+                                
+                                hashvalue = hashvalue % nodelist.size(); // determine the DHT file location
                                 address = nodelist[hashvalue];
                                 
                                 if ( (unsigned) networkidx == hashvalue)
@@ -425,9 +386,7 @@ int Cache_slave::run_server ()
                                     thebridge->writebuffer->configure_initial ("");
                                     thebridge->writebuffer->set_msgbuf (&clients[i]->msgbuf);
                                     thebridge->writebuffer->set_dwriter (thewriter);
-                                    //thebridge->set_filename(filename);
-                                    //thebridge->set_dataname(filename);
-                                    //thebridge->set_dtype(RAW);
+
                                     // open read file and start sending data to client
                                     thebridge->open_readfile (filename);
                                 }
@@ -440,9 +399,7 @@ int Cache_slave::run_server ()
                                     thebridge->set_dsttype (CLIENT);
                                     thebridge->set_entrywriter (thewriter);
                                     thebridge->set_dstclient (clients[i]);
-                                    // thebridge->set_filename(filename);
-                                    // thebridge->set_dataname(filename);
-                                    // thebridge->set_dtype(RAW);
+
                                     // send message to the target peer
                                     string message;
                                     stringstream ss;
@@ -453,11 +410,7 @@ int Cache_slave::run_server ()
                                     message = ss.str();
                                     memset (write_buf, 0, BUF_SIZE);
                                     strcpy (write_buf, message.c_str());
-                                    //cout<<endl;
-                                    //cout<<"write from: "<<localhostname<<endl;
-                                    //cout<<"write to: "<<address<<endl;
-                                    //cout<<"message: "<<write_buf<<endl;
-                                    //cout<<endl;
+
                                     filepeer* thepeer = find_peer (address);
                                     
                                     if (thepeer->msgbuf.size() > 1)
@@ -494,9 +447,7 @@ int Cache_slave::run_server ()
                                         thebridge->writebuffer = new msgaggregator (clients[i]->get_fd());
                                         thebridge->writebuffer->configure_initial ("");
                                         thebridge->writebuffer->set_msgbuf (&clients[i]->msgbuf);
-                                        //thebridge->set_filename(filename);
-                                        //thebridge->set_dataname(filename);
-                                        //thebridge->set_dtype(RAW);
+
                                         // open read file and start sending data to client
                                         thebridge->open_readfile (filename);
                                     }
@@ -508,9 +459,7 @@ int Cache_slave::run_server ()
                                         thebridge->set_srctype (PEER);
                                         thebridge->set_dsttype (CLIENT);
                                         thebridge->set_dstclient (clients[i]);
-                                        // thebridge->set_filename(filename);
-                                        // thebridge->set_dataname(filename);
-                                        // thebridge->set_dtype(RAW);
+
                                         // send message to the target peer
                                         string message;
                                         stringstream ss;
@@ -521,11 +470,7 @@ int Cache_slave::run_server ()
                                         message = ss.str();
                                         memset (write_buf, 0, BUF_SIZE);
                                         strcpy (write_buf, message.c_str());
-                                        //cout<<endl;
-                                        //cout<<"write from: "<<localhostname<<endl;
-                                        //cout<<"write to: "<<address<<endl;
-                                        //cout<<"message: "<<write_buf<<endl;
-                                        //cout<<endl;
+
                                         filepeer* thepeer = find_peer (address);
                                         
                                         if (thepeer->msgbuf.size() > 1)
@@ -549,21 +494,18 @@ int Cache_slave::run_server ()
                                     // 2. and send it to client
                                     // set a entry reader
                                     entryreader* thereader = new entryreader (theentry);
-                                    log->info ("\033[0;32m[%d]Local Cache hit\033[0m", networkidx);
+                                    log->info ("Local Cache hit");
                                     thebridge->set_srctype (CACHE);
                                     thebridge->set_dsttype (CLIENT);
                                     thebridge->set_entryreader (thereader);
                                     thebridge->set_dstclient (clients[i]);
-                                    //thebridge->set_filename(filename);
-                                    //thebridge->set_dataname(filename);
-                                    //thebridge->set_dtype(RAW);
                                 }
                             }
                         }
                         else     // intermediate result hit
                         {
-                            log->info ("\033[0;32m[%d]Local Icache hit\033[0m", networkidx);
-//cout<<"[Cache_slave:"<<networkidx<<"]Cachekey hit: "<<cachekey<<endl;
+                            log->info ("Local Icache hit");
+
                             // send 1 packet to the client to notify that Icache is hit
                             memset (write_buf, 0, BUF_CUT);
                             write_buf[0] = 1;
@@ -590,116 +532,6 @@ int Cache_slave::run_server ()
                             thebridge->set_distributor (thedistributor);
                             thebridge->set_entryreader (thereader);
                         }
-                        
-                        /*
-                        // check whether the input is hit
-                        dataentry* theentry = thecache->lookup(filename);
-                        
-                        if(theentry == NULL) // when data is not in cache
-                        {
-                          cout<<"\033[0;31mCache miss\033[0m"<<endl;
-                        
-                          // set a entry writer
-                          dataentry* newentry = new dataentry(filename, hashvalue);
-                          thecache->new_entry(newentry);
-                          entrywriter* thewriter = new entrywriter(newentry);
-                        
-                          // determine the DHT file location
-                          hashvalue = hashvalue%nodelist.size();
-                        
-                          address = nodelist[hashvalue];
-                        
-                          if(localhostname == address)
-                          {
-                            // 1. read data from disk
-                            // 2. store it in the cache
-                            // 3. send it to client
-                        
-                            thebridge->set_srctype(DISK);
-                            thebridge->set_dsttype(CLIENT);
-                            thebridge->set_entrywriter(thewriter);
-                            thebridge->set_dstclient(clients[i]);
-                        
-                            thebridge->writebuffer = new msgaggregator(clients[i]->get_fd());
-                            thebridge->writebuffer->configure_initial("");
-                            thebridge->writebuffer->set_msgbuf(&clients[i]->msgbuf);
-                            thebridge->writebuffer->set_dwriter(thewriter);
-                            //thebridge->set_filename(filename);
-                            //thebridge->set_dataname(filename);
-                            //thebridge->set_dtype(RAW);
-                        
-                            // open read file and start sending data to client
-                            thebridge->open_readfile(filename);
-                          }
-                          else // remote DHT peer
-                          {
-                            // 1. request to the DHT peer (read from peer)
-                            // 2. store it in the cache
-                            // 3. send it to client
-                        
-                            thebridge->set_srctype(PEER);
-                            thebridge->set_dsttype(CLIENT);
-                            thebridge->set_entrywriter(thewriter);
-                            thebridge->set_dstclient(clients[i]);
-                        
-                            // thebridge->set_filename(filename);
-                            // thebridge->set_dataname(filename);
-                            // thebridge->set_dtype(RAW);
-                        
-                            // send message to the target peer
-                            string message;
-                            stringstream ss;
-                            ss << "RDread ";
-                            ss << filename;
-                            ss << " ";
-                            ss << thebridge->get_id();
-                            message = ss.str();
-                        
-                            memset(write_buf, 0, BUF_SIZE);
-                            strcpy(write_buf, message.c_str());
-                        
-                            //cout<<endl;
-                            //cout<<"write from: "<<localhostname<<endl;
-                            //cout<<"write to: "<<address<<endl;
-                            //cout<<"message: "<<write_buf<<endl;
-                            //cout<<endl;
-                        
-                            filepeer* thepeer = find_peer(address);
-                        
-                            if(thepeer->msgbuf.size() > 1)
-                            {
-                              thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
-                              thepeer->msgbuf.push_back(new messagebuffer());
-                            }
-                            else
-                            {
-                              if(nbwritebuf(thepeer->get_fd(),
-                                    write_buf, thepeer->msgbuf.back()) <= 0)
-                              {
-                                thepeer->msgbuf.push_back(new messagebuffer());
-                              }
-                            }
-                          }
-                        }
-                        else // when the data is in the cache
-                        {
-                          // 1. read from cache
-                          // 2. and send it to client
-                        
-                          // set a entry reader
-                          entryreader* thereader = new entryreader(theentry);
-                        
-                          cout<<"\033[0;32mCache hit\033[0m"<<endl;
-                        
-                          thebridge->set_srctype(CACHE);
-                          thebridge->set_dsttype(CLIENT);
-                          thebridge->set_entryreader(thereader);
-                          thebridge->set_dstclient(clients[i]);
-                          //thebridge->set_filename(filename);
-                          //thebridge->set_dataname(filename);
-                          //thebridge->set_dtype(RAW);
-                        }
-                        */
                     }
                     else     // remote cache peer
                     {
@@ -708,9 +540,7 @@ int Cache_slave::run_server ()
                         thebridge->set_srctype (PEER);
                         thebridge->set_dsttype (CLIENT);
                         thebridge->set_dstclient (clients[i]);
-                        //thebridge->set_filename(filename);
-                        //thebridge->set_dataname(filename);
-                        //thebridge->set_dtype(RAW);
+
                         // send message to the target peer
                         string message;
                         stringstream ss;
@@ -725,11 +555,7 @@ int Cache_slave::run_server ()
                         message = ss.str();
                         memset (write_buf, 0, BUF_SIZE);
                         strcpy (write_buf, message.c_str());
-                        //cout<<endl;
-                        //cout<<"write from: "<<localhostname<<endl;
-                        //cout<<"write to: "<<address<<endl;
-                        //cout<<"message: "<<write_buf<<endl;
-                        //cout<<endl;
+
                         filepeer* thepeer = find_peer (address);
                         
                         if (thepeer->msgbuf.size() > 1)
@@ -746,10 +572,9 @@ int Cache_slave::run_server ()
                             }
                         }
                     }
-                }
-                else if (strncmp (read_buf, "Iread", 5) == 0)
+                } //}}}
+                else if (strncmp (read_buf, "Iread", 5) == 0) //{{{
                 {
-//cout<<"[Cache_slave:"<<networkidx<<"]Iread message: "<<read_buf<<endl;
                     int jobid;
                     int peerid;
                     int numiblock;
@@ -817,39 +642,34 @@ int Cache_slave::run_server ()
                         
                         //nbwrite(find_peer(address)->get_fd(), write_buf);
                     }
-                }
-                else if (strncmp (read_buf, "ICwrite", 6) == 0)         // "ICwrite" message from client
+                } //}}}
+                else if (strncmp (read_buf, "ICwrite", 6) == 0) // {{{
                 {
                     string cachekey;
                     string appname;
                     string inputpath;
                     int jobid;
-                    token = strtok (read_buf, " ");   // <- "ICwrite"
-                    token = strtok (NULL, "_");   // <- ".job"
-                    token = strtok (NULL, "_\n");   // <- job id
+                    token = strtok (read_buf, " ");                          // <- "ICwrite"
+                    token = strtok (NULL, "_");                              // <- ".job"
+                    token = strtok (NULL, "_\n");                            // <- job id
                     jobid = atoi (token);
-                    token = strtok (NULL, " ");   // <- [app name]
-                    appname = token; // <- [app name]
-                    cachekey = token; // <- [app name]
+                    token = strtok (NULL, " ");                              // <- [app name]
+                    appname = token;                                         // <- [app name]
+                    cachekey = token;                                        // <- [app name]
                     cachekey.append ("_");
-                    token = strtok (NULL, "\n");   // <- [input file path]
+                    token = strtok (NULL, "\n");                             // <- [input file path]
                     inputpath = token;
                     cachekey.append (inputpath);
-                    token = strtok (NULL, "");   // token -> rest of message
-//cout<<"ICwrite sent"<<endl;
-//cout<<"cachekey: "<<cachekey<<endl;
-//cout<<"inputpath: "<<inputpath<<endl;
-//cout<<"jobdirpath: "<<jobdirpath<<endl;
-                    // cache the 'token'
+                    token = strtok (NULL, "");                               // token -> rest of message
+
                     entrywriter* thewriter = clients[i]->get_Icachewriter();
                     filepeer* thepeer = clients[i]->get_Itargetpeer();
-                    
-                    if (thewriter != NULL)     // target is local and writing is ongoing
+
+                    if (thewriter != NULL)                                   // target is local and writing is ongoing
                     {
-//cout<<"[Cache_slave:"<<networkidx<<"]Cachekey of written data: "<<cachekey<<endl;
                         thewriter->write_record (token);
                     }
-                    else if (thepeer != NULL)       // target is remote peer and writing is ongoing
+                    else if (thepeer != NULL)                                // target is remote peer and writing is ongoing
                     {
                         string message = "Icache ";
                         message.append (appname);
@@ -860,9 +680,7 @@ int Cache_slave::run_server ()
                         memset (write_buf, 0, BUF_SIZE);
                         strcpy (write_buf, message.c_str());
                         
-//cout<<"[Cache_slave:"<<networkidx<<"]Sending Icache message: "<<write_buf<<endl;
-                        // send token to the remote cache to store it
-                        if (thepeer->msgbuf.size() > 1)
+                        if (thepeer->msgbuf.size() > 1)                      // send token to the remote cache to store it
                         {
                             thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
                             thepeer->msgbuf.push_back (new messagebuffer());
@@ -876,9 +694,8 @@ int Cache_slave::run_server ()
                             }
                         }
                     }
-                    else     // target should be determined
+                    else     // target should be determined, determine the target cache of data
                     {
-                        // determine the target cache of data
                         string address;
                         memset (write_buf, 0, HASHLENGTH);
                         strcpy (write_buf, inputpath.c_str());
@@ -889,9 +706,7 @@ int Cache_slave::run_server ()
                         
                         if (index == networkidx)     // local target cache
                         {
-                            // set a entry writer
-//cout<<"[Cache_slave:"<<networkidx<<"]Cachekey of new data entry: "<<cachekey<<endl;
-                            dataentry* newentry = new dataentry (cachekey, hashvalue);
+                            dataentry* newentry = new dataentry (cachekey, hashvalue); // set a entry writer
                             thecache->new_entry (newentry);
                             entrywriter* thewriter = new entrywriter (newentry);
                             clients[i]->set_Icachewriter (thewriter);
@@ -911,9 +726,7 @@ int Cache_slave::run_server ()
                             memset (write_buf, 0, BUF_SIZE);
                             strcpy (write_buf, message.c_str());
                             
-//cout<<"[Cache_slave:"<<networkidx<<"]Sending Icache message: "<<write_buf<<endl;
-                            // send token to the remote cache to store it
-                            if (thepeer->msgbuf.size() > 1)
+                            if (thepeer->msgbuf.size() > 1) // send token to the remote cache to store it
                             {
                                 thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
                                 thepeer->msgbuf.push_back (new messagebuffer());
@@ -928,141 +741,66 @@ int Cache_slave::run_server ()
                             }
                         }
                     }
-                    
-                    // find or allocate idistributor
-                    if (clients[i]->thedistributor == NULL)
+                    if (clients[i]->thedistributor == NULL) // find or allocate idistributor
                     {
                         clients[i]->thedistributor = new idistributor ( (&peers), (&iwriters), clients[i]->thecount, jobid, networkidx);
                         clients[i]->thedistributor->process_message (token, write_buf);
                     }
-                    else
+                    else         // process the intermediate data
                     {
-                        // process the intermediate data
                         clients[i]->thedistributor->process_message (token, write_buf);
                     }
-                    
-                    /*
-                    if(localhostname == address)
-                    {
-                      // open write file to write data to disk
-                      write_file(filename, record);
-                      //filebridge* thebridge = new filebridge(fbidclock++);
-                      //thebridge->open_writefile(filename);
-                      //thebridge->write_record(record, write_buf);
-                    
-                      //delete thebridge;
-                    }
-                    else // distant
-                    {
-                      // bridges.push_back(thebridge);
-                    
-                      // set up the bridge
-                      // thebridge->set_srctype(PEER); // source of Ewrite
-                      // thebridge->set_dsttype(CLIENT); // destination of Ewrite
-                      // thebridge->set_dstclient(NULL);
-                      // thebridge->set_dtype(INTERMEDIATE);
-                      // thebridge->set_writeid(writeid);
-                    
-                      // send message along with the record to the target peer
-                      string message;
-                      stringstream ss;
-                      ss << "write ";
-                      ss << filename;
-                      ss << " ";
-                      ss << record;
-                      message = ss.str();
-                    
-                      memset(write_buf, 0, BUF_SIZE);
-                      strcpy(write_buf, message.c_str());
-                    
-                      //cout<<endl;
-                      //cout<<"write from: "<<localhostname<<endl;
-                      //cout<<"write to: "<<address<<endl;
-                      //cout<<"message: "<<write_buf<<endl;
-                      //cout<<endl;
-                    
-                      filepeer* thepeer = peers[hashvalue];
-                    
-                      if(clients[i]->thecount == NULL)
-                        cout<<"[Cache_slave]The write id is not set before the write request"<<endl;
-                    
-                      clients[i]->thecount->add_peer(hashvalue);
-                    
-                      if(thepeer->msgbuf.size() > 1)
-                      {
-                        thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
-                        thepeer->msgbuf.push_back(new messagebuffer());
-                      }
-                      else
-                      {
-                        //cout<<endl;
-                        //cout<<"from: "<<localhostname<<endl;
-                        //cout<<"to: "<<thepeer->get_address()<<endl;
-                        if(nbwritebuf(thepeer->get_fd(),
-                              write_buf, thepeer->msgbuf.back()) <= 0)
-                        {
-                          thepeer->msgbuf.push_back(new messagebuffer());
-                        }
-                      }
-                    }
-                    */
-                }
-                else if (strncmp (read_buf, "Iwrite", 6) == 0)         // "Iwrite" message from client
+                } //}}}
+                else if (strncmp (read_buf, "Iwrite", 6) == 0) //{{{
                 {
-                    int jobid;
-                    // extract job id
-                    token = strtok (read_buf, " ");   // <- "Iwrite"
-                    token = strtok (NULL, "_");   // <- ".job"
-                    token = strtok (NULL, "_\n");   // <- job id
+                    int jobid;                              // extract job id
+                    token = strtok (read_buf, " ");         // <- "Iwrite"
+                    token = strtok (NULL, "_");             // <- ".job"
+                    token = strtok (NULL, "_\n");           // <- job id
                     jobid = atoi (token);
-                    token += strlen (token) + 2;   // jump "_" and " "
-                    
-                    // find or allocate idistributor
-                    if (clients[i]->thedistributor == NULL)
+                    token += strlen (token) + 2;            // jump "_" and " "
+
+                    if (clients[i]->thedistributor == NULL) // find or allocate idistributor
                     {
                         clients[i]->thedistributor = new idistributor ( (&peers), (&iwriters), clients[i]->thecount, jobid, networkidx);
                         clients[i]->thedistributor->process_message (token, write_buf);
                     }
                     else
                     {
-                        // process the intermediate data
-                        clients[i]->thedistributor->process_message (token, write_buf);
+                        clients[i]->thedistributor->process_message (token, write_buf); // process the intermediate data
                     }
-                }
-                else if (strncmp (read_buf, "Owrite", 6) == 0)
+                } //}}}
+                else if (strncmp (read_buf, "Owrite", 6) == 0) //{{{
                 {
                     string record;
-                    // pre-copy the contents of read_buf to write_buf
                     memset (write_buf, 0, BUF_SIZE);
                     strcpy (write_buf, read_buf);
-                    token = strtok (read_buf, " ");   // <- "Owrite"
-                    token = strtok (NULL, "\n");   // <- file name
+                    token = strtok (read_buf, " ");                // <- "Owrite"
+                    token = strtok (NULL, "\n");                   // <- file name
                     filename = token;
-                    token += strlen (token) + 1;   // <- token: writing contents
+                    token += strlen (token) + 1;                   // <- token: writing contents
                     record = token;
-                    // determine the target peer node
+                                                                   // determine the target peer node
                     memset (read_buf, 0, HASHLENGTH);
                     strcpy (read_buf, filename.c_str());
                     uint32_t hashvalue = h (read_buf, HASHLENGTH);
                     hashvalue = hashvalue % nodelist.size();
-                    
-                    if (hashvalue == (unsigned) networkidx)       // write to local disk
+
+                    if (hashvalue == (unsigned) networkidx)        // write to local disk
                     {
-                        // write to the disk
+                                                                   // write to the disk
                         write_file (filename, record);
                     }
-                    else     // remote peer
+                    else                                           // remote peer
                     {
-                        // write to the peer with pre-prepared write_buf
-                        filepeer* thepeer = peers[hashvalue];
+                        filepeer* thepeer = peers[hashvalue];      // write to the peer with pre-prepared write_buf
                         
                         if (clients[i]->thecount == NULL)
                         {
                             log->info ("[Cache_slave:%d]The write id is not set before the write request", networkidx);
                         }
                         
-                        // write to the peer
-                        if (thepeer->msgbuf.size() > 1)
+                        if (thepeer->msgbuf.size() > 1)            // write to the peer
                         {
                             thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
                             thepeer->msgbuf.push_back (new messagebuffer());
@@ -1076,12 +814,10 @@ int Cache_slave::run_server ()
                             }
                         }
                     }
-                }
-                else if (strncmp (read_buf, "MWwrite", 7) == 0)
+                } //}}}
+                else if (strncmp (read_buf, "MWwrite", 7) == 0) //{{{
                 {
-//cout<<"MWwrite"<<endl;
-                    // flush and clear the distributor
-                    if (clients[i]->thedistributor != NULL)
+                    if (clients[i]->thedistributor != NULL) // flush and clear the distributor
                     {
                         delete clients[i]->thedistributor;
                         clients[i]->thedistributor = NULL;
@@ -1164,8 +900,7 @@ int Cache_slave::run_server ()
                     }
                     else
                     {
-                        // send null packet for empty peer list
-                        memset (write_buf, 0, BUF_SIZE);
+                        memset (write_buf, 0, BUF_SIZE); // send null packet for empty peer list
                         
                         if (clients[i]->msgbuf.size() > 1)
                         {
@@ -1182,14 +917,12 @@ int Cache_slave::run_server ()
                     }
                     
                     thecount->clear_peer (networkidx);
-                    // send EIcache to the target peer
-                    entrywriter* thewriter = clients[i]->get_Icachewriter();
+                    entrywriter* thewriter = clients[i]->get_Icachewriter(); 
                     filepeer* thepeer = clients[i]->get_Itargetpeer();
                     
-                    if (thepeer != NULL)
+                    if (thepeer != NULL) // send EIcache to the target peer
                     {
-                        // send End of Icache message "EIcache"
-                        string message = "EIcache ";
+                        string message = "EIcache "; // send End of Icache message "EIcache"
                         message.append (clients[i]->get_Icachekey());
                         memset (write_buf, 0, BUF_SIZE);
                         strcpy (write_buf, message.c_str());
@@ -1207,7 +940,6 @@ int Cache_slave::run_server ()
                                 thepeer->msgbuf.push_back (new messagebuffer());
                             }
                         }
-                        
                         clients[i]->set_Itargetpeer (NULL);
                     }
                     else if (thewriter != NULL)
@@ -1217,19 +949,18 @@ int Cache_slave::run_server ()
                         clients[i]->set_Icachewriter (NULL);
                     }
                     
-                    if (thecount->size() == 0)
+                    if (thecount->size() == 0) // clear the count
                     {
-                        // clear the count
                         delete thecount;
                         clients[i]->thecount = NULL;
-                        // close the client
+
                         close (clients[i]->get_fd());
                         delete clients[i];
                         clients.erase (clients.begin() + i);
                         i--;
                     }
-                }
-                else if (strncmp (read_buf, "RWwrite", 7) == 0)
+                } //}}}
+                else if (strncmp (read_buf, "RWwrite", 7) == 0) //{{{
                 {
                     // clear the count
                     delete clients[i]->thecount;
@@ -1239,15 +970,11 @@ int Cache_slave::run_server ()
                     delete clients[i];
                     clients.erase (clients.begin() + i);
                     i--;
-                }
+                } //}}}
                 else
                 {
-                    cout << "[Cache_slave:%d]Debugging: Unknown message";
+                    log->error ("Debugging: Unknown message");
                 }
-                
-                // enable loop acceleration
-                //i--;
-                //continue;
             }
         } //}}}
         // Foreach peer, receives read/write request or data stream {{{
@@ -1266,8 +993,6 @@ int Cache_slave::run_server ()
             {
                 if (strncmp (read_buf, "Ilook", 5) == 0)       // read request to cache(Icache)
                 {
-//cout<<"[Cache_slave:"<<networkidx<<"]Ilook message: "<<read_buf<<endl;
-//cout<<"[Cache_slave:"<<networkidx<<"]network idx: "<<networkidx<<endl;
                     char* token;
                     string cachekey;
                     string appname;
@@ -1294,8 +1019,7 @@ int Cache_slave::run_server ()
                     
                     if (theentry == NULL)     // when the intermediate result is not hit
                     {
-                        cout << "\033[0;31mRemote Icache miss\033[0m" << endl;
-//cout<<"[Cache_slave:"<<networkidx<<"]Cache key not hit after receiving Ilook: "<<cachekey<<endl;
+                        log->info ("Remote Icache miss");
                         // send "Imiss"
                         string message = "Imiss ";
                         message.append (bridgeid);
@@ -1320,7 +1044,7 @@ int Cache_slave::run_server ()
                         
                         if (theentry == NULL)     // raw input data is not hit
                         {
-                            log->info ("\033[0;31mRemote Cache miss\033[0m");
+                            log->info ("Remote Cache miss");
                             // determine the hash value
                             memset (write_buf, 0, HASHLENGTH);
                             strcpy (write_buf, filename.c_str());
@@ -1375,7 +1099,6 @@ int Cache_slave::run_server ()
                                 {
                                     thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
                                     thepeer->msgbuf.push_back (new messagebuffer());
-                                    //continue; // escape the acceleration loop
                                 }
                                 else
                                 {
@@ -1383,7 +1106,6 @@ int Cache_slave::run_server ()
                                                     write_buf, thepeer->msgbuf.back()) <= 0)
                                     {
                                         thepeer->msgbuf.push_back (new messagebuffer());
-                                        //continue; // escape the acceleration loop
                                     }
                                 }
                             }
@@ -1392,7 +1114,7 @@ int Cache_slave::run_server ()
                         {
                             if (theentry->is_being_written())
                             {
-                                log->info ("\033[0;31mRemote Cache miss\033[0m");
+                                log->info ("Remote Cache miss");
                                 // determine the hash value
                                 memset (write_buf, 0, HASHLENGTH);
                                 strcpy (write_buf, filename.c_str());
@@ -1440,7 +1162,6 @@ int Cache_slave::run_server ()
                                     {
                                         thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
                                         thepeer->msgbuf.push_back (new messagebuffer());
-                                        //continue; // escape the acceleration loop
                                     }
                                     else
                                     {
@@ -1448,14 +1169,13 @@ int Cache_slave::run_server ()
                                                         write_buf, thepeer->msgbuf.back()) <= 0)
                                         {
                                             thepeer->msgbuf.push_back (new messagebuffer());
-                                            //continue; // escape the acceleration loop
                                         }
                                     }
                                 }
                             }
                             else
                             {
-                                log->info ("\033[0;32m[%d]Remote Cache hit\033[0m", networkidx );
+                                log->info ("Remote Cache hit", networkidx );
                                 // prepare the read stream from cache
                                 entryreader* thereader = new entryreader (theentry);
                                 filebridge* thebridge = new filebridge (fbidclock++);
@@ -1470,7 +1190,6 @@ int Cache_slave::run_server ()
                     }
                     else     // when the intermediate result is hit
                     {
-//cout<<"[Cache_slave:"<<networkidx<<"]Cache key hit after receiving Ilook: "<<cachekey<<endl;
                         // send 'Ihit'
                         string message = "Ihit ";
                         message.append (bridgeid);
@@ -1527,11 +1246,8 @@ int Cache_slave::run_server ()
                     sdstid.append ("\n");
                     thebridge->writebuffer->configure_initial (sdstid);
                     thebridge->writebuffer->set_msgbuf (&peers[i]->msgbuf);
-                    //thebridge->set_filename(filename);
-                    //thebridge->set_dataname(filename);
-                    //thebridge->set_dtype(RAW);
+
                     // open read file and start sending data to client
-//cout<<"[Cache_slave:"<<networkidx<<"]reading file name: "<<filename<<endl;
                     thebridge->open_readfile (filename);
                 }
                 else if (strncmp (read_buf, "Iread", 5) == 0)
@@ -1640,36 +1356,14 @@ int Cache_slave::run_server ()
                     
                     if (dsttype == CLIENT)
                     {
-//cout<<"\033[0;32mEread received\033[0m"<<endl;
                         file_connclient* theclient = bridges[bridgeindex]->get_dstclient();
-                        /*
-                                    // clear the client and bridge
-                                    for(int j = 0; (unsigned)j < clients.size(); j++)
-                                    {
-                                      if(clients[j] == theclient)
-                                      {
-                                        if(theclient->msgbuf.size() > 1)
-                                        {
-                                          theclient->msgbuf.back()->set_endbuffer(theclient->get_fd());
-                                          theclient->msgbuf.push_back(new messagebuffer());
-                                        }
-                                        else
-                                        {
-                                          close(clients[j]->get_fd());
-                                          delete clients[j];
-                                          clients.erase(clients.begin()+j);
-                                        }
-                                        break;
-                                      }
-                                    }
-                        */
+
                         // send NULL packet to the client
                         memset (write_buf, 0, BUF_CUT);
                         write_buf[0] = -1;
                         
                         if (theclient->msgbuf.size() > 1)
                         {
-//cout<<"\tgoes to buffer"<<endl;
                             theclient->msgbuf.back()->set_buffer (write_buf, theclient->get_fd());
                             theclient->msgbuf.push_back (new messagebuffer());
                         }
@@ -1677,16 +1371,10 @@ int Cache_slave::run_server ()
                         {
                             if (nbwritebuf (theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0)
                             {
-//cout<<"\tgoes to buffer"<<endl;
                                 theclient->msgbuf.push_back (new messagebuffer());
                             }
-                            
-//else
-//cout<<"\tsent directly"<<endl;
                         }
-                        
-                        // clear the bridge
-                        delete bridges[bridgeindex];
+                        delete bridges[bridgeindex]; // clear the bridge
                         bridges.erase (bridges.begin() + bridgeindex);
                     }
                     else if (dsttype == PEER)       // stores the data into cache and send data to target node
@@ -1698,11 +1386,6 @@ int Cache_slave::run_server ()
                         message = ss.str();
                         memset (write_buf, 0, BUF_SIZE);
                         strcpy (write_buf, message.c_str());
-//cout<<endl;
-//cout<<"write from: "<<localhostname<<endl;
-//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
-//cout<<"message: "<<write_buf<<endl;
-//cout<<endl;
                         filepeer* thepeer = bridges[bridgeindex]->get_dstpeer();
                         
                         if (thepeer->msgbuf.size() > 1)
@@ -1719,16 +1402,12 @@ int Cache_slave::run_server ()
                             }
                         }
                         
-                        // clear the bridge
-                        delete bridges[bridgeindex];
+                        delete bridges[bridgeindex]; // clear the bridge
                         bridges.erase (bridges.begin() + bridgeindex);
                     }
-                    
-//cout<<"end of read"<<endl;
                 }
                 else if (strncmp (read_buf, "Wack", 4) == 0)
                 {
-//cout<<"Wack"<<endl;
                     string message;
                     char* token;
                     token = strtok (read_buf, " ");   // <- Wack
@@ -1743,48 +1422,15 @@ int Cache_slave::run_server ()
                     {
                         peers[i]->msgbuf.back()->set_buffer (write_buf, peers[i]->get_fd());
                         peers[i]->msgbuf.push_back (new messagebuffer());
-                        //continue; // escape acceleration loop
                     }
                     else
                     {
                         if (nbwritebuf (peers[i]->get_fd(), write_buf, peers[i]->msgbuf.back()) <= 0)
                         {
                             peers[i]->msgbuf.push_back (new messagebuffer());
-                            //continue; // escape acceleration loop
                         }
                     }
                 }
-                /*
-                else if(strncmp(read_buf, "IWack", 5) == 0)
-                {
-                  string message;
-                  char* token;
-                
-                  token = strtok(read_buf, " "); // <- IWack
-                  token = strtok(NULL, " "); // <- write id
-                  message = "IWre ";
-                  message.append(token); // append write id
-                
-                  // write back immediately
-                  memset(write_buf, 0, BUF_SIZE);
-                  strcpy(write_buf, message.c_str());
-                
-                  if(peers[i]->msgbuf.size() > 1)
-                  {
-                    peers[i]->msgbuf.back()->set_buffer(write_buf, peers[i]->get_fd());
-                    peers[i]->msgbuf.push_back(new messagebuffer());
-                    //continue; // escape acceleration loop
-                  }
-                  else
-                  {
-                    if(nbwritebuf(peers[i]->get_fd(), write_buf, peers[i]->msgbuf.back()) <= 0)
-                    {
-                      peers[i]->msgbuf.push_back(new messagebuffer());
-                      //continue; // escape acceleration loop
-                    }
-                  }
-                }
-                */
                 else if (strncmp (read_buf, "Wre", 3) == 0)
                 {
                     char* token;
@@ -1845,111 +1491,8 @@ int Cache_slave::run_server ()
                         clients.erase (clients.begin() + clientidx);
                     }
                 }
-                /*
-                        else if(strncmp(read_buf, "IWre", 4) == 0)
-                        {
-                //cout<<"[Cache_slave:"<<networkidx<<"]Received IWre"<<endl;
-                          char* token;
-                          int writeid;
-                          int bridgeidx = -1;
-                
-                          token = strtok(read_buf, " "); // <= IWre
-                          token = strtok(NULL, " "); // <- write id
-                          writeid = atoi(token);
-                
-                          writecount* thecount = NULL;
-                
-                          for(int j = 0; (unsigned)j < bridges.size(); j++)
-                          {
-                            if(bridges[j]->get_id() == writeid)
-                            {
-                              bridgeidx = j;
-                              thecount = bridges[j]->get_dstclient()->thecount;
-                              break;
-                            }
-                          }
-                
-                          if(thecount == NULL)
-                          {
-                            cout<<"[Cache_slave:"<<networkidx<<"]Unexpected NULL pointer..."<<endl;
-                          }
-                
-                          thecount->clear_peer(i);
-                
-                          if(thecount->peerids.size() == 0)
-                          {
-                            // notify the end of DISTRIBUTE to peer or client
-                            if(bridges[bridgeidx]->get_dstpeer() != NULL)
-                            {
-                              filepeer* thepeer = bridges[bridgeidx]->get_dstpeer();
-                
-                              // send Edist message to the dstpeer
-                              string message;
-                              stringstream ss;
-                              ss << "Edist ";
-                              ss << bridges[bridgeidx]->get_dstid();
-                
-                              message = ss.str();
-                              memset(write_buf, 0, BUF_SIZE);
-                              strcpy(write_buf, message.c_str());
-                //cout<<"[Cache_slave:"<<networkidx<<"]Distribution finished and Edist to be transmitted"<<endl;
-                
-                              if(thepeer->msgbuf.size() > 1)
-                              {
-                                thepeer->msgbuf.back()->set_buffer(write_buf, thepeer->get_fd());
-                                thepeer->msgbuf.push_back(new messagebuffer());
-                              }
-                              else
-                              {
-                                if(nbwritebuf(thepeer->get_fd(),
-                                      write_buf, thepeer->msgbuf.back()) <= 0)
-                                {
-                                  thepeer->msgbuf.push_back(new messagebuffer());
-                                }
-                              }
-                
-                              // clear the entry reader
-                              if(bridges[bridgeidx]->get_entryreader() != NULL)
-                              {
-                                delete bridges[bridgeidx]->get_entryreader();
-                                bridges[bridgeidx]->set_entryreader(NULL);
-                              }
-                            }
-                            else if(bridges[bridgeidx]->get_dstclient() != NULL)
-                            {
-                //cout<<"[Cache_slave:"<<networkidx<<"]Distribution finished and notification to client to be done"<<endl;
-                              // notify the end of DISTRIBUTE to the dstclient
-                              file_connclient* theclient = bridges[bridgeidx]->get_dstclient();
-                              memset(write_buf, 0, BUF_CUT);
-                              write_buf[0] = 1;
-                
-                              if(theclient->msgbuf.size() > 1)
-                              {
-                                theclient->msgbuf.back()->set_buffer(write_buf, theclient->get_fd());
-                                theclient->msgbuf.push_back(new messagebuffer());
-                              }
-                              else
-                              {
-                                if(nbwritebuf(theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0)
-                                {
-                                  theclient->msgbuf.push_back(new messagebuffer());
-                                }
-                              }
-                            }
-                            else
-                            {
-                              cout<<"Neither dstclient nor dstpeer are set"<<endl;
-                            }
-                
-                            // clear the bridge
-                            delete bridges[bridgeidx];
-                            bridges.erase(bridges.begin() + bridgeidx);
-                          }
-                        }
-                */
                 else if (strncmp (read_buf, "Icache", 6) == 0)
                 {
-//cout<<"[Cache_slave:"<<networkidx<<"]Icache message network idx: "<<networkidx<<endl;
                     char* token;
                     int bridgeindex;
                     filebridge* thebridge;
@@ -1974,7 +1517,7 @@ int Cache_slave::run_server ()
                         thebridge->set_srctype (PEER);
                         thebridge->set_dsttype (CACHE);
                         thebridge->set_Icachekey (cachekey);
-//cout<<"[Cache_slave:"<<networkidx<<"]Cachekey of new data entry: "<<cachekey<<endl;
+
                         // set a entry writer
                         dataentry* newentry = new dataentry (cachekey, hashvalue);
                         thecache->new_entry (newentry);
@@ -1986,7 +1529,6 @@ int Cache_slave::run_server ()
                     }
                     else
                     {
-//cout<<"[Cache_slave:"<<networkidx<<"]Cachekey of written data: "<<cachekey<<endl;
                         // rest of messages
                         token = strtok (NULL, "");
                         thebridge->get_entrywriter()->write_record (token);
@@ -1994,7 +1536,7 @@ int Cache_slave::run_server ()
                 }
                 else if (strncmp (read_buf, "Ihit", 4) == 0)
                 {
-                    log->info ("\033[0;32m[%d]Remote Icache hit\033[0m", networkidx);
+                    log->info ("Remote Icache hit");
                     char* token;
                     int dstid;
                     token = strtok (read_buf, " ");   // <- "Ihit"
@@ -2059,7 +1601,6 @@ int Cache_slave::run_server ()
                     }
                     else
                     {
-//cout<<"[Cache_slave:"<<networkidx<<"]Completed writing entry with cachekey: "<<token<<endl;
                         thebridge->get_entrywriter()->complete();
                         delete thebridge->get_entrywriter();
                         thebridge->set_entrywriter (NULL);
@@ -2069,7 +1610,6 @@ int Cache_slave::run_server ()
                 }
                 else if (strncmp (read_buf, "Edist", 5) == 0)
                 {
-//cout<<"[Cache_slave:"<<networkidx<<"]Edist arrived. notifying client end of distribution..."<<endl;
                     char* token;
                     int bridgeid;
                     token = strtok (read_buf, " ");   // <- "Edist"
@@ -2166,31 +1706,20 @@ int Cache_slave::run_server ()
                         memset (write_buf, 0, BUF_SIZE);
                         strcpy (write_buf, record.c_str());   // send only the record
                         
-//cout<<endl;
-//cout<<"write from: "<<localhostname<<endl;
-//cout<<"write to a client"<<endl;
-//cout<<"message: "<<write_buf<<endl;
-//cout<<endl;
                         if (theclient->msgbuf.size() > 1)
                         {
                             theclient->msgbuf.back()->set_buffer (write_buf, theclient->get_fd());
                             theclient->msgbuf.push_back (new messagebuffer());
-                            //continue; // escape acceleration loop
                         }
                         else
                         {
-//cout<<endl;
-//cout<<"from: "<<localhostname<<endl;
-//cout<<"to: client"<<endl;
                             if (nbwritebuf (theclient->get_fd(),
                                             write_buf, theclient->msgbuf.back()) <= 0)
                             {
                                 theclient->msgbuf.push_back (new messagebuffer());
-                                //continue; // escape acceleration loop
                             }
                         }
                         
-                        //nbwrite(theclient->get_fd(), write_buf);
                     }
                     else if (dsttype == PEER)       // stores the data into cache and send data to target node
                     {
@@ -2210,37 +1739,23 @@ int Cache_slave::run_server ()
                         message.append (record);
                         memset (write_buf, 0, BUF_SIZE);
                         strcpy (write_buf, message.c_str());
-//cout<<endl;
-//cout<<"write from: "<<localhostname<<endl;
-//cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
-//cout<<"message: "<<write_buf<<endl;
-//cout<<endl;
                         filepeer* thepeer = thebridge->get_dstpeer();
                         
                         if (thepeer->msgbuf.size() > 1)
                         {
                             thepeer->msgbuf.back()->set_buffer (write_buf, thepeer->get_fd());
                             thepeer->msgbuf.push_back (new messagebuffer());
-                            //continue; // escape acceleration loop
                         }
                         else
                         {
-//cout<<endl;
-//cout<<"from: "<<localhostname<<endl;
-//cout<<"to: "<<thepeer->get_address()<<endl;
                             if (nbwritebuf (thepeer->get_fd(),
                                             write_buf, thepeer->msgbuf.back()) <= 0)
                             {
                                 thepeer->msgbuf.push_back (new messagebuffer());
-                                //continue; // escape acceleration loop
                             }
                         }
                     }
                 }
-                
-                // enable loop acceleration
-                //i--;
-                //continue;
             }
             else if (readbytes == 0)
             {
@@ -2253,8 +1768,6 @@ int Cache_slave::run_server ()
         // process reading from the disk or cache and send the data to peer or client {{{
         for (int i = 0; (unsigned) i < bridges.size(); i++)
         {
-            //for(int accel = 0; accel < 1000; accel++) // accelerate the reading speed by 1000
-            //{
             if (bridges[i]->get_srctype() == CACHE)
             {
                 if (bridges[i]->get_dsttype() == DISTRIBUTE)
@@ -2265,34 +1778,27 @@ int Cache_slave::run_server ()
                     
                     if (ret)     // successfully read
                     {
-                        //string jobdirpath = bridges[i]->get_jobdirpath();
-                        //string message;
-                        //string value;
                         memset (write_buf, 0, BUF_SIZE);
                         strcpy (write_buf, record.c_str());
                         bridges[i]->get_distributor()->process_message (write_buf, read_buf);
                     }
                     else     // end of the cache contents
                     {
-                        // flush and clear the distributor
-                        if (bridges[i]->get_distributor() != NULL)
+                        if (bridges[i]->get_distributor() != NULL) // flush and clear the distributor
                         {
                             delete bridges[i]->get_distributor();
                             bridges[i]->set_distributor (NULL);
                         }
                         
-                        // clear the entryreader
-                        delete bridges[i]->get_entryreader();
+                        delete bridges[i]->get_entryreader(); // clear the entryreader
                         bridges[i]->set_entryreader (NULL);
                         writecount* thecount = bridges[i]->get_dstclient()->thecount;
                         
                         // TODO: if dstpeer exists, thecount should be from bridge itself, not from client
-                        // abc
                         if (bridges[i]->get_dstpeer() != NULL)
                         {
                             filepeer* thepeer = bridges[i]->get_dstpeer();
-                            // send Edist message to the dstpeer
-                            string message;
+                            string message; // send Edist message to the dstpeer
                             stringstream ss;
                             ss << "Edist ";
                             ss << bridges[i]->get_dstid();
@@ -2322,22 +1828,19 @@ int Cache_slave::run_server ()
                                 }
                             }
                             
-                            // clear the entry reader
-                            if (bridges[i]->get_entryreader() != NULL)
+                            if (bridges[i]->get_entryreader() != NULL) // clear the entry reader
                             {
                                 delete bridges[i]->get_entryreader();
                                 bridges[i]->set_entryreader (NULL);
                             }
                         }
-                        else if (bridges[i]->get_dstclient() != NULL)
+                        else if (bridges[i]->get_dstclient() != NULL) // notify the end of DISTRIBUTE to the dstclient
                         {
-                            // notify the end of DISTRIBUTE to the dstclient
                             memset (write_buf, 0, BUF_CUT);
                             write_buf[0] = 1;
-                            // determine clientidx
                             int clientidx = -1;
                             
-                            for (int j = 0; (unsigned) j < clients.size(); j++)
+                            for (int j = 0; (unsigned) j < clients.size(); j++) // determine clientidx
                             {
                                 if (clients[j] == bridges[i]->get_dstclient())
                                 {
@@ -2345,12 +1848,10 @@ int Cache_slave::run_server ()
                                     break;
                                 }
                             }
-                            
                             if (clientidx == -1)
                             {
-                                log->info ("[Cache_slave:%d]Cannot find such client", networkidx);
+                                log->info ("Cannot find such client");
                             }
-                            
                             if (clients[clientidx]->msgbuf.size() > 1)
                             {
                                 clients[clientidx]->msgbuf.back()->set_buffer (write_buf, clients[clientidx]->get_fd());
@@ -2369,8 +1870,7 @@ int Cache_slave::run_server ()
                             log->info ("Neither dstclient nor dstpeer are set");
                         }
                         
-                        // clear the bridge
-                        delete bridges[i];
+                        delete bridges[i]; // clear the bridge
                         bridges.erase (bridges.begin() + i);
                         i--;
                     }
@@ -2402,11 +1902,6 @@ int Cache_slave::run_server ()
                     {
                         if (bridges[i]->get_dsttype() == CLIENT)
                         {
-                            //cout<<endl;
-                            //cout<<"write from: "<<localhostname<<endl;
-                            //cout<<"write to a client"<<endl;
-                            //cout<<"message: "<<write_buf<<endl;
-                            //cout<<endl;
                             file_connclient* theclient = bridges[i]->get_dstclient();
                             
                             if (theclient->msgbuf.size() > 1)
@@ -2416,9 +1911,6 @@ int Cache_slave::run_server ()
                             }
                             else
                             {
-                                //cout<<endl;
-                                //cout<<"from: "<<localhostname<<endl;
-                                //cout<<"to: client"<<endl;
                                 if (nbwritebuf (theclient->get_fd(),
                                                 write_buf, theclient->msgbuf.back()) <= 0)
                                 {
@@ -2428,11 +1920,6 @@ int Cache_slave::run_server ()
                         }
                         else if (bridges[i]->get_dsttype() == PEER)
                         {
-                            //cout<<endl;
-                            //cout<<"write from: "<<localhostname<<endl;
-                            //cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
-                            //cout<<"message: "<<write_buf<<endl;
-                            //cout<<endl;
                             filepeer* thepeer = bridges[i]->get_dstpeer();
                             
                             if (thepeer->msgbuf.size() > 1)
@@ -2442,9 +1929,6 @@ int Cache_slave::run_server ()
                             }
                             else
                             {
-                                //cout<<endl;
-                                //cout<<"from: "<<localhostname<<endl;
-                                //cout<<"to: "<<thepeer->get_address()<<endl;
                                 if (nbwritebuf (thepeer->get_fd(), write_buf, thepeer->msgbuf.back()) <= 0)
                                 {
                                     thepeer->msgbuf.push_back (new messagebuffer());
@@ -2454,20 +1938,16 @@ int Cache_slave::run_server ()
                     }
                     else     // no more record
                     {
-                        //cout<<"\033[0;33mEread sent!\033[0m"<<endl;
                         delete bridges[i]->get_entryreader();
                         
                         if (bridges[i]->get_dsttype() == CLIENT)
                         {
-                            //cout<<"\033[0;32mEread received\033[0m"<<endl;
                             file_connclient* theclient = bridges[i]->get_dstclient();
-                            // send NULL packet to the client
-                            memset (write_buf, 0, BUF_CUT);
+                            memset (write_buf, 0, BUF_CUT); // send NULL packet to the client
                             write_buf[0] = -1;
                             
                             if (theclient->msgbuf.size() > 1)
                             {
-                                //cout<<"\tgoes to buffer"<<endl;
                                 theclient->msgbuf.back()->set_buffer (write_buf, theclient->get_fd());
                                 theclient->msgbuf.push_back (new messagebuffer());
                             }
@@ -2475,12 +1955,8 @@ int Cache_slave::run_server ()
                             {
                                 if (nbwritebuf (theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0)
                                 {
-                                    //cout<<"\tgoes to buffer"<<endl;
                                     theclient->msgbuf.push_back (new messagebuffer());
                                 }
-                                
-                                //else
-                                //cout<<"\tsent directly"<<endl;
                             }
                         }
                         else if (bridges[i]->get_dsttype() == PEER)
@@ -2492,11 +1968,6 @@ int Cache_slave::run_server ()
                             message1 = ss1.str();
                             memset (write_buf, 0, BUF_SIZE);
                             strcpy (write_buf, message1.c_str());
-                            //cout<<endl;
-                            //cout<<"write from: "<<localhostname<<endl;
-                            //cout<<"write to: "<<bridges[i]->get_dstpeer()->get_address()<<endl;
-                            //cout<<"message: "<<write_buf<<endl;
-                            //cout<<endl;
                             filepeer* thepeer = bridges[i]->get_dstpeer();
                             
                             if (thepeer->msgbuf.size() > 1)
@@ -2506,9 +1977,6 @@ int Cache_slave::run_server ()
                             }
                             else
                             {
-                                //cout<<endl;
-                                //cout<<"from: "<<localhostname<<endl;
-                                //cout<<"to: "<<thepeer->get_address()<<endl;
                                 if (nbwritebuf (thepeer->get_fd(),
                                                 write_buf, thepeer->msgbuf.back()) <= 0)
                                 {
@@ -2520,8 +1988,6 @@ int Cache_slave::run_server ()
                         delete bridges[i];
                         bridges.erase (bridges.begin() + i);
                         i--;
-                        // break the accel loop
-                        //break;
                     }
                 }
             }
@@ -2543,7 +2009,6 @@ int Cache_slave::run_server ()
                 
                 if (!is_success)     // no more record to read
                 {
-//cout<<"\033[0;33mEread sent!\033[0m"<<endl;
                     // flush the write buffer
                     bridges[i]->writebuffer->flush();
                     // complete writing to cache if writing was ongoing
@@ -2557,7 +2022,6 @@ int Cache_slave::run_server ()
                     
                     if (bridges[i]->get_dsttype() == CLIENT)
                     {
-//cout<<"\033[0;32mEread received\033[0m"<<endl;
                         file_connclient* theclient = bridges[i]->get_dstclient();
                         // send NULL packet to the client
                         memset (write_buf, 0, BUF_CUT);
@@ -2565,7 +2029,6 @@ int Cache_slave::run_server ()
                         
                         if (theclient->msgbuf.size() > 1)
                         {
-//cout<<"\tgoes to buffer"<<endl;
                             theclient->msgbuf.back()->set_buffer (write_buf, theclient->get_fd());
                             theclient->msgbuf.push_back (new messagebuffer());
                         }
@@ -2573,12 +2036,8 @@ int Cache_slave::run_server ()
                         {
                             if (nbwritebuf (theclient->get_fd(), write_buf, theclient->msgbuf.back()) <= 0)
                             {
-//cout<<"\tgoes to buffer"<<endl;
                                 theclient->msgbuf.push_back (new messagebuffer());
                             }
-                            
-//else
-//cout<<"\tsent directly"<<endl;
                         }
                         
                         // clear the bridge
@@ -2619,14 +2078,12 @@ int Cache_slave::run_server ()
         // process write of iwriters {{{
         for (int i = 0; (unsigned) i < iwriters.size(); i++)
         {
-            if (iwriters[i]->is_writing())
+            if (iwriters[i]->is_writing() && iwriters[i]->write_to_disk())
             {
-                bool ret;
-                ret = iwriters[i]->write_to_disk();
+                //bool ret = iwriters[i]->write_to_disk();
                 
-                if (ret)     // writing finished
-                {
-                    // send the numblock information to the cache server
+                //if (ret)                              // writing finished
+                //{                                     // send the numblock information to the cache server
                     string message;
                     stringstream ss;
                     ss << "iwritefinish ";
@@ -2637,11 +2094,10 @@ int Cache_slave::run_server ()
                     memset (write_buf, 0, BUF_SIZE);
                     strcpy (write_buf, message.c_str());
                     nbwrite (cacheserverfd, write_buf);
-                    // clear the iwriter
-                    delete iwriters[i];
+                    delete iwriters[i];               // clear the iwriter
                     iwriters.erase (iwriters.begin() + i);
                     i--;
-                }
+                //}
             }
         } // }}}
         // Read data from ireaders {{{
@@ -2683,7 +2139,6 @@ int Cache_slave::run_server ()
             {
                 if (clients[i]->msgbuf.front()->is_end())
                 {
-                    //cout<<"\t\t\t\tdon't come here"<<endl;
                     close (clients[i]->get_fd());
                     // send EIcache to the target peer
                     filepeer* thepeer = clients[i]->get_Itargetpeer();
@@ -2746,8 +2201,7 @@ int Cache_slave::run_server ()
                     string token;
                     double doubletoken;
                     stringstream ss;
-                    // raed boundary information and parse it to update the boundary
-                    ss << read_buf;
+                    ss << read_buf; // read boundary information and parse it to update the boundary
                     ss >> token; // boundaries
                     
                     for (int i = 0; (unsigned) i < nodelist.size(); i++)
@@ -2775,14 +2229,14 @@ int Cache_slave::run_server ()
                 }
                 else     // unknown message
                 {
-                    log->info ("[cacheserver]Unknown message from master node");
+                    log->info ("Unknown message from master node");
                 }
             }
             else if (readbytes == 0)
             {
                 for (int i = 0; (unsigned) i < clients.size(); i++)
                 {
-                    log->info ("[Cache_slave:%d]Closing connection to a client...", networkidx);
+                    log->info ("Closing connection to a client...");
                     close (clients[i]->get_fd());
                 }
                 
@@ -2794,7 +2248,7 @@ int Cache_slave::run_server ()
                 close (ipcfd);
                 close (serverfd);
                 close (cacheserverfd);
-                log->info ("[Cache_slave:%d]Connection from cache server disconnected. exiting...", networkidx);
+                log->info ("Connection from cache server disconnected. exiting...");
                 return 0;
             }
         } //}}}
