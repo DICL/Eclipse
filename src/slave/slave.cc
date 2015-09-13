@@ -260,11 +260,13 @@ void signal_listener()
                 {
                     if (running_tasks[i]->get_taskrole() == MAP)        // map task
                     {
+                        logger->debug("Complete msg from app: %s", read_buf);
+
+                        bzero(write_buf, BUF_SIZE);
                         snprintf (write_buf, BUF_SIZE, "peerids %i",
                           running_tasks[i]->get_job()->get_jobid());
 
                         char* token = strtok_r (read_buf, " ", &tokenbuf);    // receive peerids
-                        token       = strtok_r (NULL, " ", &tokenbuf);        // first token(peer id)
 
                         while ( (token = strtok_r(NULL, " ", &tokenbuf)) )
                           strncat (write_buf, (" " + string(token)).c_str(), BUF_SIZE);
@@ -272,6 +274,7 @@ void signal_listener()
                         nbwrite (masterfd, write_buf);
                     }
                     
+                    bzero(write_buf, BUF_SIZE);
                     snprintf (write_buf, BUF_SIZE, "terminate"); // send terminate message
                     nbwrite (running_tasks[i]->get_writefd(), write_buf);
 
@@ -279,6 +282,7 @@ void signal_listener()
                 }
                 else if (strncmp (read_buf, "requestconf", 11) == 0) // parse all task configure
                 {   
+                    bzero(write_buf, BUF_SIZE);
                     snprintf (write_buf, BUF_SIZE, "taskconf %i %i",
                       running_tasks[i]->get_job()->get_jobid(),
                       running_tasks[i]->get_taskid());
@@ -289,9 +293,7 @@ void signal_listener()
                     if (running_tasks[i]->get_taskrole() == MAP) // send input paths
                     {
                         message = "inputpath";
-                        int iter = 0;
-                        
-                        while (iter < running_tasks[i]->get_numinputpaths())
+                        for (int iter = 0; iter < running_tasks[i]->get_numinputpaths(); iter++)
                         {
                             if (message.length() + running_tasks[i]->get_inputpath (iter).length() + 1 <= BUF_SIZE)
                             {
@@ -302,49 +304,42 @@ void signal_listener()
                             {
                                 if (running_tasks[i]->get_inputpath (iter).length() + 10 > BUF_SIZE)
                                 {
-                                    logger->error ("[master]The length of inputpath excceded the limit");
+                                    logger->error ("The length of inputpath excceded the limit");
                                 }
                                 
                                 // send message to slave
-                                memset (write_buf, 0, BUF_SIZE);
+                                bzero(write_buf, BUF_SIZE);
                                 strcpy (write_buf, message.c_str());
                                 nbwrite (running_tasks[i]->get_writefd(), write_buf);
                                 message = "inputpath ";
                                 message.append (running_tasks[i]->get_inputpath (iter));
                             }
-                            
-                            iter++;
+                            logger->debug ("Sending msg to child args: %s", message.c_str());
                         }
                         
                         // send remaining paths
                         if (message.length() > strlen ("inputpath "))
                         {
-                            memset (write_buf, 0, BUF_SIZE);
+                            bzero (write_buf, BUF_SIZE);
                             strcpy (write_buf, message.c_str());
                             nbwrite (running_tasks[i]->get_writefd(), write_buf);
                         }
                         
                         // notify end of inputpaths
-                        memset (write_buf, 0, BUF_SIZE);
+                        bzero (write_buf, BUF_SIZE);
                         strcpy (write_buf, "Einput");
                         nbwrite (running_tasks[i]->get_writefd(), write_buf);
                     }
                     else // send input paths
                     {
                         message = "inputpath";
-                        stringstream ss;
-                        
                         for (int j = 0; (unsigned) j < running_tasks[i]->peerids.size(); j++)
                         {
-                            ss << " ";
-                            ss << running_tasks[i]->peerids[j];
-                            ss << " ";
-                            ss << running_tasks[i]->numiblocks[j];
+                          message += " " + to_string (running_tasks[i]->peerids[j]);
+                          message += " " + to_string (running_tasks[i]->numiblocks[j]);
                         }
                         
-                        message.append (ss.str());
-                        // notify end of inputpaths
-                        memset (write_buf, 0, BUF_SIZE);
+                        bzero (write_buf, BUF_SIZE); // notify end of inputpaths
                         strcpy (write_buf, message.c_str());
                         nbwrite (running_tasks[i]->get_writefd(), write_buf);
                     }
