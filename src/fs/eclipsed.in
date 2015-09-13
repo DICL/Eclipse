@@ -1,4 +1,4 @@
-#!/bin/env ruby
+#!/usr/bin/env ruby
 # vim: ft=ruby : fileencoding=utf-8 : foldmethod=marker : set autoindent
 # Author:: Vicente Adolfo Bolea Sanchez <vicente.bolea@gmail.com>
 #
@@ -62,7 +62,7 @@ module EclipseDaemon
     # launch {{{
     def launch
       thr = print_async "Initializing framework..."
-      `#{BINDIR}/master &>/dev/null &`
+      system "#{BINDIR}/master >/dev/null 2>/dev/null &"
       sleep 1
       @nodelist.each do |node|
         system "ssh #{node} 'nohup #{BINDIR}/slave </dev/null &>/dev/null & exit'"
@@ -79,11 +79,11 @@ module EclipseDaemon
       instance = [ ]
       in_english = { true => "Running", false => "Stopped" }
 
-      status = in_english[system "pgrep -u #{`whoami`.chomp} master &>/dev/null"]
+      status = in_english[system "pgrep -u #{`whoami`.chomp} master >/dev/null 2>/dev/null"]
       instance << { :host => "localhost", :status => status, :role => "master" }
 
       @nodelist.each do |node|
-        mr_status    = in_english[system "ssh #{node} pgrep -u #{`whoami`.chomp} -x slave &>/dev/null"]
+        mr_status    = in_english[system "ssh #{node} pgrep -u #{`whoami`.chomp} -x slave >/dev/null 2>/dev/null"]
         instance << { :host => node, :status => mr_status, :role => "worker" }
       end
 
