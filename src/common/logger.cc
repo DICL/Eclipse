@@ -8,6 +8,7 @@
 #include <syslog.h>
 #include <unordered_map>
 #include <stdlib.h>
+#include <string.h>
 
 using std::string;
 
@@ -81,9 +82,12 @@ void Logger::warn (const char* fmt, ...) {
 
 void Logger::error (const char* fmt, ...) { 
   va_list ap;
+  char msg [256];
 
+  strncpy(msg, fmt, 256 );
+  strncat(msg," [ERR:%m]", 256);
   va_start(ap, fmt);
-  log(LOG_ERR, fmt, ap);
+  log(LOG_ERR, msg, ap);
   va_end(ap);
 }
 

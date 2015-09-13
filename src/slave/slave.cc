@@ -2,7 +2,6 @@
 #include "slave_job.hh"
 #include "slave_task.hh"
 #include "../cache_slave/cache_slave.hh"
-//#include "../common/ecfs.hh"
 
 #include <iostream>
 #include <thread>
@@ -18,34 +17,33 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <algorithm>
 
 using namespace std;
+
+void block_until_event();
+void close_and_exit();
 
 char read_buf[BUF_SIZE];
 char write_buf[BUF_SIZE];
 
-int port = -1;
 int masterfd = -1;
-
 int buffersize = 8388608; // 8 MB buffer size
-Logger* log;
+Logger* logger;
 
-string localhostname;
 vector<slave_job*> running_jobs; // a vector of job, one or multiple tasks of which are running on this slave node
 vector<slave_task*> running_tasks; // a vector of running tasks
 
-void block_until_event();
-
+// main {{{
 int main (int argc, char** argv)
 {
     Settings setted;
     setted.load();
-    port = setted.get<int>("network.port_mapreduce");
+    int port = setted.get<int>("network.port_mapreduce");
     string master_addr = setted.get<string>("network.master");
-    localhostname      = setted.getip();
     string logname     = setted.get<string> ("log.name");
     string logtype     = setted.get<string> ("log.type");
-    log                = Logger::connect(logname, logtype);
+    logger             = Logger::connect(logname, logtype);
 
     connect_to_server (master_addr.c_str(), port); // connect to master
    
@@ -59,248 +57,184 @@ int main (int argc, char** argv)
     signal_listener();
 
     cache_thread.join();
-    Logger::disconnect(log);
+    Logger::disconnect(logger);
 
     return EXIT_SUCCESS;
 }
-
+// }}}
+// Connect to Server {{{
 void connect_to_server (const char* host, unsigned short port)
 {
     struct sockaddr_in serveraddr = {0};
-    struct hostent* hp;
     
     masterfd = socket (AF_INET, SOCK_STREAM, 0); //SOCK_STREAM -> tcp
     
-    if (masterfd < 0) {
-        log->info ("[slave]Openning socket failed");
-        exit (EXIT_FAILURE);
-    }
-    
-    hp = gethostbyname (host);
-    if (hp == NULL) {
-        log->info ("[slave]Cannot find host by host name");
-    }
+    if (masterfd < 0)
+        logger->panic ("[slave]Openning socket failed");
     
     serveraddr.sin_family = AF_INET;
-    memcpy (&serveraddr.sin_addr.s_addr, hp->h_addr, hp->h_length);
     serveraddr.sin_port = htons (port);
+    inet_pton (AF_INET, host, &serveraddr.sin_addr);
 
     connect (masterfd, (struct sockaddr *) &serveraddr, sizeof (serveraddr));
-    if (masterfd < 0) {
-        log->info ("[slave]Connecting to master failed");
-        exit (EXIT_FAILURE);
-    }
+    if (masterfd < 0)
+        logger->panic ("[slave]Connecting to master failed");
     
     // set master socket to be non-blocking socket to avoid deadlock
     fcntl (masterfd, F_SETFL, O_NONBLOCK);
     setsockopt (masterfd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
     setsockopt (masterfd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
 }
-
-// get signal from master, jobs and tasks
+// }}}
+// main loop {{{
 void signal_listener()
 {
+    char* tokenbuf;
     int readbytes = 0;
     struct timeval time_start;
     struct timeval time_end;
     gettimeofday (&time_start, NULL);
     gettimeofday (&time_end, NULL);
     
-    while (1)
+    while (true)
     {
-        block_until_event();
+        block_until_event ();
         readbytes = nbread (masterfd, read_buf);
         
         if (readbytes == 0)     //connection closed from master
         {
-            log->info ("[slave]Connection from master is abnormally closed");
-            
-            while (close (masterfd) < 0)
-            {
-                log->info ("[slave]Closing socket failed");
-                usleep (1000);  // sleeps for 1 milli second
-            }
-            
-            log->info ("[slave]Exiting slave...");
-            exit (0);
+            logger->error ("[slave]Connection from master is abnormally closed");
+            close_and_exit ();
         }
-        else if (readbytes < 0)
-        {
-            // do nothing
-        }
-        else     // signal arrived from master
+        else if (readbytes < 0) {} // do nothing
+        else                       // signal arrived from master
         {
             if (strncmp (read_buf, "whoareyou", 9) == 0)
             {
-                memset (write_buf, 0, BUF_SIZE);
-                strcpy (write_buf, "slave");
+                snprintf (write_buf, BUF_SIZE, "slave");
                 nbwrite (masterfd, write_buf);
             }
             else if (strncmp (read_buf, "close", 5) == 0)
             {
-                log->info ("[slave]Close request from master");
-                
-                while (close (masterfd) < 0)
-                {
-                    log->info ("[slave]Close failed");
-                    usleep (1000); // sleeps for 1 milli seconds
-                }
-                
-                log->info ("[slave]Exiting slave...");
-                return;
+                logger->info ("[slave]Close request from master");
+                close_and_exit ();
             }
-            else if (strncmp (read_buf, "tasksubmit", 10) == 0)
+            else if (strncmp (read_buf, "tasksubmit", 10) == 0) // launch the forwarded task
             {
-                // launch the forwarded task
                 slave_job* thejob = NULL;
                 slave_task* thetask = NULL;
-                int jobid;
-                int taskid;
-                char* token;
-                token = strtok (read_buf, " ");   // token <- "tasksubmit"
-                token = strtok (NULL, " ");   // token <- jobid
-                jobid = atoi (token);
+
+                int jobid, taskid, argc;
+                char *token, type [64], remaining[256];
+
+                sscanf (read_buf, "%*s %i %i %s %i %[^\n]", &jobid, &taskid, type, &argc, remaining);
+
                 thejob = find_jobfromid (jobid);
-                
-                if (thejob == NULL)     // if any task in this job are not running in this slave
+
+                if (!thejob)                                  // if any task in this job are not running in this slave
                 {
                     thejob = new slave_job (jobid, masterfd);
                     running_jobs.push_back (thejob);
                 }
+
+                thetask = new slave_task (taskid);            // the status is running by default
+                running_tasks.push_back (thetask);            // add to the running_tasks vector
+                thejob->add_task (thetask);                   // add this task in 'thejob'
+
+                logger->debug ("Capture task with args: %i %i %s %i %s", jobid, taskid, type, argc, remaining);
                 
-                token = strtok (NULL, " ");   // token <- taskid
-                taskid = atoi (token);
-                thetask = new slave_task (taskid);   // the status is running by default
-                // add to the running_tasks vector
-                running_tasks.push_back (thetask);
-                // add this task in 'thejob'
-                thejob->add_task (thetask);
-                token  = strtok (NULL, " ");   // token <- role
-                
-                if (strncmp (token, "MAP", 3) == 0)
+                if (strncmp (type, "MAP", 3) == 0)
                 {
                     thetask->set_taskrole (MAP);
-                    token = strtok (NULL, " ");
-                    int argc = atoi (token);
                     thetask->set_argcount (argc);
+
                     char** values = new char*[argc];
-                    
                     for (int i = 0; i < argc; i++)
                     {
-                        token = strtok (NULL, " ");;
-                        values[i] = new char[strlen (token) + 1];
-                        strcpy (values[i], token);
+                        token = strtok_r (remaining, " ", &tokenbuf);
+                        values[i] = strdup (token);
                     }
                     
                     thetask->set_argvalues (values);
                     
-                    // read messages from master until getting Einput
-                    while (1)
+                    while (true) // read messages from master until getting Einput
                     {
                         readbytes = nbread (masterfd, read_buf);
                         
                         if (readbytes == 0)
                         {
-                            log->info ("[slave]Connection from master is abnormally closed");
+                            logger->error ("[slave]Connection from master is abnormally closed");
                         }
-                        else if (readbytes < 0)
-                        {
-                            continue;
-                        }
+                        else if (readbytes < 0) { continue; }
                         else     // a message
                         {
                             if (strncmp (read_buf, "inputpath", 9) == 0)
                             {
-                                token = strtok (read_buf, " ");   // token <- "inputpath"
-                                token = strtok (NULL, " ");
+                                token = strtok_r (read_buf, " ", &tokenbuf);   // token <- "inputpath"
                                 
-                                while (token != NULL)
-                                {
-                                    // add the input path to the task
-                                    thetask->add_inputpath (token);
-                                    token = strtok (NULL, " ");
-                                }
+                                while ( (token = strtok_r(NULL, " ", &tokenbuf)) )
+                                  thetask->add_inputpath (token);
                             }
-                            else if (strncmp (read_buf, "Einput", 6) == 0)
-                            {
-                                // break the while loop
-                                break;
-                            }
+                            else if (strncmp (read_buf, "Einput", 6) == 0) { break; }
                             else
                             {
-                                log->info ("[slave]Unexpected message order from master");
+                                logger->error ("[slave]Unexpected message order from master");
                             }
                         }
                     }
                     
-                    // launch the forwarded task
-                    launch_task (thetask);
+                    launch_task (thetask); // launch the forwarded task
                 }
-                else if (strncmp (token, "REDUCE", 6) == 0)
+                else if (strncmp (type, "REDUCE", 6) == 0)
                 {
                     thetask->set_taskrole (REDUCE);
-                    token = strtok (NULL, " ");
-                    int argc = atoi (token);
                     thetask->set_argcount (argc);
+
                     char** values = new char*[argc];
-                    
                     for (int i = 0; i < argc; i++)
                     {
-                        token = strtok (NULL, " ");;
-                        values[i] = new char[strlen (token) + 1];
-                        strcpy (values[i], token);
+                        token = strtok_r (remaining, " ", &tokenbuf);;
+                        values[i] = strdup (token);
                     }
                     
                     thetask->set_argvalues (values);
                     
-                    // read messages from master
-                    while (1)
+                    while (true) // read messages from master
                     {
                         readbytes = nbread (masterfd, read_buf);
-                        
                         if (readbytes == 0)
                         {
-                            log->info ("[slave]Connection from master is abnormally closed");
+                            logger->error ("[slave]Connection from master is abnormally closed");
                         }
-                        else if (readbytes < 0)
-                        {
-                            continue;
-                        }
-                        else     // a message
-                        {
-                            break;
-                        }
+                        else if (readbytes < 0) { continue; }
+                        else                    { break; }
                     }
                     
-                    token = strtok (read_buf, " ");   // <- "inputpath"
-                    token = strtok (NULL, " ");   // <- first peer id
-                    
-                    while (token != NULL)
+                    token = strtok_r (read_buf, " ", &tokenbuf);      // <- "inputpath"
+                    token = strtok_r (NULL, " ", &tokenbuf);          // <- first peer id
+                    while (token)
                     {
                         thetask->peerids.push_back (atoi (token));
-                        token = strtok (NULL, " ");   // <- numiblock
+                        token = strtok_r (NULL, " ", &tokenbuf);      // <- numiblock
                         thetask->numiblocks.push_back (atoi (token));
-                        token = strtok (NULL, " ");   // <- next peerid
+                        token = strtok_r (NULL, " ", &tokenbuf);      // <- peerids
                     }
-                    
-                    // launch the forwarded task
-                    launch_task (thetask);
+
+                    launch_task (thetask);                            // launch the forwarded task
                 }
                 else
                 {
-                    log->info ("Debugging: the task role is undefined well.");
+                    logger->error  ("Debugging: the task role is undefined well.");
                     thetask->set_taskrole (JOB);
                 }
             }
             else
             {
-                log->info ("[slave]Undefined signal from master: %s", read_buf);
-                log->info ("[slave]Undefined signal size: %d", readbytes);
+                logger->error ("[slave]Undefined signal from master: %s size: %d", read_buf, readbytes);
             }
         }
         
-        // check the running_jobs
-        for (int i = 0; (unsigned) i < running_jobs.size(); i++)
+        for (int i = 0; (unsigned) i < running_jobs.size(); i++) // check the running_jobs
         {
             // check if all tasks in the job are finished
             if (running_jobs[i]->get_numrunningtasks() == 0)     // all task is finished
@@ -310,7 +244,6 @@ void signal_listener()
                 running_jobs.erase (running_jobs.begin() + i);
                 i--;
                 delete deleted_job;
-                continue;
             }
         }
         
@@ -319,69 +252,42 @@ void signal_listener()
         {
             readbytes = nbread (running_tasks[i]->get_readfd(), read_buf);
             
-            if (readbytes == 0)
-            {
-                // ignore this case as default
-            }
-            else if (readbytes < 0)
-            {
-                continue;
-            }
+            if (readbytes == 0)     {} // ignore this case as default
+            else if (readbytes < 0) { continue; }
             else
             {
                 if (strncmp (read_buf, "complete", 8) == 0)
                 {
-                    char* token;
-                    
-                    if (running_tasks[i]->get_taskrole() == MAP)     // map task
+                    if (running_tasks[i]->get_taskrole() == MAP)        // map task
                     {
-                        string message = "peerids ";
-                        stringstream ss;
-                        ss << running_tasks[i]->get_job()->get_jobid();
-                        // receive peerids
-                        token = strtok (read_buf, " ");
-                        token = strtok (NULL, " ");   // first token(peer id)
-                        
-                        while (token != NULL)
-                        {
-                            ss << " ";
-                            ss << atoi (token);
-                            token = strtok (NULL, " ");
-                        }
-                        
-                        message.append (ss.str());
-                        memset (write_buf, 0, BUF_SIZE);
-                        strcpy (write_buf, message.c_str());
+                        snprintf (write_buf, BUF_SIZE, "peerids %i",
+                          running_tasks[i]->get_job()->get_jobid());
+
+                        char* token = strtok_r (read_buf, " ", &tokenbuf);    // receive peerids
+                        token       = strtok_r (NULL, " ", &tokenbuf);        // first token(peer id)
+
+                        while ( (token = strtok_r(NULL, " ", &tokenbuf)) )
+                          strncat (write_buf, (" " + string(token)).c_str(), BUF_SIZE);
+
                         nbwrite (masterfd, write_buf);
                     }
                     
-                    // send terminate message
-                    memset (write_buf, 0, BUF_SIZE);
-                    strcpy (write_buf, "terminate");
+                    snprintf (write_buf, BUF_SIZE, "terminate"); // send terminate message
                     nbwrite (running_tasks[i]->get_writefd(), write_buf);
-                    // mark the task as completed
-                    running_tasks[i]->set_status (COMPLETED);
+
+                    running_tasks[i]->set_status (COMPLETED); // mark the task as completed
                 }
-                else if (strncmp (read_buf, "requestconf", 11) == 0)
-                {
-                    // parse all task configure
-                    string message;
-                    stringstream ss;
-                    ss << "taskconf ";
-                    // job id
-                    ss << running_tasks[i]->get_job()->get_jobid();
-                    // task id
-                    ss << " ";
-                    ss << running_tasks[i]->get_taskid();
-                    message = ss.str();
-                    // send message to the task
-                    memset (write_buf, 0, BUF_SIZE);
-                    strcpy (write_buf, message.c_str());
+                else if (strncmp (read_buf, "requestconf", 11) == 0) // parse all task configure
+                {   
+                    snprintf (write_buf, BUF_SIZE, "taskconf %i %i",
+                      running_tasks[i]->get_job()->get_jobid(),
+                      running_tasks[i]->get_taskid());
+                      
                     nbwrite (running_tasks[i]->get_writefd(), write_buf);
-                    
-                    if (running_tasks[i]->get_taskrole() == MAP)
+
+                    string message;
+                    if (running_tasks[i]->get_taskrole() == MAP) // send input paths
                     {
-                        // send input paths
                         message = "inputpath";
                         int iter = 0;
                         
@@ -396,7 +302,7 @@ void signal_listener()
                             {
                                 if (running_tasks[i]->get_inputpath (iter).length() + 10 > BUF_SIZE)
                                 {
-                                    log->info ("[master]The length of inputpath excceded the limit");
+                                    logger->error ("[master]The length of inputpath excceded the limit");
                                 }
                                 
                                 // send message to slave
@@ -423,9 +329,8 @@ void signal_listener()
                         strcpy (write_buf, "Einput");
                         nbwrite (running_tasks[i]->get_writefd(), write_buf);
                     }
-                    else
+                    else // send input paths
                     {
-                        // send input paths
                         message = "inputpath";
                         stringstream ss;
                         
@@ -446,7 +351,7 @@ void signal_listener()
                 }
                 else
                 {
-                    log->info ("[slave]Undefined message protocol from task [Message: %s]", read_buf);
+                    logger->error ("[slave]Undefined message protocol from task [Message: %s]", read_buf);
                 }
             }
         }
@@ -469,35 +374,14 @@ void signal_listener()
                     delete running_tasks[i];
                     running_tasks.erase (running_tasks.begin() + i);
                     i--;
-                    
-//                    stringstream ss;
-//                    string msg = "taskcomplete";
-//                    ss << " jobid ";
-//                    ss << running_tasks[i]->get_job()->get_jobid();
-//                    ss << " taskid ";
-//                    ss << running_tasks[i]->get_taskid();
-//                    msg.append (ss.str());
-//                    memset (write_buf, 0, BUF_SIZE);
-//                    strcpy (write_buf, msg.c_str());
-//                    nbwrite (masterfd, write_buf);
                 }
                 else
                 {
-                    cout << "[slave]A ";
-                    
-                    if (running_tasks[i]->get_taskrole() == MAP)
-                    {
-                        cout << "map ";
-                    }
-                    else if (running_tasks[i]->get_taskrole() == REDUCE)
-                    {
-                        cout << "reduce ";
-                    }
-                    
-                    log->info ("task with taskid %d ", running_tasks[i]->get_taskid());
-                    log->info ("and jobid %d ", running_tasks[i]->get_job()->get_jobid());
-                    log->info (" terminated abnormally");
-                    log->info ("pid: %d", running_tasks[i]->get_pid());
+                    logger->error ("task with taskid %d jobid %d pid: %d terminated abnormally", 
+                      running_tasks[i]->get_taskid(),
+                      running_tasks[i]->get_job()->get_jobid(),
+                      running_tasks[i]->get_pid());
+
                     sleep (1);
                     // TODO: clear data structures for the task
                     // TODO: launch the failed task again
@@ -506,15 +390,10 @@ void signal_listener()
         }
         gettimeofday (&time_end, NULL);
     }
-    
-    while (close (masterfd) == EXIT_FAILURE)
-    {
-        log->info ("[slave]Close failed");
-        usleep (1000); // sleeps for 1 milliseconds
-    }
-    log->info ("[slave]Exiting slave...");
-}
 
+    close_and_exit ();
+} //}}}
+// launch_task {{{
 void launch_task (slave_task* atask)
 {
     pid_t pid;
@@ -534,27 +413,29 @@ void launch_task (slave_task* atask)
     switch (pid) {
       case 0: {
         int count = atask->get_argcount();
+        char** args_src = atask->get_argvalues();
         char** args = new char*[count + 4];
-        
-        for (int i = 0; i < count; i++)                        // pass original arguments
-            args[i] = strdup (atask->get_argvalues()[i]);
-        
-        args[count]     = strdup (to_string (fd2[0]).c_str()); // pass pipe fds
-        args[count + 1] = strdup (to_string (fd1[1]).c_str()); //
-        args[count + 3] = NULL;                                // pass null to last parameter
+
+        transform (args_src, args_src + count, args, strdup);
+
+        asprintf (&args[count], "%i", fd2[0]);            // pass pipe fds
+        asprintf (&args[count + 1], "%i", fd1[1]);
+        args[count + 3] = NULL;                           // pass null to last parameter
         
         switch (atask->get_taskrole()) {
           case MAP:    args[count + 2] = strdup("MAP"); break;
           case REDUCE: args[count + 2] = strdup("REDUCE"); break;
-          default:     log->panic ("The role of the task is not defined in %s", __func__);
+          default:     logger->panic ("The role of the task is not defined in %s", __func__);
         }
-
+          
+        logger->info ("Launching task with args: %s %s %s %s", args[0], args[1], args[2], args[3]);
         if (execv (args[0], args) == EXIT_FAILURE) // launch the task with the passed arguments
-            log->panic ("execv failed");
+            logger->panic ("execv failed");
 
       } break;
+
       case EXIT_FAILURE:
-        log->info ("Task could not have been started due to child process forking failure");
+        logger->info ("Task could not have been started due to child process forking failure");
         break;
 
       default:
@@ -562,8 +443,8 @@ void launch_task (slave_task* atask)
         close (fd1[1]);
         atask->set_pid (pid); // register the pid of the task process
     }
-}
-
+} // }}}
+// find_jobfromid {{{
 slave_job* find_jobfromid (int id)
 {
     for (int i = 0; (unsigned) i < running_jobs.size(); i++)
@@ -576,7 +457,8 @@ slave_job* find_jobfromid (int id)
     
     return NULL;
 }
-
+// }}}
+// block_until_event {{{
 void block_until_event() {
   struct timespec ts;
   ts.tv_sec  = 0;
@@ -594,4 +476,14 @@ void block_until_event() {
     FD_SET(ijob->get_readfd(), &fds);
 
   pselect (masterfd+running_tasks.size(), &fds, NULL, NULL, &ts, &mask);
-}
+} // }}}
+// close_and_exit() {{{
+void close_and_exit() { 
+  while (close (masterfd) == EXIT_FAILURE) {
+    logger->info ("[slave]Closing socket failed");
+    usleep (1000);  // sleeps for 1 milli second
+  }
+
+  logger->info ("[slave]Exiting slave...");
+  exit (EXIT_SUCCESS);
+} //}}}
