@@ -32,27 +32,28 @@ class slave_task
         
         int pstat; // status value for waitpid()
         
-        void set_taskid (int id);
         int get_taskid();
-        void set_pid (int id);
         int get_pid();
-        void set_taskrole (mr_role arole);
         mr_role get_taskrole();
-        void set_status (task_status astatus);
         task_status get_status();
-        void set_readfd (int fd);
-        void set_writefd (int fd);
         int get_readfd();
         int get_writefd();
         int get_argcount();
-        void set_argcount (int num);
         char** get_argvalues();
-        void set_argvalues (char** argv);
         slave_job* get_job();
-        void set_job (slave_job* ajob);
-        void add_inputpath (string apath);
         string get_inputpath (int index);
         int get_numinputpaths();
+
+        slave_task& set_taskid (int id);
+        slave_task& set_pid (int id);
+        slave_task& set_taskrole (mr_role arole);
+        slave_task& set_status (task_status astatus);
+        slave_task& set_readfd (int fd);
+        slave_task& set_writefd (int fd);
+        slave_task& set_argcount (int num);
+        slave_task& set_argvalues (char** argv);
+        slave_task& set_job (slave_job* ajob);
+        slave_task& add_inputpath (string apath);
 };
 
 #endif

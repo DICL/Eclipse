@@ -83,7 +83,7 @@ int nbwrite (int fd, char* buf)     // when the content is already on the buffer
 {
     int written_bytes;
     
-    while ( (written_bytes = write (fd, buf, BUF_CUT * (strlen (buf) / BUF_CUT + 1))) < 0)
+    while ( (written_bytes = write (fd, buf, BUF_CUT * ((int) strlen (buf) / BUF_CUT + 1))) < 0)
     {
         if (errno == EAGAIN)
         {
@@ -144,7 +144,7 @@ int nbwrite (int fd, char* buf)     // when the content is already on the buffer
     if (written_bytes != BUF_CUT * ( (int) strlen (buf) / BUF_CUT + 1))
     {
         int progress = written_bytes;
-        int remain = BUF_CUT * (strlen (buf) / BUF_CUT + 1) - written_bytes;
+        int remain = BUF_CUT * ((int) strlen (buf) / BUF_CUT + 1) - written_bytes;
         
         while (remain > 0)
         {
@@ -262,4 +262,10 @@ int nbread (int fd, char* buf)
     }
     
     return total_readbytes;
+}
+
+int snbwrite(int fd, const std::string& in) {
+  char buf[BUF_SIZE] = {0};
+  in.copy(buf, BUF_SIZE);
+  return nbwrite(fd, buf);
 }

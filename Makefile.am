@@ -3,7 +3,7 @@ SUBDIRS             = . tests
 AM_CPPFLAGS         = -I@srcdir@/src/common -I@srcdir@/src -include ./config.h
 AM_CXXFLAGS         = -Wall -std=gnu++11 -ggdb3
 
-bin_PROGRAMS        = client slave master
+bin_PROGRAMS        = master slave
 
 # libs -----
 lib_LTLIBRARIES     = libecfs.la
@@ -17,12 +17,12 @@ libecfs_la_LDFLAGS  = -version-info 0:0:0
 AM_LDFLAGS          = -static
 LDADD               = libecfs.la
 
-client_SOURCES      = src/client/client.cc
-slave_SOURCES       = src/slave/slave.cc  src/cache_slave/cache_slave.cc src/cache_slave/filepeer.cc \
+master_SOURCES      = src/master/master.cc 
+slave_SOURCES       = src/slave/main.cc src/slave/slave.cc src/slave/slave_job.cc src/slave/slave_task.cc \
+											src/cache_slave/cache_slave.cc src/cache_slave/filepeer.cc \
 											src/cache_slave/writecount.cc src/cache_slave/iwriter.cc src/cache_slave/ireader.cc \
 											src/cache_slave/filebridge.cc src/cache_slave/idistributor.cc \
 											src/cache_slave/cache.cc src/cache_slave/file_connclient.cc
-master_SOURCES      = src/master/master.cc 
 
 pkginclude_HEADERS  = src/common/ecfs.hh src/common/fileclient.hh \
                       src/common/msgaggregator.hh src/common/settings.hh src/common/dataentry.hh \
@@ -38,4 +38,4 @@ dist_doc_DATA       = README.md LICENSE doc/eclipse.json
 man1_MANS           = doc/eclipsefs.1
 
 EXTRA_DIST          = doc .autotools_aux $(shell find @srcdir@/src -name "*.hh" -o -name "*.in") \
-											$(sh_scripts) doc/eclipse.json
+										  doc/eclipse.json

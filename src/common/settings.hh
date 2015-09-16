@@ -32,14 +32,14 @@ class Settings
 {
   private:
     class SettingsImpl;
-    SettingsImpl* impl; //! 
+    SettingsImpl* impl;
 
   public:
     Settings();
     Settings(std::string);
     ~Settings();
 
-    bool load ();
+    Settings& load ();
 
     template <typename T> T get (std::string) const;
     std::string getip () const;

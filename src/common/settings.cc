@@ -130,7 +130,7 @@ Settings::Settings() { impl = new SettingsImpl(); }
 Settings::Settings(string in) { impl = new SettingsImpl(in); }
 Settings::~Settings() { delete impl; }
 
-bool Settings::load () { return impl->load (); }
+Settings& Settings::load () { impl->load (); return *this; }
 string Settings::getip () const { return impl->getip(); }
 
 template<typename T> T Settings::get (string str) const {

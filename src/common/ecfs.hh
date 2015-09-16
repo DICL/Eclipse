@@ -105,10 +105,10 @@ using std::set;
 extern "C" uint32_t h (const char *, size_t);
 extern "C" uint32_t hash_ruby (const char * data);
 //----------------------------------------------------------
-int nbwrite (int, char*, char* contents);
+int nbwrite (int, char*, char*);
 int nbwrite (int, char*);
+int snbwrite(int , const std::string&);
 int nbread (int, char*);
-
 
 //Include rest of the files
 #include "dataentry.hh"
