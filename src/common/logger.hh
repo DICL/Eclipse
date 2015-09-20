@@ -36,6 +36,9 @@ class Logger {
     void warn (const char* fmt, ...);
     void error (const char* fmt, ...);
     void panic (const char* fmt, ...);
+
+    void panic_if (bool, const char* fmt, ...);
+    void error_if (bool, const char* fmt, ...);
 };
 
 #endif

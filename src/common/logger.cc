@@ -100,6 +100,29 @@ void Logger::panic (const char* fmt, ...) {
   exit (EXIT_FAILURE);
 }
 
+void Logger::panic_if (const char* fmt, ...) { 
+  if (cmp) {
+  va_list ap;
+
+  va_start(ap, fmt);
+  log(LOG_EMERG, fmt, ap);
+  va_end(ap);
+  exit (EXIT_FAILURE);
+ }
+}
+void Logger::error_if (bool cmp, const char* fmt, ...) {
+  if (cmp) {
+    va_list ap;
+    char msg [256];
+
+    strncpy(msg, fmt, 256 );
+    strncat(msg," [ERR:%m]", 256);
+    va_start(ap, fmt);
+    log(LOG_ERR, msg, ap);
+    va_end(ap);
+  }
+}
+
 void Logger::log (int type, const char* fmt, va_list ap) { 
   vsyslog (type, fmt, ap);
 }

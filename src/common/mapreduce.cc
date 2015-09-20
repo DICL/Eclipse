@@ -59,6 +59,8 @@ vector<int> numiblocks; // list of nummber of iblocks, element of which are math
 //filetype outputtype = NOTOPENED; // type of the input data
 string outputpath = "default_output";
 
+queue<(void(*)(string))> map_queue;
+
 // variables for task role
 string jobdirpath;
 int taskid;

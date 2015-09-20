@@ -52,9 +52,8 @@ int Slave::connect_to_server (const char* host, unsigned short port) {
     struct sockaddr_in serveraddr = {0};
     
     int masterfd = socket (AF_INET, SOCK_STREAM, 0); //SOCK_STREAM -> tcp
-    
-    if (masterfd == EXIT_FAILURE)
-        logger->panic ("[slave]Openning socket failed");
+
+    logger->panic_if (masterfd == EXIT_FAILURE, "[slave]Openning socket failed");
     
     serveraddr.sin_family = AF_INET;
     serveraddr.sin_port = htons (port);
@@ -236,29 +235,33 @@ void Slave::read_master (int masterfd) { // {{{
 
           task.set_argvalues (values);
 
-          while (true) { // read messages from master
-            switch (nbread (masterfd, read_buf)) {
-              case 0:
-                logger->error ("[slave]Connection from master is abnormally closed");
-                continue;
-              case -1: continue;
-            }
-            break;
+          for (int ret = 0; (ret = nbread (masterfd, read_buf)) <= 0; ) { // read messages from master
+            logger->error_if (ret == 0, "[slave]Connection from master is abnormally closed");
           }
 
-          token = strtok_r (read_buf, " ", &tokenbuf);      // <- "inputpath"
-          token = strtok_r (NULL, " ", &tokenbuf);          // <- first peer id
-          while (token)
-          {
-            task.peerids.push_back (atoi (token));
-            token = strtok_r (NULL, " ", &tokenbuf);      // <- numiblock
-            task.numiblocks.push_back (atoi (token));
-            token = strtok_r (NULL, " ", &tokenbuf);      // <- peerids
+          string tmp;
+          stringstream ss (read_buf);
+          ss >> tmp;
+
+          while (ss.good()) {
+            ss >> tmp; 
+            task.peerids.push_back (stoi(tmp));
+            ss >> tmp; 
+            task.numiblocks.push_back (stoi(tmp));
           }
+
+         // token = strtok_r (read_buf, " ", &tokenbuf);      // <- "inputpath"
+         // token = strtok_r (NULL, " ", &tokenbuf);          // <- first peer id
+         // while (token)
+         // {
+         //   task.peerids.push_back (atoi (token));
+         //   token = strtok_r (NULL, " ", &tokenbuf);      // <- numiblock
+         //   task.numiblocks.push_back (atoi (token));
+         //   token = strtok_r (NULL, " ", &tokenbuf);      // <- peerids
+         // }
           launch_task (task);                            // launch the forwarded task
-        }
-        else
-        {
+
+        } else {
           logger->error  ("Debugging: the task role is undefined well.");
           task.set_taskrole (JOB);
         } //}}}
@@ -342,7 +345,9 @@ void Slave::check_jobs() { //{{{
       }
   } 
 }// }}}
-void Slave::check_tasks (int masterfd) {  //{{{
+// check_tasks {{{
+//
+void Slave::check_tasks (int masterfd) {
   for (unsigned i = 0; i < running_tasks.size(); i++) {
     if (waitpid (running_tasks[i]->get_pid(), & (running_tasks[i]->pstat), WNOHANG)) {
 
