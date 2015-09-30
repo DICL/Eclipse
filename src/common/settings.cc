@@ -126,11 +126,24 @@ template<> vector<string> Settings::SettingsImpl::get (string& str) {
 //}}}
 // Settings method{{{
 //
-Settings::Settings() { impl = new SettingsImpl(); }
-Settings::Settings(string in) { impl = new SettingsImpl(in); }
-Settings::~Settings() { delete impl; }
+Settings::Settings() : impl {new SettingsImpl()} { }
+Settings::Settings(string in) : impl {new SettingsImpl(in)} { }
+Settings::~Settings() {  }
 
-Settings& Settings::load () { impl->load (); return *this; }
+Settings::Settings(Settings&& that) { this->impl = std::move(that.impl); }
+
+void Settings::operator=(Settings&& that) { 
+  Settings (std::forward<Settings>(that)); 
+}
+
+Settings& Settings::load () & { 
+  impl->load (); return *this; 
+}
+
+Settings&& Settings::load () && {
+  impl->load (); return std::move(*this); 
+}
+
 string Settings::getip () const { return impl->getip(); }
 
 template<typename T> T Settings::get (string str) const {

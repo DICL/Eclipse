@@ -53,13 +53,10 @@ vector<string> inputpaths; // list of input paths.
 int currentpeer = -1;
 vector<int> peerids; // list of peer ids on which the idata is located.
 vector<int> numiblocks; // list of nummber of iblocks, element of which are mathced to the peerids(vector<int>)
-//vector<string> nodelist; // list of slave node addresses
-//ifstream input; // input file stream for get_record
-//filetype inputtype = NOTOPENED; // type of the input data
-//filetype outputtype = NOTOPENED; // type of the input data
+
 string outputpath = "default_output";
 
-queue<(void(*)(string))> map_queue;
+//queue<(void(*)(string))> map_queue;
 
 // variables for task role
 string jobdirpath;
@@ -499,27 +496,13 @@ void summ_mapreduce()
         {
             string inputpath;
             
-            while (get_nextinput (inputpath))
-            {
-                inside_map = true;
-                (*mapfunction) (inputpath);
-                inside_map = false;
-                // report generated keys to slave node
-                /*
-                while(!unreported_keys.empty())
-                {
-                  string key = *unreported_keys.begin();
-                //cout<<"[mapreduce]Debugging: key emitted: "<<key<<endl;
-                  unreported_keys.erase(*unreported_keys.begin());
-                  reported_keys.insert(key);
-                
-                  // send 'key' meesage to the slave node
-                  keybuffer.add_record(key);
-                }
-                */
-            }
-            
-//cout<<"[mapreduce]Finished all map tasks..."<<endl;
+            //while (!map_queue.empty()) {
+              while (get_nextinput (inputpath)) {
+                  inside_map = true;
+                  (*mapfunction) (inputpath);
+                  inside_map = false;
+              }
+              //map_queue.pop_front();
         }
         
         set<int> peerids;
@@ -539,7 +522,7 @@ void summ_mapreduce()
         memset (write_buf, 0, BUF_SIZE);
         strcpy (write_buf, message.c_str());
         nbwrite (pipefd[1], write_buf);
-//cout<<"[mapreduce]Complete message sent..."<<endl;
+
         // blocking read until the 'terminate' message
         fcntl (pipefd[0], F_SETFL, fcntl (pipefd[0], F_GETFL) & ~O_NONBLOCK);
         
@@ -547,19 +530,16 @@ void summ_mapreduce()
         {
             readbytes = nbread (pipefd[0], read_buf);
             
-            if (readbytes == 0)     // pipe fd was closed abnormally
-            {
+            if (readbytes == 0) {     // pipe fd was closed abnormally
                 // TODO: Terminate the task properly
                 cout << "[mapreduce]Connection from master abnormally closed" << endl;
                 exit (0);
-            }
-            else if (readbytes > 0)
-            {
-                if (strncmp (read_buf, "terminate", 9) == 0)
-                {
-// cout<<"[mapreduce]Map task is successfully completed"<<endl;
-                    // terminate successfully
-                    while (close (pipefd[0]) < 0)
+
+            } else if (readbytes > 0) {
+
+                if (strncmp (read_buf, "terminate", 9) == 0) {
+
+                    while (close (pipefd[0]) < 0) // terminate successfully
                     {
                         cout << "[mapreduce]close failed" << endl;
                         // sleeps for 1 milli seconds
@@ -574,14 +554,11 @@ void summ_mapreduce()
                     }
                     
                     exit (0);
-                }
-                else   // all other messages are ignored
-                {
+
+                } else { // all other messages are ignored
                     continue;
                 }
-            }
-            else
-            {
+            } else {
                 usleep (1000);
             }
             
@@ -648,7 +625,6 @@ void summ_mapreduce()
             {
                 if (strncmp (read_buf, "terminate", 9) == 0)
                 {
-                    // cout<<"[mapreduce]Reduce task is successfully completed"<<endl; // <- this message will be printed in the slave process side
                     // terminate successfully
                     exit (0);
                 }
@@ -657,56 +633,9 @@ void summ_mapreduce()
                     continue;
                 }
             }
-            
-            // sleeps for 0.0001 seconds. change this if necessary
-            // usleep(100000);
         }
-        
         fcntl (pipefd[0], F_SETFL, O_NONBLOCK);
     }
-}
-
-int get_argc (void)
-{
-    return argcount;
-}
-
-char** get_argv (void)
-{
-    return argvalues;
-}
-void set_mapper (void (*map_func) (string))
-{
-    isset_mapper = true;
-    mapfunction = map_func;
-}
-
-void set_reducer (void (*red_func) (string key))
-{
-    isset_reducer = true;
-    reducefunction = red_func;
-}
-
-void add_inputpath (string path)
-{
-    if (role == JOB)
-    {
-        inputpaths.push_back (path);
-    }
-    else if (role == MAP)
-    {
-        // do nothing
-    }
-    else     // role is reduce
-    {
-        // do nothing
-    }
-}
-
-void set_outputpath (string path)     // this user function can be used in anywhere but before initialization
-{
-    isset_outputpath = true;
-    outputpath = path;
 }
 
 int connect_to_server (char *host, unsigned short port)
@@ -858,14 +787,11 @@ string get_nextrecord()   // a user function for the map
     }
 }
 
-bool is_nextrecord()
-{
-    if (inside_map)
-    {
+bool is_nextrecord() {
+    if (inside_map) {
         return is_nextrec;
-    }
-    else
-    {
+
+    } else {
         cout << "[mapreduce]Warning: the is_nextrecord() function is being used outside the map function" << endl;
         return false;
     }
@@ -879,9 +805,7 @@ bool get_nextkey (string* key)     // internal function for the reduce
         bool readsuccess = true;
         
         while (readsuccess)
-        {
             readsuccess = thefileclient.read_record (nextvalue);
-        }
     }
     
     // get next key
@@ -891,12 +815,10 @@ bool get_nextkey (string* key)     // internal function for the reduce
     {
         readsuccess = thefileclient.read_record (nextvalue);
         
-        if (readsuccess)
-        {
+        if (readsuccess) {
             is_nextval = true;
-        }
-        else
-        {
+
+        } else {
             is_nextval = false;
             cout << "[mapreduce]Unexpected respond after read_request(1)" << endl;
             cout << "[mapreduce]key received: " << *key << endl;
@@ -904,9 +826,9 @@ bool get_nextkey (string* key)     // internal function for the reduce
         }
         
         return true;
-    }
-    else     // no next key in this node
-    {
+
+    } else { // no next key in this node
+
         if ( (unsigned) currentpeer < peerids.size())      // another peer to go
         {
             // request to next peer
@@ -927,38 +849,29 @@ bool get_nextkey (string* key)     // internal function for the reduce
             {
                 readsuccess = thefileclient.read_record (nextvalue);
                 
-                if (readsuccess)
-                {
+                if (readsuccess) {
                     is_nextval = true;
-                }
-                else
-                {
+
+                } else {
                     cout << "[mapreduce]Unexpected respond after read_request(2)" << endl;
                 }
-            }
-            else     // no first key
-            {
+            } else {
                 cout << "[mapreduce]Unexpected respond after read_request(3)" << endl;
             }
-            
             return true;
-        }
-        else
-        {
+
+        } else {
             return false;
         }
     }
 }
-
-bool is_nextvalue()   // returns true if there is next value
-{
+// returns true if there is next value
+bool is_nextvalue() { 
     // check if this function is called inside the reduce function
-    if (inside_reduce)
-    {
+    if (inside_reduce) {
         return is_nextval;
-    }
-    else
-    {
+
+    } else {
         cout << "[mapreduce]Warning: the is_nextvalue() function is being used outside the reduce function" << endl;
         return false;
     }
@@ -1014,22 +927,30 @@ void write_output (string record)     // this user function can be used anywhere
     thefileclient.write_record (outputpath, record, OUTPUT);
 }
 
-void set_nummapper (int num)     // sets number of mappers
-{
-    nummap = num;
+void set_mapper (void (*map_func) (string)) {
+    isset_mapper = true;
+    mapfunction = map_func;
+
 }
 
-void set_numreducer (int num)     // sets number of reducers
-{
-    numreduce = num;
+void set_reducer (void (*red_func) (string key)) {
+    isset_reducer = true;
+    reducefunction = red_func;
 }
 
-int get_jobid()
-{
-    return jobid;
+void add_inputpath (string path) {
+    if (role == JOB)
+        inputpaths.push_back (path);
 }
 
-void enable_Icache()   // function that enables intermediate cache
-{
-    isIcache = true;
+void set_outputpath (string path) {   
+    isset_outputpath = true;
+    outputpath = path;
 }
+
+void set_nummapper (int num)  { nummap = num; }
+void set_numreducer (int num) { numreduce = num; }
+int get_jobid()               { return jobid; }
+void enable_Icache()          { isIcache = true; }
+int get_argc (void)           { return argcount; }
+char** get_argv (void)        { return argvalues; }

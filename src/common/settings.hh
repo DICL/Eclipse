@@ -15,31 +15,36 @@
  * The way it was designed to be used was:
  *
  * @code
- * Setting setted;
- * setted.load();
+ * Settings setted =  Settings().load();
  * string path1 = setted.get<string>("path1");
  * @endcode
  *
  * @attention This class uses the P.I.M.P.L. (Pointer to implementation) idiom
- *            this reduces the complexity of the interface. 
+ *            this reduces the complexity of the interface and compilation time. 
  */
 #ifndef __SETTINGS_HH_
 #define __SETTINGS_HH_
 
 #include <string>
+#include <memory>
 
 class Settings 
 {
   private:
     class SettingsImpl;
-    SettingsImpl* impl;
+    std::unique_ptr<SettingsImpl> impl;
 
   public:
     Settings();
     Settings(std::string);
+
+    Settings(Settings&&);          //! Move operators
+    void operator=(Settings&&);    //!
+
     ~Settings();
 
-    Settings& load ();
+    Settings& load () &;
+    Settings&& load () &&;
 
     template <typename T> T get (std::string) const;
     std::string getip () const;

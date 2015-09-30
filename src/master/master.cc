@@ -133,6 +133,7 @@ int main (int argc, char** argv) {
                         fcntl (fd, F_SETFL, O_NONBLOCK);
                         setsockopt (fd, SOL_SOCKET, SO_SNDBUF, &buffersize, (socklen_t) sizeof (buffersize));
                         setsockopt (fd, SOL_SOCKET, SO_RCVBUF, &buffersize, (socklen_t) sizeof (buffersize));
+
                         connectioncount++;
                         break;
                     }
@@ -140,7 +141,6 @@ int main (int argc, char** argv) {
                 
                 log->info  ("slave node connected from %s", haddrp);
 
-                //log->info  << "slave node connected from " << haddrp;
             }
             else if (strncmp (read_buf, "client", 6) == 0)         // client connected
             {
@@ -292,7 +292,7 @@ void signal_listener (int args)
                 if (jobs.size() == (unsigned) max_job)
                 {
                     log->info ("Cannot accept any more job request due to maximum job connection limit");
-                    log->info ("\tClosing connection from the job...");
+                    log->info ("Closing connection from the job...");
                     memset (write_buf, 0, BUF_SIZE);
                     strcpy (write_buf, "nospace");
                     nbwrite (tmpfd, write_buf);
@@ -399,156 +399,6 @@ void signal_listener (int args)
                 {
                     log->info ("Undefined message from slave node: %s ", read_buf);
                     log->info ("Undefined message size: %s", readbytes);
-                }
-            }
-        }
-        
-        // listen to clients
-        for (int i = 0; (unsigned) i < clients.size(); i++)
-        {
-            readbytes = nbread (clients[i]->getfd(), read_buf);
-            
-            if (readbytes == 0)     // connection closed from client
-            {
-                log->info ("Connection from a client closed");
-                delete clients[i];
-                clients.erase (clients.begin() + i);
-                i--;
-                continue;
-            }
-            else if (readbytes < 0)
-            {
-                continue;
-            }
-            else     // signal from the client
-            {
-                log->info ("Message accepted from client: %s ", read_buf);
-                
-                if (strncmp (read_buf, "stop", 4) == 0)       // "stop" signal arrived
-                {
-                    int currfd = clients[i]->getfd(); // store the current client's fd
-                    
-                    // stop all slave
-                    for (int j = 0; (unsigned) j < slaves.size(); j++)
-                    {
-                        memset (write_buf, 0, BUF_SIZE);
-                        strcpy (write_buf, "close");
-                        nbwrite (slaves[j]->getfd(), write_buf);
-                        // blocking read from slave
-                        fcntl (slaves[j]->getfd(), F_SETFL, fcntl (slaves[j]->getfd(), F_GETFL) & ~O_NONBLOCK);
-                        readbytes = nbread (slaves[j]->getfd(), read_buf);
-                        
-                        if (readbytes == 0)     // closing slave succeeded
-                        {
-                            delete slaves[j];
-                            slaves.erase (slaves.begin() + j);
-                            j--;
-                        }
-                        else     // message arrived before closed
-                        {
-                            memset (write_buf, 0, BUF_SIZE);
-                            strcpy (write_buf, "ignored");
-                            nbwrite (slaves[j]->getfd(), write_buf);
-                            j--;
-                            continue;
-                        }
-                        
-                        log->info ("Connection from a slave closed");
-                    }
-                    
-                    log->info ("All slaves closed");
-                    
-                    // stop all client except the one requested stop
-                    for (int j = 0; (unsigned) j < clients.size(); j++)
-                    {
-                        if (currfd == clients[j]->getfd())   // except the client who requested the stop
-                        {
-                            continue;
-                        }
-                        
-                        memset (write_buf, 0, BUF_SIZE);
-                        strcpy (write_buf, "close");
-                        nbwrite (clients[j]->getfd(), write_buf);
-                        // blocking read from client
-                        fcntl (clients[j]->getfd(), F_SETFL, fcntl (clients[j]->getfd(), F_GETFL) & ~O_NONBLOCK);
-                        readbytes = nbread (clients[j]->getfd(), read_buf);
-                        
-                        if (readbytes == 0)     // closing client succeeded
-                        {
-                            delete clients[j];
-                            clients.erase (clients.begin() + j);
-                            j--;
-                        }
-                        else     // message arrived before closed
-                        {
-                            memset (write_buf, 0, BUF_SIZE);
-                            strcpy (write_buf, "ignored");
-                            nbwrite (clients[j]->getfd(), write_buf);
-                            j--;
-                            continue;
-                        }
-                        
-                        log->info ("Connection from a client closed");
-                    }
-                    
-                    log->info ("All clients closed");
-                    memset (write_buf, 0, BUF_SIZE);
-                    strcpy (write_buf, "result: stopping successful");
-                    nbwrite (clients[i]->getfd(), write_buf);
-                }
-                else if (strncmp (read_buf, "numslave", 8) == 0)         // "numslave" signal arrived
-                {
-                    string ostring = "result: number of slave nodes = ";
-                    stringstream ss;
-                    ss << slaves.size();
-                    ostring.append (ss.str());
-                    memset (write_buf, 0, BUF_SIZE);
-                    strcpy (write_buf, ostring.c_str());
-                    nbwrite (clients[i]->getfd(), write_buf);
-                }
-                else if (strncmp (read_buf, "numclient", 9) == 0)         // "numclient" signal arrived
-                {
-                    string ostring = "result: number of client nodes = ";
-                    stringstream ss;
-                    ss << clients.size();
-                    ostring.append (ss.str());
-                    memset (write_buf, 0, BUF_SIZE);
-                    strcpy (write_buf, ostring.c_str());
-                    nbwrite (clients[i]->getfd(), write_buf);
-                }
-                else if (strncmp (read_buf, "numjob", 6) == 0)         // "numjob" signal arrived
-                {
-                    string ostring = "result: number of running jobs = ";
-                    stringstream ss;
-                    ss << jobs.size();
-                    ostring.append (ss.str());
-                    memset (write_buf, 0, BUF_SIZE);
-                    strcpy (write_buf, ostring.c_str());
-                    nbwrite (clients[i]->getfd(), write_buf);
-                }
-                else if (strncmp (read_buf, "numtask", 7) == 0)         // "numtask" signal arrived
-                {
-                    string ostring = "result: number of running tasks = ";
-                    stringstream ss;
-                    int numtasks = 0;
-                    
-                    for (int j = 0; (unsigned) j < jobs.size(); j++)
-                    {
-                        numtasks += jobs[j]->get_numrunning_tasks();
-                    }
-                    
-                    ss << numtasks;
-                    ostring.append (ss.str());
-                    memset (write_buf, 0, BUF_SIZE);
-                    strcpy (write_buf, ostring.c_str());
-                    nbwrite (clients[i]->getfd(), write_buf);
-                }
-                else     // undefined signal
-                {
-                    log->info ("Undefined signal from client: %s ", read_buf);
-                    memset (write_buf, 0, BUF_SIZE);
-                    strcpy (write_buf, "result: error. the request is unknown");
-                    nbwrite (clients[i]->getfd(), write_buf);
                 }
             }
         }
@@ -949,7 +799,7 @@ void signal_listener (int args)
                             
                             // send message to slave
                             memset (write_buf, 0, BUF_SIZE);
-                            strcpy (write_buf, message.c_str());
+                            strncpy (write_buf, message.c_str(), BUF_SIZE);
                             nbwrite (slaves[nodeindex]->getfd(), write_buf);
                             message = "inputpath ";
                             message.append (thetask->get_inputpath (iter));
@@ -962,7 +812,7 @@ void signal_listener (int args)
                     if (message.length() > strlen ("inputpath "))
                     {
                         memset (write_buf, 0, BUF_SIZE);
-                        strcpy (write_buf, message.c_str());
+                        strncpy (write_buf, message.c_str(), BUF_SIZE);
                         nbwrite (slaves[nodeindex]->getfd(), write_buf);
                     }
                     

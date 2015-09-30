@@ -120,15 +120,6 @@ void Slave::launch_task (slave_task& atask) {
         atask.set_pid (pid); // register the pid of the task process
     }
 } // }}}
-// find_jobfromid {{{
-slave_job* Slave::find_jobfromid (int id) {
-    for (auto& job : running_jobs) {
-        if (job->get_jobid() == id) return job;
-    }
-    
-    return NULL;
-}
-// }}}
 // block_until_event {{{
 void Slave::block_until_event(int masterfd) {
   struct timespec ts;
@@ -172,11 +163,16 @@ void Slave::read_master (int masterfd) { // {{{
 
         sscanf (read_buf, "%*s %i %i %s %i %[^\n]", &jobid, &taskid, type, &argc, remaining);
 
-        thejob = find_jobfromid (jobid);
+        auto it = find_if (running_jobs.begin(), running_jobs.end(), [jobid] (slave_job* j) -> bool {
+              return j->get_jobid() == jobid;
+            });
 
-        if (!thejob) {                                     // if any task in this job are not running in this slave
+        if (it == running_jobs.end()) {      // if any task in this job are not running in this slave
           thejob = new slave_job (jobid, masterfd);
           running_jobs.push_back (thejob);
+
+        } else {
+          thejob = *it;
         }
 
         slave_task& task = *(new slave_task (taskid));     // the status is running by default

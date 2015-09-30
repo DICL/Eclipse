@@ -178,39 +178,9 @@ int nbread (int fd, char* buf)
     }
     else if (readbytes < 0)
     {
-        if (errno != EAGAIN)
-        {
-            if (errno == EBADF)
-            {
-                cout << "\t\033[0;31mread function failed due to EBADF error, debug needed\033[0m" << endl;
-            }
-            else if (errno == EFAULT)
-            {
-                cout << "\t\033[0;31mread function failed due to EFAULT error, debug needed\033[0m" << endl;
-            }
-            else if (errno == EINTR)
-            {
-                cout << "\t\033[0;31mread function failed due to EINTR error, debug needed\033[0m" << endl;
-            }
-            else if (errno == EINVAL)
-            {
-                cout << "\t\033[0;31mread function failed due to EINVAL error, debug needed\033[0m" << endl;
-            }
-            else if (errno == EIO)
-            {
-                cout << "\t\033[0;31mread function failed due to EIO error, debug needed\033[0m" << endl;
-            }
-            else if (errno == EISDIR)
-            {
-                cout << "\t\033[0;31mread function failed due to EISDIR error, debug needed\033[0m" << endl;
-            }
-            else
-            {
-                cout << "\t\033[0;31mread function failed due to unspecified error, debug needed\033[0m" << endl;
-            }
-            
-            // sleep 1 second for easier debug
-            sleep (1);
+        if (errno != EAGAIN) {
+          perror ("Error in nbread");
+          sleep (1);
         }
         
         return readbytes;
@@ -231,10 +201,10 @@ int nbread (int fd, char* buf)
                 
                 if (readbytes == 0)
                 {
-                    cout << "\t\033[0;32mthe fd was closed during reading the buffer: debug the nbread() function.\033[0m" << endl;
-                    cout << "\t\033[0;32m" << buf << "\033[0m" << endl;
-                    cout << "\t\033[0;32m" << "total_readbytes: " << total_readbytes << "\033[0m" << endl;
-                    cout << "\t\033[0;32m" << "last_character: " << buf[total_readbytes - 1] << "\033[0m" << endl;
+                    cout << "the fd was closed during reading the buffer: debug the nbread() function." << endl;
+                    cout << buf << endl;
+                    cout << "total_readbytes: " << total_readbytes << endl;
+                    cout << "last_character: " << buf[total_readbytes - 1] << endl;
                     return 0;
                 }
                 else if (readbytes < 0)
@@ -265,7 +235,7 @@ int nbread (int fd, char* buf)
 }
 
 int snbwrite(int fd, const std::string& in) {
-  char buf[BUF_SIZE] = {0};
-  in.copy(buf, BUF_SIZE);
+  char buf [BUF_SIZE] = {0};
+  in.copy (buf, BUF_SIZE);
   return nbwrite(fd, buf);
 }

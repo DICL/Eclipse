@@ -3,7 +3,7 @@ SUBDIRS             = . tests
 AM_CPPFLAGS         = -I@srcdir@/src/common -I@srcdir@/src -include ./config.h
 AM_CXXFLAGS         = -Wall -std=gnu++11 -ggdb3
 
-bin_PROGRAMS        = master slave
+bin_PROGRAMS        = master slave cache
 
 # libs -----
 lib_LTLIBRARIES     = libecfs.la
@@ -24,11 +24,16 @@ slave_SOURCES       = src/slave/main.cc src/slave/slave.cc src/slave/slave_job.c
 											src/cache_slave/filebridge.cc src/cache_slave/idistributor.cc \
 											src/cache_slave/cache.cc src/cache_slave/file_connclient.cc
 
+cache_SOURCES       = src/cache_new/application.cc src/cache_new/node.cc src/cache_new/master.cc \
+                      src/cache_new/peer.cc \
+                      src/cache_new/cache_slave.cc \
+                      src/cache_new/main.cc
+
 pkginclude_HEADERS  = src/common/ecfs.hh src/common/fileclient.hh \
                       src/common/msgaggregator.hh src/common/settings.hh src/common/dataentry.hh \
 											src/common/messagebuffer.hh src/common/datablock.hh src/common/mapreduce.hh 
 # Scripts -------
-bin_SCRIPTS         = src/fs/eclipsed src/fs/eclipse-debug
+bin_SCRIPTS         = src/fs/eclipsed
 # ------
 if COPY_SAMPLES
 sysconf_DATA        = doc/eclipse.json

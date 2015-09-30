@@ -41,7 +41,7 @@ void Logger::disconnect (Logger* in) {
   in = nullptr;
 }
 
-Logger::Logger (string title, string type) { 
+Logger::Logger (string& title, string& type) { 
   int type_ = syslog_facilities[type];
   openlog (title.c_str() , LOG_CONS, type_); 
 }
@@ -100,7 +100,7 @@ void Logger::panic (const char* fmt, ...) {
   exit (EXIT_FAILURE);
 }
 
-void Logger::panic_if (const char* fmt, ...) { 
+void Logger::panic_if (bool cmp, const char* fmt, ...) { 
   if (cmp) {
   va_list ap;
 
