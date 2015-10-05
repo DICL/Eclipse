@@ -1,13 +1,11 @@
-#include "pool.hh"
+#include "async_pool.hh"
 #include <utility>      // std::pair, std::get
 
 using namespace std;
 
 // Constructor & destr {{{
-Async_pool::Async_pool(int _max) {
-  max_tasks = _max;
-}
-
+Async_pool::Async_pool(int _max) : max_tasks(_max) { }
+// - - -
 Async_pool::~Async_pool() { }
 // }}}
 // schedule {{{

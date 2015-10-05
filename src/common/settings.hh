@@ -15,7 +15,7 @@
  * The way it was designed to be used was:
  *
  * @code
- * Settings setted =  Settings().load();
+ * Settings setted = Settings().load();
  * string path1 = setted.get<string>("path1");
  * @endcode
  *

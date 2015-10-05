@@ -1,4 +1,4 @@
-#include "cache"
+#include "cache.hh"
 
 Cache::Cache(size_t s) : max_(s) {}
 

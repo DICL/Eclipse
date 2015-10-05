@@ -1,23 +1,23 @@
 #pragma once
-#include "cache"
+#include "cache.hh"
 
 template <typename KEY, typename VALUE>
-class Cache_vector: public Cache {
-  using PAIR = std::pair<KEY,VALUE>
+class Cache_vector: public Cache<KEY,VALUE> {
+  using PAIR = std::pair<KEY,VALUE>;
   private:
     vector<PAIR> container;
 
   public:
     Cache_vector(int);
 
-    override VALUE& lookup(KEY);
-    override bool exists(KEY);
-    override void insert(KEY,VALUE);
+    VALUE& lookup(KEY) override ;
+    bool exists(KEY) override;
+    void insert(KEY,VALUE) override;
 };
 
 // lookup {{{
 template <typename KEY, typename VALUE>
-override VALUE& Cache_vector::lookup(KEY) {
+VALUE& Cache_vector::lookup(KEY) {
   for (auto& pair_ : container) {
     if (pair_.first == KEY) return pair_.second;
   }
@@ -25,7 +25,8 @@ override VALUE& Cache_vector::lookup(KEY) {
 }
 //}}}
 // exists {{{
-override bool Cache_vector::exists(KEY) {
+template <typename KEY, typename VALUE>
+bool Cache_vector::exists(KEY) {
   for (auto& pair_ : container) {
     if (pair_.first == KEY) return true;
   }
@@ -33,7 +34,8 @@ override bool Cache_vector::exists(KEY) {
 }
 //}}}
 // insert {{{
-override void Cache_vector::insert(KEY, VALUE) {
+template <typename KEY, typename VALUE>
+void Cache_vector::insert(KEY, VALUE) {
   if (exists (KEY)) {
     container.push_front();
   }

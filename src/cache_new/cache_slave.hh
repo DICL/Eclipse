@@ -2,7 +2,8 @@
 
 #include "node.hh"
 #include "cache.hh"
-#include "async_messages.hh"
+#include "iasync_messages.hh"
+#include "async_pool.hh"
 #include "../common/histogram.hh"
 #include "../common/dataentry.hh"
 #include "../common/logger.hh"
@@ -10,17 +11,17 @@
 #include <map>
 #include <memory>
 
-class Cache_slave : public async_messages {
+class Cache_slave : public Iasync_messages {
   private:
-    override void async_file_send  (std::string, Node&);
-    override void async_data_send  (std::string, Node&);
-    override void async_file_read  (std::string, Node&);
-    override void async_file_write (std::string, Node&);
-
-    override void async_request_file_read  (std::string, Node&);
-    override void async_request_file_write (std::string, Node&);
-    override void async_request_data_read  (std::string, Node&);
-    override void async_request_data_write (std::string, Node&);
+    void async_file_send  (std::string, Node&) override ;
+    void async_data_send  (std::string, Node&) override ;
+    void async_file_read  (std::string, Node&) override ;
+    void async_file_write (std::string, Node&) override ;
+                                                         
+    void async_request_file_read  (std::string, Node&) override ;
+    void async_request_file_write (std::string, Node&) override ;
+    void async_request_data_read  (std::string, Node&) override ;
+    void async_request_data_write (std::string, Node&) override ;
 
     int connect_to_master (std::string, int);
     int open_peers_server (int);

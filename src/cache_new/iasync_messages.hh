@@ -2,9 +2,9 @@
 
 #include "node.hh"
 
-class async_messages {
+class Iasync_messages {
   private:
-    virtual ~async_messages() { }
+    virtual ~Iasync_messages() { }
     virtual void async_file_send  (std::string, Node&) = 0;
     virtual void async_data_send  (std::string, Node&) = 0;
     virtual void async_file_read  (std::string, Node&) = 0;

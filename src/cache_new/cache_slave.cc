@@ -274,84 +274,76 @@ void Cache_slave::accept_new_clients() {
 // }}}
 // proccess_ipc_requests {{{
 void Cache_slave::proccess_ipc_requests() {
-  map<string, function<void(string)> > ipc_functions { //{{{
-    {
-      "Rinput", [this](string s) { 
-        string app, filename;
-        int jobid;
-        stringstream ss (s);
-  
-        ss >> app >> jobid >> filename;  
-
-        Node* node = get_range_of (nodes, Node_t::PEER)[corresponding_node (filename)];
-
-        if (node == ip_of_this) {
-          if (cache.exits (filename)) {
-            pool->add_task (async_send_file, this, filename, application);
-
-          } else {
-            pool->add_task (async_load_file, this, filename, application);
-          }
-
-        } else {
-          async_request_file_read (filename, node);
-        }
-      }
-    },{
-      "Iread", [this](string s) {
-         int jobid, peerid, numiblock;
-         stringstream ss (s);
-
-         ss >> jobid >> peerid >> numiblock;
-         
-         if (peerid == id_of_this) {
-            async_send_data (numiblock, application);
-
-         } else {
-            async_request_data_read (filename, application);
-         }
-       }
-    },{
-      "Iwrite", [this](string s) {
-        string jobid, keyvalue, key, value;
-        stringstream ss (s);
-
-        getline (ss, jobid, '\n');
-        getline (ss, keyvalue, '\n'); 
-
-        ss.str (keyvalue);
-        ss >> key >> value;
-        
-        if (corresponding_node(key) == id_of_this) {
-          thecache[key] = value;                        // :TODO:
-  
-        } else {
-          async_request_data_write (key, value);
-        }
-      }
-    },{
-      "Owrite", [this](string s) {
-        string filename, data;
-        stringstream ss (s);
-        
-        ss >> filename >> data;
-      
-        if (corresponding_node(filename) == id_of_this) {
-          async_file_write (filename, data);
-
-        } else {
-          async_request_file_write (filename, data);
-        }
-      }
-    }
-  }; //}}}
 
   for (auto application : get_range_of (nodes, Node_t::APPLICATION)) {
     string input = application->recv();
-    string header = input.substr (0, input.find_first_of(' '));
-    string body   = input.substr (input.find_first_of(' '));
-    
-    ipc_functions[header](body);
+    string& header = input.substr (0, input.find_first_of(' '));
+    string& body   = input.substr (input.find_first_of(' '));
+
+    if (header == "Rinput" ) { 
+      string app, filename;
+      int jobid;
+      stringstream ss (body);
+
+      ss >> app >> jobid >> filename;  
+
+      Node* node = get_range_of (nodes, Node_t::PEER)[corresponding_node (filename)];
+
+      if (node == ip_of_this) {
+        if (cache.exits (filename)) {
+          pool->add_task (async_send_file, this, filename, application);
+
+        } else {
+          pool->add_task (async_load_file, this, filename, application);
+        }
+
+      } else {
+        async_request_file_read (filename, node);
+      }
+
+    } else if (header == "Iread") {
+      int jobid, peerid, numiblock;
+      stringstream ss (body);
+
+      ss >> jobid >> peerid >> numiblock;
+
+      if (peerid == id_of_this) {
+        async_send_data (numiblock, application);
+
+      } else {
+        async_request_data_read (filename, application);
+      }
+
+    } else if (header == "Iwrite") {
+      string jobid, keyvalue, key, value;
+      stringstream ss (s);
+
+      getline (ss, jobid, '\n');
+      getline (ss, keyvalue, '\n'); 
+
+      ss.str (keyvalue);
+      ss >> key >> value;
+
+      if (corresponding_node(key) == id_of_this) {
+        thecache[key] = value;                        // :TODO:
+
+      } else {
+        async_request_data_write (key, value);
+      }
+
+    } else if (header == "Owrite") { 
+      string filename, data;
+      stringstream ss (s);
+
+      ss >> filename >> data;
+
+      if (corresponding_node(filename) == id_of_this) {
+        async_file_write (filename, data);
+
+      } else {
+        async_request_file_write (filename, data);
+      }
+    }
   }
 }
 // }}}
@@ -366,34 +358,34 @@ void Cache_slave::receive_boundaries_from_master() {
   string boundaries = Master->recv();
 
   if (not boundaries.empty()) {
-      stringstream ss (boundaries);
-      string header;
-      ss >> header ; // boundaries/iwritefinish token
+    stringstream ss (boundaries);
+    string header;
+    ss >> header ; // boundaries/iwritefinish token
 
-      if (header == "boundaries") {
-        double doubletoken;
+    if (header == "boundaries") {
+      double doubletoken;
 
-        auto vec = get_range_of (nodes, Node_t::PEER);
+      auto vec = get_range_of (nodes, Node_t::PEER);
 
-        for (decltype(vec.size()) i = 0; i < vec.size(); i++) {
-          ss >> doubletoken;
-          thehistogram->set_boundary (i, doubletoken);
-        }
-
-      } else if (header == "iwritefinish") {
-                //Do nothing now
-
-      } else { // unknown message {
-        log->info ("Unknown message from master node");
+      for (decltype(vec.size()) i = 0; i < vec.size(); i++) {
+        ss >> doubletoken;
+        thehistogram->set_boundary (i, doubletoken);
       }
 
-  } else {
-    this->close();
+    } else if (header == "iwritefinish") {
+      //Do nothing now
+
+    } else { // unknown message {
+      log->info ("Unknown message from master node");
+    }
+
+    } else {
+      this->close();
+    }
+    //thecache->update_size();
   }
-  //thecache->update_size();
-}
-// }}}
-// close {{{
+  // }}}
+  // close {{{
 void Cache_slave::close() {
   for (auto it : nodes) {
     log->info ("Closing connection to a client...");
