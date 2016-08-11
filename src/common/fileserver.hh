@@ -16,8 +16,8 @@ class fileserver   // each slave node has an object of fileserver
     private:
         int serverfd;
         vector<file_connclient*> clients;
-        char read_buf[BUF_SIZE];
-        char write_buf[BUF_SIZE];
+        char *read_buf;
+        char *write_buf;
         
     public:
         fileserver();
@@ -26,6 +26,8 @@ class fileserver   // each slave node has an object of fileserver
 
 fileserver::fileserver()
 {
+    read_buf = (char*)malloc(BUF_SIZE);
+    write_buf = (char*)malloc(BUF_SIZE);
     this->serverfd = -1;
 }
 

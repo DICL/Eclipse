@@ -15,10 +15,11 @@
 #include <mapreduce/definitions.hh>
 #include <common/settings.hh>
 #include <exception>
+#include <sys/mman.h>
 
 using namespace std;
 
-char master_address[BUF_SIZE];
+char *master_address;
 
 bool master_is_set = false;
 
@@ -27,8 +28,10 @@ int dhtport = -1;
 
 fileserver afileserver;
 
+// worker server main function
 int main (int argc, const char *argv[])
 {
+    master_address = (char*) malloc(BUF_SIZE);
     // initialize data structures from setup.conf
     string token;
     Settings setted;

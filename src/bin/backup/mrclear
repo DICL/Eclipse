@@ -1,8 +1,0 @@
-#!/bin/sh
-
-for line in `cat $ECLIPSE_PATH/nodelist.conf`
-do
-	ssh $line mrclear_core &
-done
-
-wait

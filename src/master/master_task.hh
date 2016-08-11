@@ -18,16 +18,21 @@ class master_task
         
         // FOR MAP
         vector<string> inputpaths;// a vector of inputpaths. inputpaths can be multiple
+
+//[wb]
+		vector<string> idatapaths;
         
     public:
         // FOR REDUCER
         vector<int> peerids; // list of peer ids in which the idata is located
         vector<int> numiblocks; // list of number of blocks for each peer
+		vector<int> threadids;
         
         master_task();
         master_task (mr_role arole);
         master_task (master_job* ajob);
         master_task (master_job* ajob, mr_role arole);
+		~master_task();
         
         int gettaskid();
         void settaskid (int num);
@@ -40,6 +45,13 @@ class master_task
         void add_inputpath (string path);
         void set_status (task_status astatus);
         task_status get_status();
+
+
+//[wb]
+		void add_idatapath (string path);
+  // ACS
+  int dht_loc;
+
 };
 
 #endif

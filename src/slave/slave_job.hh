@@ -511,6 +511,9 @@ slave_task::~slave_task()
 
         delete[] argvalues;
     }
+
+	for (int i = 0; i < this->numiblocks.size(); ++i)
+		delete[] this->numiblocks[i];
 }
 
 void slave_task::set_taskid (int id)

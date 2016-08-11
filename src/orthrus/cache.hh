@@ -13,38 +13,50 @@ using namespace std;
 class cache
 {
     private:
-        unsigned size;
-        unsigned capacity;
+        size_t size;
+        size_t capacity;
         vector<dataentry*> entries; // front() is the most recent entry, back() is the least recent entry
+        vector<dataentry*> evicted;
         
     public:
         cache();
-        cache (unsigned num);
+        cache (size_t num);
         dataentry* lookup (string filename);   // lookup makes the entry the most recent
         dataentry* lookup (unsigned index);   // lookup makes the entry the most recent
         
         void new_entry (dataentry* entry);   // a zero-sized entry is added as the most recent entry
         
         void update_size(); // this function should be called periodically
-        unsigned get_size();
+        size_t get_size();
         bool try_fit_size();
+		size_t GetCapacity();
 };
 
 cache::cache()
 {
     size = 0;
     capacity = CACHESIZE;
+	capacity *= 1024*1024;
 }
 
-cache::cache (unsigned num)
+cache::cache (size_t num)
 {
     size = 0;
     capacity = num;
+	capacity *= 1024*1024;
 }
 
 dataentry* cache::lookup (string filename)
 {
     dataentry* ret = NULL;
+
+    /*
+    cout << "lookup: " << filename << " from ";
+    for (int i = 0; i < entries.size(); ++i) {
+      cout << entries[i]->get_filename() << " ";
+    }
+    cout << endl;
+    */
     
     for (int i = 0; (unsigned) i < entries.size(); i++)
     {
@@ -82,7 +94,15 @@ dataentry* cache::lookup (unsigned index)
 
 void cache::new_entry (dataentry* entry)
 {
-    entries.insert (entries.begin(), entry);
+  bool haha;
+  // haha = capacity > 0;
+  haha = true;
+	if (true) {
+		entries.insert (entries.begin(), entry);
+		//return true;
+	}
+	//else
+	//	return false;
 }
 
 void cache::update_size()
@@ -106,12 +126,13 @@ bool cache::try_fit_size()
     {
         dataentry* theentry = * (entries.end() - i);
         
-        if (!theentry->is_locked())
+        // if (!theentry->is_locked())
         {
             entries.erase ( (entries.end() - i));
             i--;
             size -= theentry->get_size();
-            delete theentry;
+            evicted.push_back(theentry);
+            // delete theentry;
             
             if (size > capacity)
             {
@@ -119,19 +140,32 @@ bool cache::try_fit_size()
             }
             else
             {
-                return true;
+                // return true;
+                break;
             }
         }
     }
+    for (int i = 0; i < evicted.size(); ++i) {
+      auto theentry = evicted[i];
+      if (!theentry->is_locked()) {
+        evicted.erase(evicted.begin() + i);
+        --i;
+        delete theentry;
+      }
+    }
     
-    return false;
+    // return false;
+    return true;
 }
 
 
-unsigned cache::get_size()
+size_t cache::get_size()
 {
     return size;
 }
 
+size_t cache::GetCapacity() {
+	return capacity;
+}
 
 #endif

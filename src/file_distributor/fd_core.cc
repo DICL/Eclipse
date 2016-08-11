@@ -14,7 +14,8 @@ int main (int argc, char** argv)
     ifstream nodelistfile;
     vector<string> nodelist;
     string token;
-    char buf[BUF_SIZE];
+    char *buf;
+    buf = (char*)malloc(BUF_SIZE);
 
     Settings setted;
     setted.load_settings();

@@ -20,6 +20,10 @@ enum mapstatus
 class master_job
 {
     private:
+    int priority_;
+		int delay;
+		int delaystart;
+		bool isdelay;
         int jobid;
         int jobfd;
         int argcount;
@@ -42,6 +46,10 @@ class master_job
         
         
         int scheduled;
+		struct timeval job_start;
+		struct timeval map_end;
+		struct timeval job_end;
+      int start_time_;
         
         
         
@@ -68,6 +76,11 @@ class master_job
         string getargvalue (int index);
         void add_inputpath (string path);
         string get_inputpath (int index);
+		/*
+//[wb]
+		void add_idatapath (string path);
+		string get_idatapath (int index);
+		*/
         int get_numinputpaths();
         void add_task (master_task* atask);
         master_task* get_task (int index);
@@ -82,11 +95,24 @@ class master_job
         void schedule_task (master_task* atask, connslave* aslave);
         void finish_task (master_task* atask, connslave* aslave);
         master_task* find_taskfromid (int id);
-        
+
+		void delayed(int time);
+		void delayed();
+		void sched();
+		int getdelayed();
+
+
+  void queue(int index);
+  void withdraw(master_task *atask);
+  void schedule_task_batch(master_task* atask, connslave *aslave);
+  int get_priority();
+  void update_priority();
+
 };
 
 master_job::master_job()
 {
+  this->priority_ = 0;
     this->jobid = -1;
     this->jobfd = -1;
     this->nummap = 0;
@@ -95,10 +121,15 @@ master_job::master_job()
     this->argvalues = NULL;
     this->stage = INITIAL_STAGE;
     status = TASK_FINISHED;
+
+	this->delay = 0;
+	this->delaystart = 0;
+	this->isdelay = false;
 }
 
 master_job::master_job (int id, int fd)
 {
+  this->priority_ = 0;
     scheduled = 0;
     this->jobid = id;
     this->jobfd = fd;
@@ -108,6 +139,10 @@ master_job::master_job (int id, int fd)
     this->argvalues = NULL;
     this->stage = INITIAL_STAGE;
     status = TASK_FINISHED;
+
+	this->delay = 0;
+	this->delaystart = 0;
+	this->isdelay = false;
 }
 
 master_job::~master_job()
@@ -203,6 +238,8 @@ void master_job::add_task (master_task* atask)
     this->waiting_tasks.push_back (atask);
 }
 
+
+
 master_task* master_job::get_task (int index)
 {
     if ( (unsigned) index >= tasks.size())
@@ -260,6 +297,14 @@ void master_job::schedule_task (master_task* atask, connslave* aslave)
             return;
         }
     }
+}
+
+void master_job::schedule_task_batch(master_task* atask,
+    connslave *aslave) {
+  running_tasks.push_back(atask);
+  aslave->add_runningtask(atask);
+  atask->set_status(RUNNING);
+  return;
 }
 
 void master_job::finish_task (master_task* atask, connslave* aslave)
@@ -346,7 +391,34 @@ job_stage master_job::get_stage()
 
 void master_job::set_stage (job_stage astage)
 {
-    this->stage = astage;
+	this->stage = astage;
+}
+
+void master_job::delayed (int time)
+{
+	if (!isdelay) {
+		this->delaystart = time;
+	}
+	this->delay = time;
+	isdelay = true;
+}
+
+void master_job::delayed ()
+{
+	delay++;
+}
+
+void master_job::sched ()
+{
+	this->delay = 0;
+	this->delaystart = 0;
+	this->isdelay = false;
+}
+
+int master_job::getdelayed ()
+{
+	return this->delay - this->delaystart;
+	// return this->delay;
 }
 
 
@@ -383,6 +455,18 @@ master_task::master_task (master_job* ajob, mr_role arole)
     this->job = ajob;
     this->role = arole;
     this->status = WAITING;
+
+/*
+	if(arole == REDUCE) {
+		this->numiblocks.push_back(new int[REDUCE_SLOT]);
+	}
+*/
+		
+}
+
+master_task::~master_task() {
+	// for (int i = 0; (unsigned) i < this->numiblocks.size(); ++i)
+	// 	delete[] this->numiblocks[i];
 }
 
 int master_task::gettaskid()
@@ -453,4 +537,55 @@ void master_task::set_taskrole (mr_role arole)
     this->role = arole;
 }
 
+void master_job::queue(int index) {
+  this->waiting_tasks.erase(this->waiting_tasks.begin() + index);
+}
+
+void master_job::withdraw(master_task *atask) {
+  this->waiting_tasks.insert(this->waiting_tasks.begin(), atask);
+}
+
+/*
+//[wb]
+void master_task::add_idatapath (string path) {
+	this->idatapaths.push_back (path);
+}
+
+string master_job::get_idatapath (int index) {
+	if ((unsigned) index < idatapaths.size()) {
+		return this->idatapaths[index];
+	}
+	else {
+		cout << "index out of bound in master_job::get_idatapath()" << endl;
+        return "";
+    }
+}
+
+
+*/
+void master_job::update_priority() {
+  int curr_time = (int)std::time(NULL);
+  int curr_complete = get_numcompleted_tasks();
+  int num_total_tasks = get_numtasks();
+  int curr_elapsed = curr_time - (int)start_time_;
+  double curr_estimated;
+  if (curr_complete >= 8) {
+    curr_estimated = (double)curr_elapsed * ((double)num_total_tasks / curr_complete);
+    // cout << "curr_estimated = " << curr_estimated << endl;
+    if (curr_estimated < 4 * 60) {
+      priority_ = 0;
+    } else if (curr_estimated < 8 * 60) {
+      priority_ = 1;
+    } else {
+      priority_ = 2;
+    } 
+  } else if (curr_elapsed > 4 * 60) {
+    priority_ = 2;
+  }
+  // cout << "curr_elapsed = " << curr_elapsed << endl << endl;
+  // sleep(3);
+}
+int master_job::get_priority() {
+  return priority_;
+}
 #endif

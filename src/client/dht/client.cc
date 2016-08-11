@@ -19,9 +19,9 @@
 
 using namespace std;
 
-char read_buf[BUF_SIZE];
-char write_buf[BUF_SIZE];
-char master_address[BUF_SIZE];
+char *read_buf;
+char *write_buf;
+char *master_address;
 int port = -1;
 int dhtport = -1;
 int masterfd = -1;
@@ -31,6 +31,9 @@ vector<string> nodelist;
 
 int main (int argc, char** argv)
 {
+    read_buf = (char*) malloc(BUF_SIZE);
+    write_buf = (char*) malloc(BUF_SIZE);
+    master_address= (char*) malloc(BUF_SIZE);
     // usage
     if (argc < 2)
     {
@@ -152,7 +155,8 @@ void* signal_listener (void* args)
 {
     int serverfd = * ( (int*) args);
     int readbytes = 0;
-    char tmp_buf[BUF_SIZE];
+    char *tmp_buf;
+    tmp_buf = (char*) malloc(BUF_SIZE);
     
     while (1)
     {

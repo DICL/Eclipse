@@ -26,6 +26,7 @@ class slave_task
     public:
         vector<int> peerids;
         vector<int> numiblocks;
+		vector<int> threadids;
         slave_task();
         slave_task (int id);
         ~slave_task();

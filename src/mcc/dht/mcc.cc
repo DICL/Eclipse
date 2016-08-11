@@ -24,9 +24,9 @@ int main (int argc, char** argv)
     
     char** argvalue = new char*[argc + 11];
     //argvalue[0] = "/usr/bin/g++";
-    argvalue[0] = new char[strlen ("/opt/centos/devtoolset-1.1/root/usr/bin/c++") + 1];
-    memset (argvalue[0], 0, strlen ("/opt/centos/devtoolset-1.1/root/usr/bin/c++") + 1);
-    strcpy (argvalue[0], "/opt/centos/devtoolset-1.1/root/usr/bin/c++");
+    argvalue[0] = new char[strlen ("/opt/centos/devtoolset-1.1/root/usr/bin/g++") + 1];
+    memset (argvalue[0], 0, strlen ("/opt/centos/devtoolset-1.1/root/usr/bin/g++") + 1);
+    strcpy (argvalue[0], "/opt/centos/devtoolset-1.1/root/usr/bin/g++");
      
     Settings setted;
     setted.load_settings ();

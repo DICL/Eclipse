@@ -1,2 +1,0 @@
-argnum=$#
-for

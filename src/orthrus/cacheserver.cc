@@ -15,6 +15,7 @@
 #include "iwfrequest.hh"
 #include "histogram.hh"
 #include <common/settings.hh>
+#include <sys/mman.h>
 
 using namespace std;
 
@@ -34,13 +35,15 @@ vector<iwfrequest*> iwfrequests;
 
 histogram* thehistogram;
 
-char read_buf[BUF_SIZE]; // read buffer for signal_listener thread
-char write_buf[BUF_SIZE]; // write buffer for signal_listener thread
+char *read_buf;
+char *write_buf;
 
 void open_server (int port);
 
 int main (int argc, char** argv)
 {
+    read_buf = (char*) malloc(BUF_SIZE);
+    write_buf = (char*) malloc(BUF_SIZE);
     master_connection themaster; // from <orthrus/cacheclient.hh>
     Settings setted;
     setted.load_settings();
@@ -195,7 +198,7 @@ int main (int argc, char** argv)
                     nbwrite (clients[i]->get_fd(), read_buf);
                 }
             }
-            else if (strncmp (read_buf, "iwritefinish", 12) == 0)
+            else if (strncmp (read_buf, "iwritefinish", 12) == 0) // from master (map finish!)
             {
                 string message;
                 stringstream ss;
@@ -241,22 +244,29 @@ int main (int argc, char** argv)
             
             if (readbytes > 0)
             {
-                if (strncmp (read_buf, "iwritefinish", 12) == 0)
+                if (strncmp (read_buf, "iwritefinish", 12) == 0) // from fileserver
                 {
                     char* token;
                     int jobid;
-                    int numblock;
+                    //int numblock;
+					int *num_block = new int[REDUCE_SLOT];
                     token = strtok (read_buf, " ");   // token <- "iwritefinish"
                     token = strtok (NULL, " ");   // token <- jobid
                     jobid = atoi (token);
-                    token = strtok (NULL, " ");   // token <- numblock
-                    numblock = atoi (token);
+					for (int j = 0; j < REDUCE_SLOT; ++j) {
+						token = strtok (NULL, " ");   // token <- numblock
+						num_block[j] = atoi (token);
+					}
                     
                     for (int j = 0; (unsigned) j < iwfrequests.size(); j++)
                     {
                         if (iwfrequests[j]->get_jobid() == jobid)
                         {
-                            iwfrequests[j]->add_receive (i, numblock);
+printf("receive added for client %d :",i);
+for(int k=0;k<REDUCE_SLOT;k++) printf(" %d",num_block[k]);
+printf("\n");
+
+                            iwfrequests[j]->add_receive (i, num_block);
                             break;
                         }
                     }
@@ -274,7 +284,7 @@ int main (int argc, char** argv)
         }
         
         for (int i = 0; (unsigned) i < iwfrequests.size(); i++)
-        {
+        { // job size (per job)
             // check whether the request has received all responds
             if (iwfrequests[i]->is_finished())
             {
@@ -283,14 +293,19 @@ int main (int argc, char** argv)
                 stringstream ss;
                 ss << "numblocks ";
                 ss << iwfrequests[i]->get_jobid();
+				ss << " ";
+				ss << iwfrequests[i]->peerids.size();
                 
                 for (int j = 0; (unsigned) j < iwfrequests[i]->peerids.size(); j++)
                 {
-                    ss << " ";
-                    ss << iwfrequests[i]->numblocks[j];
+					for (int k = 0; k < REDUCE_SLOT; ++k) {
+						ss << " ";
+						ss << iwfrequests[i]->numblocks[j][k];
+					}
                 }
                 
                 message = ss.str();
+printf("cacheserver to master : %s\n", message.c_str());
                 memset (write_buf, 0, BUF_SIZE);
                 strcpy (write_buf, message.c_str());
                 nbwrite (themaster.get_fd(), write_buf);

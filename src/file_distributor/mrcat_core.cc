@@ -10,7 +10,8 @@ using namespace std;
 
 int main (int argc, char** argv)
 {
-    char filename[BUF_SIZE];
+    char *filename;
+    filename = (char*)malloc(BUF_SIZE);
     
     if (argc != 2)
     {

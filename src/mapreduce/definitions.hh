@@ -8,6 +8,7 @@
 #include <stdlib.h>
 
 #include <config.h>
+//#include </home/youngmoon01/MRR/config.h> // [wb]
 
 using namespace std;
 
@@ -20,26 +21,51 @@ using namespace std;
 #define JAVA_FLAG "-ljvm"
 
 
-#define DHT_PATH "/scratch/youngmoon01/mr_storage/"
+#define DHT_PATH "/scratch2/youngmoon01/mr_storage/"
 #define MR_PATH "/home/youngmoon01/mr_storage/"
 #define IPC_PATH "/scratch/youngmoon01/socketfile"
 #define LIB_PATH "/home/youngmoon01/MRR/src/"
-#define BUF_SIZE (8*1024) // determines maximum size of a record
-#define BUF_THRESHOLD (7*1024) // the buffer flush threshold
-#define BUF_CUT 512
-#define CACHESIZE (1*1024*1024*1024) // 1 GB of cache size
-#define BLOCKSIZE (512*1024) // 512 KB sized block <- should be multiple of BUF_SIZE
 
+#define BUF_SIZE (8*1024) // determines maximum size of a record
+//#define BUF_SIZE (128*1024) // determines maximum size of a record
+// #define BUF_SIZE 4194304
+
+
+#define BUF_THRESHOLD (7*1024) // the buffer flush threshold 
+//#define BUF_THRESHOLD (127*1024) // the buffer flush threshold
+// #define BUF_THRESHOLD 4194303
+// #define BUF_THRESHOLD 8191
+
+//#define BUF_CUT 512
+#define BUF_CUT 512
+
+// #define CACHESIZE (3*1024) // 4 GB of cache size
+#define CACHESIZE 0 // 4 GB of cache size
+
+#define READAHEAD_SIZE 4194304
+#define PREFETCHING
+#define MAPNOREUSE
+
+#define BLOCKSIZE (512*1024) // 512 KB sized block <- should be multiple of BUF_SIZE
+//#define BLOCKSIZE (256*1024*1024) // 512 KB sized block <- should be multiple of BUF_SIZE
+// #define BLOCKSIZE 4194304
+
+//#define IBLOCKSIZE (32*1024*1024) // size of intermediate flush threshold
 #define IBLOCKSIZE (64*1024*1024) // size of intermediate flush threshold
 
+#define FILE_CHUNK_SIZE (64*1024*1024) // size of intermediate flush threshold
+//#define FILE_CHUNK_SIZE (64*1024*1024) // size of intermediate flush threshold
+
+#define METADATA_PORT 8932
+
 // EM-KDE
-#define ALPHA 0.001
+#define ALPHA 0.5
 #define NUMBIN 100 // number of histogram bins in the EM-KDE scheduling
 #define UPDATEINTERVAL 5000 // update interval in msec
 #define KERNELWIDTH 2 // number of bins affected by count_query() function: 1 + 2*KERNELWIDTH (except the boundary bins)
 
-#define MAP_SLOT 16
-#define REDUCE_SLOT 16
+#define MAP_SLOT 8 // [wb]
+#define REDUCE_SLOT 8 // [wb]
 
 
 #define HASHLENGTH 64
@@ -101,8 +127,9 @@ enum file_role
 int nbwrite (int fd, char* buf, char* contents)     // when the content should be specified
 {
     int written_bytes;
-    memset (buf, 0, BUF_SIZE);
     strcpy (buf, contents);
+	int writing_bytes = BUF_CUT * (strlen(contents) / BUF_CUT + 1);
+    memset (buf + strlen(contents), 0, writing_bytes - strlen(contents));
     
     while ( (written_bytes = write (fd, buf, BUF_CUT * (strlen (buf) / BUF_CUT + 1))) < 0)
     {
@@ -178,7 +205,13 @@ int nbwrite (int fd, char* buf, char* contents)     // when the content should b
 // non-blocking write
 int nbwrite (int fd, char* buf)     // when the content is already on the buffer
 {
+/*
+if(strncmp(buf, "Iread", 5) == 0) { // [wb]
+	cout << "[nbwrite] \"" << buf << "\"" << endl;
+}
+*/
     int written_bytes;
+	int writing_bytes = BUF_CUT * (strlen(buf) / BUF_CUT + 1);
     
     while ( (written_bytes = write (fd, buf, BUF_CUT * (strlen (buf) / BUF_CUT + 1))) < 0)
     {
@@ -238,10 +271,10 @@ int nbwrite (int fd, char* buf)     // when the content is already on the buffer
         usleep (1000);
     }
     
-    if (written_bytes != BUF_CUT * ( (int) strlen (buf) / BUF_CUT + 1))
+    if (written_bytes != writing_bytes)
     {
         int progress = written_bytes;
-        int remain = BUF_CUT * (strlen (buf) / BUF_CUT + 1) - written_bytes;
+        int remain = writing_bytes - written_bytes;
         
         while (remain > 0)
         {
@@ -264,11 +297,17 @@ int nbwrite (int fd, char* buf)     // when the content is already on the buffer
 // non-blocking read
 int nbread (int fd, char* buf)
 {
+
     int total_readbytes = 0;
     int readbytes = 0;
     memset (buf, 0, BUF_SIZE);
+	//buf[BUF_CUT - 1] = 0;
     readbytes = read (fd, buf, BUF_CUT);
-    
+/*
+if(strncmp(buf, "Iread", 5) == 0) { // [wb] 
+	cout << "[nbread] " << buf << endl;
+}   
+*/
     if (readbytes == 0)
     {
         return readbytes;
@@ -324,6 +363,7 @@ int nbread (int fd, char* buf)
         {
             while (1)
             {
+				//buf[total_readbytes + BUF_CUT - (total_readbytes % BUF_CUT) - 1] = 0;
                 readbytes = read (fd, buf + total_readbytes, BUF_CUT - (total_readbytes % BUF_CUT));
                 
                 if (readbytes == 0)

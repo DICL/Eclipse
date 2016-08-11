@@ -274,6 +274,17 @@ int histogram::count_query (unsigned query)
 
 int histogram::get_index (unsigned query)     // return the server index range of which includes the input query
 {
+	int index = query % numserver;
+	return index;
+
+
+
+
+
+
+
+
+
     for (int i = 0; i < numserver; i++)
     {
         if (query <= boundaries[i])
