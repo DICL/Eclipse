@@ -29,8 +29,8 @@
 
 
 // Available scheduling: {FCFS, EMKDE, DELAY}
-// #define EMKDE // scheduler
-#define DELAY // scheduler
+#define EMKDE // scheduler
+// #define DELAY // scheduler
 //#define NEW_SCHED // scheduler
 // #define LCA
 //#define NEW_LCA

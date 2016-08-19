@@ -1,0 +1,73 @@
+vpath %.cc src/file_distributor:src/orthrus:src/common
+.PHONY: lib docs src
+
+FS                     = dht
+CXX                    = /opt/centos/devtoolset-1.1/root/usr/bin/c++
+CXXFLAGS              ?= -Wall -std=c++11 -g -O2 -march=native
+INCLUDE                = -I ./ -I src/ -I src/common/ -I /usr/include/boost141/
+LDFLAGS                = -lpthread 
+package                = Eclipse
+version                = 00.12.23
+prefix                 = /usr/local
+BLDDIR                 = build/bin
+OBJDIR                 = build/objs
+
+SRC                    = $(shell find src/ -name "*.cc" -o -name "*.hh")
+ARTISTIC_STYLE_OPTIONS = -A1 -s4 -C -E --unpad-paren --pad-paren-out --pad-header \
+                         -x --break-blocks --add-brackets --convert-tabs --pad-oper -n
+
+SRCTARGETS             = cacheserver mrcat_core mrrm_core fd_core eclipse hash
+
+# DHT mode -------------------------------------------------------------
+ifeq ($(FS), dht)
+ vpath %.cc src/master/dht:src/slave/dht:src/client/dht:src/mcc/dht
+ SRCTARGETS           += slave master client mcc 
+endif 
+
+OBJECTS                = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(filter-out eclipse,$(SRCTARGETS) \
+												 launcher settings))) 
+TARGETS               := $(addprefix $(BLDDIR)/, $(filter-out hash, $(SRCTARGETS)))
+
+$(BLDDIR)/% : $(OBJDIR)/%.o
+	$(CXX) $(CXXFLAGS)  $^ -o $@ $(LDFLAGS)
+
+$(OBJDIR)/%.o : %.cc 
+	$(CXX) $(CXXFLAGS)  $(INCLUDE) -c $< -o $@
+
+#Setup recipes ---------------------------------------------------------
+all: mkdir src/common/settings.hh.gch $(OBJECTS) $(TARGETS) binaries 
+
+$(OBJDIR)/master.o    : INCLUDE := -include src/common/settings.hh $(INCLUDE) -I /usr/include/boost141/
+$(OBJDIR)/client.o    : INCLUDE := -include src/common/settings.hh $(INCLUDE) -I /usr/include/boost141/
+$(OBJDIR)/launcher.o  : INCLUDE := -include src/common/settings.hh $(INCLUDE) -I /usr/include/boost141/
+$(OBJDIR)/launcher.o  : src/file_distributor/fileserver.hh src/orthrus/histogram.hh
+
+$(BLDDIR)/master      : $(OBJDIR)/master.o $(OBJDIR)/hash.o $(OBJDIR)/settings.o
+$(BLDDIR)/client      : $(OBJDIR)/client.o $(OBJDIR)/settings.o
+$(BLDDIR)/slave       : $(OBJDIR)/slave.o $(OBJDIR)/settings.o
+$(BLDDIR)/mcc         : $(OBJDIR)/mcc.o $(OBJDIR)/settings.o
+$(BLDDIR)/cacheserver : $(OBJDIR)/cacheserver.o $(OBJDIR)/settings.o
+$(BLDDIR)/mrcat_core  : $(OBJDIR)/mrcat_core.o $(OBJDIR)/hash.o $(OBJDIR)/settings.o
+$(BLDDIR)/mrrm_core   : $(OBJDIR)/mrrm_core.o $(OBJDIR)/hash.o $(OBJDIR)/settings.o
+$(BLDDIR)/fd_core     : $(OBJDIR)/fd_core.o $(OBJDIR)/hash.o $(OBJDIR)/settings.o
+$(BLDDIR)/eclipse     : $(OBJDIR)/launcher.o $(OBJDIR)/hash.o $(OBJDIR)/settings.o
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
+
+src/common/settings.hh.gch : src/common/settings.hh
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $^
+
+mkdir: 
+	-mkdir -p $(OBJDIR)
+
+binaries : ; -rsync -a src/bin/ $(BLDDIR)
+lib      : ; -$(MAKE) -C lib/ -j16
+clean    : ; -rm $(TARGETS) $(OBJECTS)
+style    : ; astyle $(ARTISTIC_STYLE_OPTIONS) $(SRC)
+tags     : ; -ctags -R --c++-kinds=+p --fields=+iaS --extra=+q -o .tags .
+
+distclean: clean
+	-rm config.h config.h.in config.h.in~ autoscan.log config.log config.status \
+  configure Makefile autom4te.cache/ tags -rf
+
+dist: distclean
+	tar -cvzf ECLIPSE_$(version)`date +"%d-%m-%y"`.tar.gz ./*

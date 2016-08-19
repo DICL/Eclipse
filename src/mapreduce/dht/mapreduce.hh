@@ -579,6 +579,10 @@ void summ_mapreduce()
 	}
 	else if (role == MAP)       // map task
 	{
+#ifdef INJECT_TASK_OVERHEAD
+cout << "task overhead" << endl;
+sleep(5);
+#endif
 		// check whether no map or reduce function is running
 		if (inside_map || inside_reduce)
 		{
@@ -686,6 +690,9 @@ void summ_mapreduce()
 	}
 	else     // reduce task
 	{
+#ifdef INJECT_TASK_OVERHEAD
+sleep(5);
+#endif
 		// check whether no map or reduce function is running
 		if (inside_map || inside_reduce)
 		{

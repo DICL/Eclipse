@@ -42,9 +42,9 @@ using namespace std;
 // #define CACHESIZE (3*1024) // 4 GB of cache size
 #define CACHESIZE 0 // 4 GB of cache size
 
-#define READAHEAD_SIZE 4194304
-#define PREFETCHING
-#define MAPNOREUSE
+// #define PREFETCHING
+// #define INJECT_TASK_OVERHEAD
+// #define MAPNOREUSE
 
 #define BLOCKSIZE (512*1024) // 512 KB sized block <- should be multiple of BUF_SIZE
 //#define BLOCKSIZE (256*1024*1024) // 512 KB sized block <- should be multiple of BUF_SIZE
